@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     `
     return NextResponse.json(palpites)
   } catch (error) {
+    console.error('Erro ao buscar palpites:', error)
     return NextResponse.json({ error: 'Erro ao buscar palpites' }, { status: 500 })
   }
 }
@@ -50,8 +51,9 @@ export async function POST(request: Request) {
       RETURNING *
     `
 
-    return NextResponse.json(novoPalpite[0])
+    return NextResponse.json(novoPalpite[0], { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao registrar palpite' }, { status: 500 })
+    console.error('Erro ao registrar palpite:', error)
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }

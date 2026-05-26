@@ -5,12 +5,14 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+    
     const usuarios = await sql`
       SELECT id, email, nome, status, rodada_eliminacao, created_at
-      FROM usuarios WHERE id = ${params.id}
+      FROM usuarios WHERE id = ${id}
     `
 
     if (usuarios.length === 0) {
@@ -19,6 +21,7 @@ export async function GET(
 
     return NextResponse.json(usuarios[0])
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
+    console.error('Erro ao buscar usuário:', error)
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }

@@ -10,6 +10,7 @@ export async function GET() {
     `
     return NextResponse.json(times)
   } catch (error) {
+    console.error('Erro ao buscar times:', error)
     return NextResponse.json({ error: 'Erro ao buscar times' }, { status: 500 })
   }
 }

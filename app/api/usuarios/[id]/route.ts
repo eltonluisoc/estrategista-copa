@@ -9,19 +9,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    
     const usuarios = await sql`
-      SELECT id, email, nome, status, rodada_eliminacao, created_at
+      SELECT id, email, nome, status, rodada_eliminacao
       FROM usuarios WHERE id = ${id}
     `
-
     if (usuarios.length === 0) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
-
     return NextResponse.json(usuarios[0])
   } catch (error) {
-    console.error('Erro ao buscar usuário:', error)
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
   }
 }

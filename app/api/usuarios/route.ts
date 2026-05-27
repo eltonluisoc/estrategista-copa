@@ -3,6 +3,22 @@ import { NextResponse } from 'next/server'
 
 const sql = neon(process.env.DATABASE_URL!)
 
+// GET - Buscar todos os usuários
+export async function GET() {
+  try {
+    const usuarios = await sql`
+      SELECT id, nome, email, status, rodada_eliminacao 
+      FROM usuarios 
+      ORDER BY nome
+    `
+    return NextResponse.json(usuarios)
+  } catch (error) {
+    console.error('Erro ao buscar usuários:', error)
+    return NextResponse.json({ error: 'Erro ao buscar usuários' }, { status: 500 })
+  }
+}
+
+// POST - Criar novo usuário
 export async function POST(request: Request) {
   try {
     const { nome, email, senha } = await request.json()

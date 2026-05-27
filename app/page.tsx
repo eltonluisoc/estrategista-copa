@@ -55,11 +55,11 @@ export default function Home() {
         <p className="text-md text-yellow-500/70 max-w-2xl mx-auto mb-8 italic">
           48 seleções. 8 rodadas. 1 estrategista.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <a href="/cadastro" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-8 rounded-lg text-lg transition shadow-lg hover:shadow-xl">
             Começar agora
           </a>
-          <a href="/sobre" className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 px-8 rounded-lg text-lg transition">
+          <a href="/como-funciona" className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 px-8 rounded-lg text-lg transition">
             Como funciona
           </a>
         </div>
@@ -87,7 +87,7 @@ export default function Home() {
       </section>
 
       {/* Bandeiras decorativas */}
-      <div className="relative z-10 flex justify-center gap-4 py-8 opacity-40">
+      <div className="relative z-10 flex justify-center gap-4 py-8 opacity-40 flex-wrap">
         <span className="text-2xl">🇧🇷</span>
         <span className="text-2xl">🇦🇷</span>
         <span className="text-2xl">🇫🇷</span>
@@ -101,20 +101,15 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-white/10">
         <p className="mb-2">Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-        <div className="flex justify-center gap-3 text-xs text-gray-600">
+        <div className="flex justify-center gap-3 text-xs text-gray-600 flex-wrap">
           <span>⚽ Brasil 2002</span>
           <span>🏆 Alemanha 2014</span>
           <span>🇫🇷 França 2018</span>
           <span>🇦🇷 Argentina 2022</span>
         </div>
-        {/* Créditos adicionados */}
         <div className="mt-4 pt-3 border-t border-white/5">
-          <p>
-            Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span>
-          </p>
-          <p className="text-xs text-gray-600 mt-1">
-            © {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados
-          </p>
+          <p>Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span></p>
+          <p className="text-xs text-gray-600 mt-1">© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
         </div>
       </footer>
     </div>

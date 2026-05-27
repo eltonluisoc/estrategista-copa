@@ -10,7 +10,8 @@ const timesLista = [
   'Portugal', 'Holanda', 'Itália', 'Bélgica', 'Croácia', 'Uruguai',
   'México', 'Coreia do Sul', 'África do Sul', 'República Tcheca',
   'Canadá', 'Bósnia', 'Catar', 'Suíça', 'Marrocos', 'Haiti', 'Escócia',
-  'EUA', 'Paraguai', 'Austrália', 'Turquia'
+  'EUA', 'Paraguai', 'Austrália', 'Turquia', 'Curaçao', 'Costa do Marfim',
+  'Equador', 'Japão', 'Suécia', 'Tunísia', 'Egito', 'Irã', 'Nova Zelândia'
 ];
 
 export default function AdminPage() {
@@ -21,6 +22,7 @@ export default function AdminPage() {
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [processandoMataMata, setProcessandoMataMata] = useState(false);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -99,6 +101,24 @@ export default function AdminPage() {
     }
   };
 
+  const executarMataMata = async () => {
+    setProcessandoMataMata(true);
+    setMensagem(null);
+    try {
+      const res = await fetch('/api/mata-mata/calcular', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: data.message });
+        carregarJogos();
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao processar mata-mata' });
+    }
+    setProcessandoMataMata(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
@@ -126,8 +146,19 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm flex items-center gap-1">
+            <button
+              onClick={() => { setEditando(null); setModalAberto(true); }}
+              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
+            >
               <Plus className="w-4 h-4" /> Novo Jogo
+            </button>
+            <button
+              onClick={executarMataMata}
+              disabled={processandoMataMata}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
+            >
+              <Trophy className="w-4 h-4" />
+              {processandoMataMata ? 'Processando...' : 'Calcular Mata-mata'}
             </button>
             <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white">
               <LogOut className="w-5 h-5" />
@@ -209,9 +240,10 @@ export default function AdminPage() {
               <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
               <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
                 <option value="Grupos">Fase de Grupos</option>
+                <option value="Round of 32">Round of 32</option>
                 <option value="Oitavas">Oitavas de Final</option>
                 <option value="Quartas">Quartas de Final</option>
-                <option value="Semi">Semifinal</option>
+                <option value="Semifinal">Semifinal</option>
                 <option value="Final">Final</option>
               </select>
               <button onClick={salvarJogo} className="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded font-bold mt-2">

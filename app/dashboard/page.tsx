@@ -72,7 +72,6 @@ export default function DashboardPage() {
     }
   }, [status, session]);
 
-  // Verificação automática de aprovação (30 segundos)
   useEffect(() => {
     const interval = setInterval(async () => {
       if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com' && !estaAprovado) {
@@ -121,7 +120,6 @@ export default function DashboardPage() {
       setPalpites(palpitesData);
       setJogos(jogosData);
       
-      // Determinar rodada atual
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora);
       if (jogosFuturos.length > 0) {
@@ -236,63 +234,63 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30">
+      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 p-4">
         <div className="container mx-auto px-4 py-3">
-  <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-    <div className="flex items-center gap-2">
-      <Trophy className="w-8 h-8 text-yellow-500" />
-      <h1 className="text-lg sm:text-xl font-bold text-white tracking-tighter">
-        Estrategista<span className="text-yellow-500"> da Copa</span>
-      </h1>
-    </div>
-    <div className="flex flex-wrap justify-center gap-2">
-      <button onClick={() => router.push('/classificacao')}
-        className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded text-sm">
-        Classificação
-      </button>
-      <button onClick={() => router.push('/mata-mata')}
-        className="bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-1.5 rounded text-sm">
-        Mata-mata
-      </button>
-      <button onClick={forcarRecarregamento}
-        className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-1.5 rounded text-sm">
-        <RefreshCw className="w-4 h-4 inline" /> Atualizar
-      </button>
-      <a href="https://wa.me/5561998507770" target="_blank"
-        className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded text-sm">
-        📱 Dúvidas
-      </a>
-      <button onClick={() => signOut()}
-        className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded text-sm">
-        Sair
-      </button>
-    </div>
-  </div>
-  <div className="text-center sm:text-right text-gray-300 text-sm mt-2">
-    Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
-  </div>
-</div>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-8 h-8 text-yellow-500" />
+              <h1 className="text-lg sm:text-xl font-bold text-white tracking-tighter">
+                Estrategista<span className="text-yellow-500"> da Copa</span>
+              </h1>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button onClick={() => router.push('/classificacao')}
+                className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded text-sm">
+                Classificação
+              </button>
+              <button onClick={() => router.push('/mata-mata')}
+                className="bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-1.5 rounded text-sm">
+                Mata-mata
+              </button>
+              <button onClick={forcarRecarregamento}
+                className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-1.5 rounded text-sm">
+                <RefreshCw className="w-4 h-4 inline" /> Atualizar
+              </button>
+              <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer"
+                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded text-sm">
+                📱 Dúvidas
+              </a>
+              <button onClick={() => signOut()}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded text-sm">
+                Sair
+              </button>
+            </div>
+          </div>
+          <div className="text-center sm:text-right text-gray-300 text-sm mt-2">
+            Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
+          </div>
+        </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-  <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-500/30 text-center">
-    <Users className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 mx-auto mb-2" />
-    <div className="text-2xl sm:text-3xl font-bold text-green-400">{estatisticas.total}</div>
-    <div className="text-gray-400 text-xs sm:text-sm">Total de Participantes</div>
-  </div>
-  <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-500/30 text-center">
-    <UserCheck className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400 mx-auto mb-2" />
-    <div className="text-2xl sm:text-3xl font-bold text-blue-400">{estatisticas.ativos}</div>
-    <div className="text-gray-400 text-xs sm:text-sm">Participantes Ativos</div>
-  </div>
-  <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-red-500/30 text-center">
-    <UserX className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 mx-auto mb-2" />
-    <div className="text-2xl sm:text-3xl font-bold text-red-400">{estatisticas.eliminados}</div>
-    <div className="text-gray-400 text-xs sm:text-sm">Participantes Eliminados</div>
-  </div>
-</div>
+          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-500/30 text-center">
+            <Users className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 mx-auto mb-2" />
+            <div className="text-2xl sm:text-3xl font-bold text-green-400">{estatisticas.total}</div>
+            <div className="text-gray-400 text-xs sm:text-sm">Total de Participantes</div>
+          </div>
+          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-500/30 text-center">
+            <UserCheck className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400 mx-auto mb-2" />
+            <div className="text-2xl sm:text-3xl font-bold text-blue-400">{estatisticas.ativos}</div>
+            <div className="text-gray-400 text-xs sm:text-sm">Participantes Ativos</div>
+          </div>
+          <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-red-500/30 text-center">
+            <UserX className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 mx-auto mb-2" />
+            <div className="text-2xl sm:text-3xl font-bold text-red-400">{estatisticas.eliminados}</div>
+            <div className="text-gray-400 text-xs sm:text-sm">Participantes Eliminados</div>
+          </div>
+        </div>
 
         {/* Mensagem de aprovação pendente */}
         {!estaAprovado && (

@@ -276,23 +276,23 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
-            <Users className="w-10 h-10 text-green-400 mx-auto mb-2" />
-            <div className="text-3xl font-bold text-green-400">{estatisticas.total}</div>
-            <div className="text-gray-400 text-sm">Total de Participantes</div>
-          </div>
-          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
-            <UserCheck className="w-10 h-10 text-blue-400 mx-auto mb-2" />
-            <div className="text-3xl font-bold text-blue-400">{estatisticas.ativos}</div>
-            <div className="text-gray-400 text-sm">Participantes Ativos</div>
-          </div>
-          <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 text-center">
-            <UserX className="w-10 h-10 text-red-400 mx-auto mb-2" />
-            <div className="text-3xl font-bold text-red-400">{estatisticas.eliminados}</div>
-            <div className="text-gray-400 text-sm">Participantes Eliminados</div>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+  <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-500/30 text-center">
+    <Users className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 mx-auto mb-2" />
+    <div className="text-2xl sm:text-3xl font-bold text-green-400">{estatisticas.total}</div>
+    <div className="text-gray-400 text-xs sm:text-sm">Total de Participantes</div>
+  </div>
+  <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-500/30 text-center">
+    <UserCheck className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400 mx-auto mb-2" />
+    <div className="text-2xl sm:text-3xl font-bold text-blue-400">{estatisticas.ativos}</div>
+    <div className="text-gray-400 text-xs sm:text-sm">Participantes Ativos</div>
+  </div>
+  <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-red-500/30 text-center">
+    <UserX className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 mx-auto mb-2" />
+    <div className="text-2xl sm:text-3xl font-bold text-red-400">{estatisticas.eliminados}</div>
+    <div className="text-gray-400 text-xs sm:text-sm">Participantes Eliminados</div>
+  </div>
+</div>
 
         {/* Mensagem de aprovação pendente */}
         {!estaAprovado && (

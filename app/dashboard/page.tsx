@@ -73,25 +73,27 @@ export default function DashboardPage() {
   }, [status, session]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com' && !estaAprovado) {
-        try {
-          const res = await fetch('/api/usuarios/atualizar-sessao');
-          const data = await res.json();
-          
-          if (data.aprovado === true) {
-            await update();
-            carregarDados();
-            setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
-          }
-        } catch (error) {
-          console.error('Erro ao verificar aprovação:', error);
+  const interval = setInterval(async () => {
+    if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
+      try {
+        // Verificar status atualizado do usuário
+        const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
+        const userData = await userRes.json();
+        
+        if (userData.aprovado === true && !estaAprovado) {
+          await update();
+          carregarDados();
+          carregarEstatisticas();
+          setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
         }
+      } catch (error) {
+        console.error('Erro ao verificar aprovação:', error);
       }
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [session, estaAprovado, update]);
+    }
+  }, 15000); // 15 segundos
+  
+  return () => clearInterval(interval);
+}, [session, estaAprovado, update]);
 
   const carregarEstatisticas = async () => {
     try {
@@ -192,40 +194,35 @@ export default function DashboardPage() {
   };
 
   const forcarRecarregamento = async () => {
-    setMensagem(null);
-    await carregarDados();
-    if (!estaAprovado) {
-      const res = await fetch('/api/usuarios/atualizar-sessao');
-      const data = await res.json();
-      if (data.aprovado === true) {
-        await update();
-        carregarDados();
-        setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
-      } else {
-        setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
-      }
+  setMensagem(null);
+  setLoading(true);
+  
+  try {
+    // Primeiro, buscar status atualizado do usuário
+    const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
+    const userData = await userRes.json();
+    setUsuario(userData);
+    
+    // Verificar aprovação
+    const sessaoRes = await fetch('/api/usuarios/atualizar-sessao');
+    const sessaoData = await sessaoRes.json();
+    
+    if (sessaoData.aprovado === true) {
+      await update(); // Forçar atualização da sessão NextAuth
+      setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+      // Recarregar tudo
+      carregarDados();
+      carregarEstatisticas();
+    } else {
+      setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
+      setLoading(false);
     }
-  };
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
-      </div>
-    );
+  } catch (error) {
+    console.error('Erro:', error);
+    setMensagem({ tipo: 'erro', texto: 'Erro ao verificar aprovação' });
+    setLoading(false);
   }
-
-  if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
-    return null;
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando dados...</div>
-      </div>
-    );
-  }
+};
 
   const timesJaUsados = palpites.map(p => p.time_id);
   const timesDisponiveis = times.filter(t => !timesJaUsados.includes(t.id));

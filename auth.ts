@@ -22,17 +22,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         
         if (!user) return null
         
-        // VERIFICAÇÃO DE APROVAÇÃO
-        if (!user.aprovado) {
-          throw new Error('Aguardando aprovação do administrador')
-        }
-        
+        // Verifica senha
         if (credentials.password !== user.senha) return null
         
+        // NÃO BLOQUEIA MAIS O LOGIN SE NÃO FOR APROVADO
+        // Apenas retorna o usuário com a flag aprovado
         return { 
           id: user.id, 
           email: user.email, 
-          name: user.nome 
+          name: user.nome,
+          aprovado: user.aprovado
         }
       }
     })
@@ -43,7 +42,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.sub) {
         session.user.id = token.sub
       }
+      // Adicionar flag aprovado na sessão
+      session.user.aprovado = token.aprovado as boolean
       return session
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.aprovado = user.aprovado
+      }
+      return token
     }
   }
 })

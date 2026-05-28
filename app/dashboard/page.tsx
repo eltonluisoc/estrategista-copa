@@ -44,6 +44,9 @@ export default function DashboardPage() {
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
+  // Verificar se o usuário está aprovado
+  const estaAprovado = session?.user?.aprovado === true;
+
   // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
     // Se não está logado, redireciona para login
@@ -178,58 +181,57 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30">
-  <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-    <div className="flex items-center gap-3">
-      <Trophy className="w-8 h-8 text-yellow-500" />
-      <h1 className="text-2xl font-bold text-white tracking-tighter">
-        Estrategista<span className="text-yellow-500"> da Copa</span>
-      </h1>
-    </div>
-    <div className="flex items-center gap-4">
-      <button
-        onClick={() => router.push('/rodada')}
-        className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2 rounded-lg transition"
-      >
-        <Eye className="w-4 h-4" />
-        Ver Rodada Atual
-      </button>
-      <button
-        onClick={() => router.push('/classificacao')}
-        className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg transition"
-      >
-        <Trophy className="w-4 h-4" />
-        Classificação
-      </button>
-      <button
-        onClick={() => router.push('/mata-mata')}
-        className="flex items-center gap-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-4 py-2 rounded-lg transition"
-      >
-        <Trophy className="w-4 h-4" />
-        Mata-mata
-      </button>
-      <span className="text-gray-300 hidden md:inline">
-        Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
-      </span>
-      {/* BOTÃO WHATSAPP - ADICIONE AQUI */}
-      <a
-        href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
-      >
-        <span>📱</span>
-        WhatsApp
-      </a>
-      <button
-        onClick={() => signOut()}
-        className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"
-      >
-        <LogOut className="w-4 h-4" />
-        Sair
-      </button>
-    </div>
-  </div>
-</header>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Trophy className="w-8 h-8 text-yellow-500" />
+            <h1 className="text-2xl font-bold text-white tracking-tighter">
+              Estrategista<span className="text-yellow-500"> da Copa</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/rodada')}
+              className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2 rounded-lg transition"
+            >
+              <Eye className="w-4 h-4" />
+              Ver Rodada Atual
+            </button>
+            <button
+              onClick={() => router.push('/classificacao')}
+              className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg transition"
+            >
+              <Trophy className="w-4 h-4" />
+              Classificação
+            </button>
+            <button
+              onClick={() => router.push('/mata-mata')}
+              className="flex items-center gap-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-4 py-2 rounded-lg transition"
+            >
+              <Trophy className="w-4 h-4" />
+              Mata-mata
+            </button>
+            <span className="text-gray-300 hidden md:inline">
+              Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
+            </span>
+            <a
+              href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
+            >
+              <span>📱</span>
+              WhatsApp
+            </a>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </button>
+          </div>
+        </div>
+      </header>
 
       <div className="container mx-auto px-4 py-8">
         {/* Cards de Estatísticas */}
@@ -279,7 +281,19 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
             <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
             
-            {usuario?.status === 'eliminado' ? (
+            {!estaAprovado ? (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+                <p className="text-yellow-400 font-semibold">⏳ Inscrição pendente</p>
+                <p className="text-gray-400 mt-2">
+                  Seu cadastro aguarda aprovação do administrador.<br />
+                  Após a confirmação do pagamento, você poderá fazer seus palpites.
+                </p>
+                <p className="text-gray-500 text-sm mt-4">
+                  📱 Dúvidas? Entre em contato pelo WhatsApp: (61) 99850-7770
+                </p>
+              </div>
+            ) : usuario?.status === 'eliminado' ? (
               <div className="text-center py-8">
                 <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
                 <p className="text-gray-400">Você foi eliminado!</p>

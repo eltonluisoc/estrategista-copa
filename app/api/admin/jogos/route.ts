@@ -41,6 +41,15 @@ export async function POST(request: Request) {
         SET finalizado = true, vencedor_id = NULL
         WHERE id = ${jogoId}
       `
+
+      // Após processar o resultado, atualizar a próxima fase (se for mata-mata)
+if (rodada >= 4 && rodada <= 7) {
+  await fetch(`${process.env.NEXTAUTH_URL}/api/admin/atualizar-proxima-fase`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jogoId, vencedor, rodadaAtual: rodada })
+  }).catch(console.error)
+}
       
       // Buscar todos os palpites desta rodada
       const todosPalpites = await sql`

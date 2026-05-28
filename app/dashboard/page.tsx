@@ -33,6 +33,7 @@ interface Estatisticas {
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
   const [times, setTimes] = useState<Time[]>([]);
@@ -42,13 +43,21 @@ export default function DashboardPage() {
   const [timeSelecionado, setTimeSelecionado] = useState('');
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
-  const router = useRouter();
 
+  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
+    // Se não está logado, redireciona para login
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.replace('/login');
+      return;
     }
-    if (session?.user?.id) {
+    // Se é admin, redireciona para admin
+    if (session?.user?.email === 'admin@estrategista.com') {
+      router.replace('/admin');
+      return;
+    }
+    // Se é participante normal, carrega dados
+    if (status === 'authenticated' && session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
       carregarDados();
       carregarEstatisticas();
     }
@@ -140,10 +149,24 @@ export default function DashboardPage() {
     }
   };
 
+  // Tela de carregamento enquanto verifica sessão
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+      </div>
+    );
+  }
+
+  // Se não é participante válido, não renderiza (redirecionamento já aconteceu)
+  if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando...</div>
+        <div className="text-yellow-500 text-xl">Carregando dados...</div>
       </div>
     );
   }
@@ -176,6 +199,13 @@ export default function DashboardPage() {
             >
               <Trophy className="w-4 h-4" />
               Classificação
+            </button>
+            <button
+              onClick={() => router.push('/mata-mata')}
+              className="flex items-center gap-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-4 py-2 rounded-lg transition"
+            >
+              <Trophy className="w-4 h-4" />
+              Mata-mata
             </button>
             <span className="text-gray-300 hidden md:inline">
               Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>

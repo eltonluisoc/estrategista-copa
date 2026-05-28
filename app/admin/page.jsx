@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, Users, DollarSign, UserCheck } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -14,10 +14,14 @@ const timesLista = [
   'Equador', 'Japão', 'Suécia', 'Tunísia', 'Egito', 'Irã', 'Nova Zelândia'
 ];
 
+const VALOR_INSCRICAO = 30; // R$30,00
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [jogos, setJogos] = useState([]);
+  const [usuariosPendentes, setUsuariosPendentes] = useState([]);
+  const [financeiro, setFinanceiro] = useState({ totalArrecadado: 0, custos: 0, premio: 0, totalAprovados: 0 });
   const [loading, setLoading] = useState(true);
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
@@ -37,6 +41,8 @@ export default function AdminPage() {
     }
     if (session?.user?.email === 'admin@estrategista.com') {
       carregarJogos();
+      carregarUsuariosPendentes();
+      carregarFinanceiro();
     } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
       router.push('/dashboard');
     }
@@ -54,6 +60,45 @@ export default function AdminPage() {
     }
   };
 
+  const carregarUsuariosPendentes = async () => {
+    try {
+      const res = await fetch('/api/admin/usuarios/pendentes');
+      const data = await res.json();
+      setUsuariosPendentes(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const carregarFinanceiro = async () => {
+    try {
+      const res = await fetch('/api/admin/financeiro');
+      const data = await res.json();
+      setFinanceiro(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const aprovarUsuario = async (usuarioId) => {
+    try {
+      const res = await fetch('/api/admin/usuarios/aprovar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId })
+      });
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
+        carregarUsuariosPendentes();
+        carregarFinanceiro();
+      } else {
+        setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+    }
+  };
+
   const processarResultado = async (jogoId, vencedor, rodada) => {
     setMensagem(null);
     try {
@@ -66,6 +111,7 @@ export default function AdminPage() {
       if (res.ok) {
         setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
+        carregarFinanceiro();
       } else {
         setMensagem({ tipo: 'erro', texto: data.error });
       }
@@ -175,6 +221,56 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Cards Financeiros */}
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
+            <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
+            <div className="text-gray-400 text-sm">Total Arrecadado</div>
+            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes aprovados</div>
+          </div>
+          <div className="bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 text-center">
+            <Users className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
+            <div className="text-gray-400 text-sm">10% Custos do Site</div>
+          </div>
+          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
+            <Trophy className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-400">R$ {financeiro.premio}</div>
+            <div className="text-gray-400 text-sm">Prêmio Final</div>
+          </div>
+        </div>
+
+        {/* Usuários Pendentes de Aprovação */}
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <UserCheck className="w-6 h-6 text-yellow-500" />
+            👥 Usuários Pendentes ({usuariosPendentes.length})
+          </h2>
+          {usuariosPendentes.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
+          ) : (
+            <div className="space-y-2">
+              {usuariosPendentes.map(usuario => (
+                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
+                  <div>
+                    <div className="text-white font-medium">{usuario.nome}</div>
+                    <div className="text-gray-400 text-sm">{usuario.email}</div>
+                    <div className="text-gray-500 text-xs">Cadastrado em: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}</div>
+                  </div>
+                  <button
+                    onClick={() => aprovarUsuario(usuario.id)}
+                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Aprovar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Jogos Pendentes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (

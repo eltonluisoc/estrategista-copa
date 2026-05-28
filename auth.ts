@@ -13,35 +13,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Senha", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
+        if (!credentials?.email || !credentials?.password) return null
+        
         const users = await sql`
           SELECT * FROM usuarios WHERE email = ${credentials.email}
         `
-
         const user = users[0]
-
-        if (!user) {
-          return null
+        
+        if (!user) return null
+        
+        // VERIFICAÇÃO DE APROVAÇÃO
+        if (!user.aprovado) {
+          throw new Error('Aguardando aprovação do administrador')
         }
-
-        if (credentials.password !== user.senha) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.nome,
+        
+        if (credentials.password !== user.senha) return null
+        
+        return { 
+          id: user.id, 
+          email: user.email, 
+          name: user.nome 
         }
       }
     })
   ],
-  pages: {
-    signIn: "/login",
-  },
+  pages: { signIn: "/login" },
   callbacks: {
     async session({ session, token }) {
       if (token.sub) {

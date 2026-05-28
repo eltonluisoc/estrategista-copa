@@ -1,10 +1,16 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST() {
   try {
+    const session = await auth()
+    if (session?.user?.email !== 'admin@estrategista.com') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     // Verificar se todos os jogos da fase de grupos estão finalizados
     const gruposPendentes = await sql`
       SELECT COUNT(*) as total 
@@ -20,7 +26,7 @@ export async function POST() {
       }, { status: 400 })
     }
 
-    // 1. Buscar classificação de todos os grupos
+    // Buscar classificação de todos os grupos
     const classificacao = await sql`
       SELECT c.*, t.nome as time_nome 
       FROM classificacao c
@@ -28,77 +34,50 @@ export async function POST() {
       ORDER BY c.grupo, c.pontos DESC, c.saldo_gols DESC, c.gols_pro DESC
     `
     
-    // 2. Agrupar por grupo
+    // Agrupar por grupo
     const grupos: { [key: string]: any[] } = {}
     for (const item of classificacao) {
       if (!grupos[item.grupo]) grupos[item.grupo] = []
       grupos[item.grupo].push(item)
     }
     
-    // 3. Pegar vencedores (1º lugar) e segundos lugares (2º lugar)
+    // Pegar vencedores (1º lugar) e segundos lugares (2º lugar)
     const vencedores: any[] = []
     const segundos: any[] = []
+    const terceiros: any[] = []
     
     for (const grupo of Object.keys(grupos).sort()) {
       const times = grupos[grupo]
       if (times[0]) vencedores.push({ ...times[0], grupo })
       if (times[1]) segundos.push({ ...times[1], grupo })
+      if (times[2]) terceiros.push({ ...times[2], grupo })
     }
     
-    // 4. Pegar melhores terceiros (top 8 de todos os grupos)
-    const terceiros: any[] = []
-    for (const grupo of Object.keys(grupos)) {
-      if (grupos[grupo][2]) {
-        terceiros.push({ ...grupos[grupo][2], grupo: grupos[grupo][2].grupo })
-      }
-    }
-    terceiros.sort((a, b) => b.pontos - a.pontos || b.saldo_gols - a.saldo_gols)
-    const melhoresTerceiros = terceiros.slice(0, 8)
+    // Pegar melhores terceiros (top 8)
+    const melhoresTerceiros = terceiros
+      .sort((a, b) => b.pontos - a.pontos || b.saldo_gols - a.saldo_gols || b.gols_pro - a.gols_pro)
+      .slice(0, 8)
     
-    // Mapeamento oficial dos confrontos do Round of 32
-const confrontos = [
-  // Jogos com 3º lugares (dependem da classificação geral)
-  { casa: 'Vencedor Grupo A', fora: '3º melhor grupo (C/D/E/F)', prioridade: 'primeiro_melhor_terceiro' },
-  { casa: 'Vencedor Grupo B', fora: '3º melhor grupo (C/D/E/F)', prioridade: 'segundo_melhor_terceiro' },
-  { casa: 'Vencedor Grupo I', fora: '3º melhor grupo (C/D/E/F)', prioridade: 'terceiro_melhor_terceiro' },
-  { casa: 'Vencedor Grupo J', fora: '3º melhor grupo (C/D/E/F)', prioridade: 'quarto_melhor_terceiro' },
-  
-  // Jogos entre 1º e 2º lugares de grupos diferentes
-  { casa: 'Vencedor Grupo C', fora: '2º lugar Grupo D', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo D', fora: '2º lugar Grupo C', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo E', fora: '2º lugar Grupo F', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo F', fora: '2º lugar Grupo E', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo G', fora: '2º lugar Grupo H', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo H', fora: '2º lugar Grupo G', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo K', fora: '2º lugar Grupo L', prioridade: 'fixo' },
-  { casa: 'Vencedor Grupo L', fora: '2º lugar Grupo K', prioridade: 'fixo' },
-]
-
-// Organizar melhores terceiros
-const melhoresTerceiros = terceiros.sort((a, b) => 
-  b.pontos - a.pontos || b.saldo_gols - a.saldo_gols || b.gols_pro - a.gols_pro
-).slice(0, 8)
-
-// Atribuir os melhores terceiros aos confrontos específicos
-const confrontosComTimes = confrontos.map(confronto => {
-  if (confronto.prioridade === 'primeiro_melhor_terceiro' && melhoresTerceiros[0]) {
-    return { ...confronto, fora: melhoresTerceiros[0].time_nome }
-  }
-  if (confronto.prioridade === 'segundo_melhor_terceiro' && melhoresTerceiros[1]) {
-    return { ...confronto, fora: melhoresTerceiros[1].time_nome }
-  }
-  if (confronto.prioridade === 'terceiro_melhor_terceiro' && melhoresTerceiros[2]) {
-    return { ...confronto, fora: melhoresTerceiros[2].time_nome }
-  }
-  if (confronto.prioridade === 'quarto_melhor_terceiro' && melhoresTerceiros[3]) {
-    return { ...confronto, fora: melhoresTerceiros[3].time_nome }
-  }
-  return confronto
-})
+    // Montar confrontos do Round of 32
+    const confrontos = [
+      { casa: vencedores.find(v => v.grupo === 'A'), fora: melhoresTerceiros[0] },
+      { casa: vencedores.find(v => v.grupo === 'B'), fora: melhoresTerceiros[1] },
+      { casa: vencedores.find(v => v.grupo === 'C'), fora: segundos.find(s => s.grupo === 'D') },
+      { casa: vencedores.find(v => v.grupo === 'D'), fora: segundos.find(s => s.grupo === 'C') },
+      { casa: vencedores.find(v => v.grupo === 'E'), fora: segundos.find(s => s.grupo === 'F') },
+      { casa: vencedores.find(v => v.grupo === 'F'), fora: segundos.find(s => s.grupo === 'E') },
+      { casa: vencedores.find(v => v.grupo === 'G'), fora: segundos.find(s => s.grupo === 'H') },
+      { casa: vencedores.find(v => v.grupo === 'H'), fora: segundos.find(s => s.grupo === 'G') },
+      { casa: vencedores.find(v => v.grupo === 'I'), fora: melhoresTerceiros[2] },
+      { casa: vencedores.find(v => v.grupo === 'J'), fora: melhoresTerceiros[3] },
+      { casa: vencedores.find(v => v.grupo === 'K'), fora: segundos.find(s => s.grupo === 'L') },
+      { casa: vencedores.find(v => v.grupo === 'L'), fora: segundos.find(s => s.grupo === 'K') },
+    ]
     
-    // 6. Atualizar os jogos do Round of 32 (rodada 4)
+    // Buscar jogos do Round of 32 (rodada 4)
     const jogosRound32 = await sql`SELECT * FROM jogos WHERE rodada = 4 ORDER BY id`
     
+    // Atualizar confrontos
     for (let i = 0; i < confrontos.length && i < jogosRound32.length; i++) {
       const confronto = confrontos[i]
       const jogo = jogosRound32[i]

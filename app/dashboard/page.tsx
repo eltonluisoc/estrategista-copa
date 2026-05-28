@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Eye, Edit, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
+import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -25,6 +25,16 @@ interface Palpite {
   rodada: number;
 }
 
+interface Jogo {
+  id: number;
+  time_casa: string;
+  time_fora: string;
+  data_hora: string;
+  grupo: string;
+  finalizado: boolean;
+  rodada: number;
+}
+
 interface Estatisticas {
   total: number;
   ativos: number;
@@ -38,16 +48,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [times, setTimes] = useState<Time[]>([]);
   const [palpites, setPalpites] = useState<Palpite[]>([]);
+  const [jogos, setJogos] = useState<Jogo[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [rodadaAtual, setRodadaAtual] = useState(1);
   const [timeSelecionado, setTimeSelecionado] = useState('');
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
-  // Verificar se o usuário está aprovado
   const estaAprovado = session?.user?.aprovado === true;
 
-  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.replace('/login');
@@ -63,7 +72,7 @@ export default function DashboardPage() {
     }
   }, [status, session]);
 
-  // --- VERIFICAÇÃO AUTOMÁTICA DE APROVAÇÃO (a cada 30 segundos) ---
+  // Verificação automática de aprovação (30 segundos)
   useEffect(() => {
     const interval = setInterval(async () => {
       if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com' && !estaAprovado) {
@@ -72,9 +81,7 @@ export default function DashboardPage() {
           const data = await res.json();
           
           if (data.aprovado === true) {
-            // Forçar atualização da sessão NextAuth
             await update();
-            // Recarregar dados do usuário
             carregarDados();
             setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
           }
@@ -82,7 +89,7 @@ export default function DashboardPage() {
           console.error('Erro ao verificar aprovação:', error);
         }
       }
-    }, 30000); // 30 segundos
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [session, estaAprovado, update]);
@@ -100,16 +107,29 @@ export default function DashboardPage() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const [timesRes, palpitesRes] = await Promise.all([
+      const [timesRes, palpitesRes, jogosRes] = await Promise.all([
         fetch('/api/times'),
-        fetch(`/api/palpites?usuarioId=${session?.user?.id}`)
+        fetch(`/api/palpites?usuarioId=${session?.user?.id}`),
+        fetch('/api/jogos')
       ]);
       
       const timesData = await timesRes.json();
       const palpitesData = await palpitesRes.json();
+      const jogosData = await jogosRes.json();
       
       setTimes(timesData);
       setPalpites(palpitesData);
+      setJogos(jogosData);
+      
+      // Determinar rodada atual
+      const agora = new Date();
+      const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora);
+      if (jogosFuturos.length > 0) {
+        const proximoJogo = jogosFuturos.sort((a: Jogo, b: Jogo) => 
+          new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
+        )[0];
+        setRodadaAtual(proximoJogo.rodada);
+      }
       
       const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
       const userData = await userRes.json();
@@ -173,7 +193,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Forçar recarregamento manual
   const forcarRecarregamento = async () => {
     setMensagem(null);
     await carregarDados();
@@ -190,7 +209,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Tela de carregamento enquanto verifica sessão
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
@@ -214,6 +232,7 @@ export default function DashboardPage() {
   const timesJaUsados = palpites.map(p => p.time_id);
   const timesDisponiveis = times.filter(t => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some(p => p.rodada === rodadaAtual);
+  const jogosRodada = jogos.filter(j => j.rodada === rodadaAtual && !j.finalizado);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -226,13 +245,6 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/rodada')}
-              className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2 rounded-lg transition"
-            >
-              <Eye className="w-4 h-4" />
-              Ver Rodada Atual
-            </button>
             <button
               onClick={() => router.push('/classificacao')}
               className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg transition"
@@ -259,14 +271,14 @@ export default function DashboardPage() {
               Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
             </span>
             <a
-  href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
->
-  <span>📱</span>
-  Dúvidas? WhatsApp
-</a>
+              href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
+            >
+              <span>📱</span>
+              Dúvidas? WhatsApp
+            </a>
             <button
               onClick={() => signOut()}
               className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"
@@ -347,9 +359,6 @@ export default function DashboardPage() {
                 <p className="text-gray-400 mt-2">
                   Seu cadastro aguarda aprovação do administrador.<br />
                   Após a confirmação do pagamento, você poderá fazer seus palpites.
-                </p>
-                <p className="text-gray-500 text-sm mt-4">
-                  📱 Dúvidas? Entre em contato pelo WhatsApp: (61) 99850-7770
                 </p>
                 <button
                   onClick={forcarRecarregamento}
@@ -445,6 +454,30 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Jogos da Rodada Atual */}
+        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-yellow-500" />
+            Jogos da Rodada {rodadaAtual}
+          </h3>
+          {jogosRodada.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Nenhum jogo disponível para esta rodada.</p>
+          ) : (
+            <div className="space-y-2">
+              {jogosRodada.map(jogo => (
+                <div key={jogo.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
+                  <span className="text-white">
+                    {jogo.time_casa} 🆚 {jogo.time_fora}
+                  </span>
+                  <span className="text-gray-400 text-sm">
+                    {new Date(jogo.data_hora).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Times disponíveis */}

@@ -4,18 +4,27 @@ import { NextResponse } from 'next/server'
 const sql = neon(process.env.DATABASE_URL!)
 
 // GET - Buscar todos os usuários
-export async function GET() {
-  try {
-    const usuarios = await sql`
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const excluirAdmin = searchParams.get('excluirAdmin') === 'true'
+  
+  let query = `
+    SELECT id, nome, email, status, rodada_eliminacao 
+    FROM usuarios 
+    ORDER BY nome
+  `
+  
+  if (excluirAdmin) {
+    query = `
       SELECT id, nome, email, status, rodada_eliminacao 
       FROM usuarios 
+      WHERE email != 'admin@estrategista.com'
       ORDER BY nome
     `
-    return NextResponse.json(usuarios)
-  } catch (error) {
-    console.error('Erro ao buscar usuários:', error)
-    return NextResponse.json({ error: 'Erro ao buscar usuários' }, { status: 500 })
   }
+  
+  const usuarios = await sql(query)
+  return NextResponse.json(usuarios)
 }
 
 // POST - Criar novo usuário

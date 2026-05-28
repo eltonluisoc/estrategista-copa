@@ -5,6 +5,21 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST() {
   try {
+    // Verificar se todos os jogos da fase de grupos estão finalizados
+    const gruposPendentes = await sql`
+      SELECT COUNT(*) as total 
+      FROM jogos 
+      WHERE rodada IN (1, 2, 3) AND finalizado = false
+    `
+
+    const pendentes = parseInt(gruposPendentes[0].total)
+
+    if (pendentes > 0) {
+      return NextResponse.json({ 
+        error: `Ainda faltam ${pendentes} jogos da fase de grupos para finalizar.` 
+      }, { status: 400 })
+    }
+
     // 1. Buscar classificação de todos os grupos
     const classificacao = await sql`
       SELECT c.*, t.nome as time_nome 
@@ -41,7 +56,6 @@ export async function POST() {
     const melhoresTerceiros = terceiros.slice(0, 8)
     
     // 5. Montar confrontos do Round of 32
-    // Formato: Vencedor Grupo A vs 3º melhor (C/D/E/F)
     const confrontos = [
       { casa: vencedores.find(v => v.grupo === 'A'), fora: melhoresTerceiros[0] },
       { casa: vencedores.find(v => v.grupo === 'B'), fora: melhoresTerceiros[1] },

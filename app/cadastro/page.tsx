@@ -21,6 +21,13 @@ export default function CadastroPage() {
     setError('');
     setSuccess(false);
 
+    // Validação simples (apenas verifica se tem @)
+    if (!email || !email.includes('@')) {
+      setError('Digite um e-mail válido');
+      setLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('As senhas não coincidem');
       setLoading(false);
@@ -37,11 +44,7 @@ export default function CadastroPage() {
       const res = await fetch('/api/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome,
-          email,
-          senha: password
-        })
+        body: JSON.stringify({ nome, email, senha: password })
       });
 
       const data = await res.json();
@@ -54,7 +57,8 @@ export default function CadastroPage() {
       } else {
         setError(data.error || 'Erro ao cadastrar');
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Erro:', err);
       setError('Erro de conexão com o servidor');
     } finally {
       setLoading(false);
@@ -67,13 +71,9 @@ export default function CadastroPage() {
         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 w-full max-w-md text-center border border-white/10">
           <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Cadastro realizado!</h1>
-          <p className="text-gray-300 mb-6">
-            Sua conta foi criada com sucesso!
-          </p>
-          <Link
-            href="/login"
-            className="inline-block bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition"
-          >
+          <p className="text-gray-300 mb-6">Sua conta foi criada com sucesso!</p>
+          <p className="text-gray-400 text-sm mb-4">Aguardando aprovação do administrador.</p>
+          <Link href="/login" className="inline-block bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition">
             Ir para o login
           </Link>
         </div>
@@ -84,22 +84,16 @@ export default function CadastroPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center p-4">
       <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 w-full max-w-md border border-white/10">
-        
         <Link href="/" className="inline-flex items-center gap-1 text-gray-400 hover:text-white mb-6 transition text-sm">
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
+          <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
 
         <div className="flex justify-center mb-6">
           <Trophy className="w-12 h-12 text-yellow-500" />
         </div>
-        
-        <h1 className="text-2xl font-bold text-white text-center mb-2">
-          Criar conta
-        </h1>
-        <p className="text-gray-400 text-center mb-6">
-          Cadastre-se para participar do bolão
-        </p>
+
+        <h1 className="text-2xl font-bold text-white text-center mb-2">Criar conta</h1>
+        <p className="text-gray-400 text-center mb-6">Cadastre-se para participar do bolão</p>
 
         <form onSubmit={handleCadastro} className="space-y-4">
           <div>
@@ -177,10 +171,6 @@ export default function CadastroPage() {
             {loading ? 'Cadastrando...' : 'Criar conta'}
           </button>
         </form>
-
-        <p className="text-gray-500 text-xs text-center mt-6">
-          Ao criar uma conta, você concorda com as regras do bolão.
-        </p>
 
         <div className="text-center mt-4">
           <Link href="/login" className="text-yellow-500 hover:text-yellow-400 text-sm transition">

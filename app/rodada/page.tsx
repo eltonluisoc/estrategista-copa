@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react';
+import { Trophy, LogOut, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Users, Eye } from 'lucide-react';
 
 interface Jogo {
   id: number;
@@ -44,14 +44,20 @@ export default function RodadaPage() {
   const [prazoFinal, setPrazoFinal] = useState<Date | null>(null);
   const [palpiteUsuario, setPalpiteUsuario] = useState<Palpite | null>(null);
 
+  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.replace('/login');
+      return;
     }
-    if (status === 'authenticated') {
+    if (session?.user?.email === 'admin@estrategista.com') {
+      router.replace('/admin');
+      return;
+    }
+    if (status === 'authenticated' && session?.user?.id) {
       carregarDados();
     }
-  }, [status]);
+  }, [status, session]);
 
   useEffect(() => {
     if (prazoFinal) {
@@ -135,6 +141,20 @@ export default function RodadaPage() {
   const usuariosPendentes = usuariosAtivos.filter(u => !usuariosQuePalpitaram.has(u.id));
 
   const prazoExpirado = prazoFinal && new Date() > prazoFinal;
+
+  // Tela de carregamento
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+      </div>
+    );
+  }
+
+  // Redirecionamento para não participantes
+  if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
+    return null;
+  }
 
   if (loading) {
     return (

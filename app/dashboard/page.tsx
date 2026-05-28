@@ -198,21 +198,13 @@ export default function DashboardPage() {
   setLoading(true);
   
   try {
-    // Primeiro, buscar status atualizado do usuário
-    const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
-    const userData = await userRes.json();
-    setUsuario(userData);
+    // Verificar status atualizado
+    const res = await fetch('/api/usuarios/refresh-session');
+    const data = await res.json();
     
-    // Verificar aprovação
-    const sessaoRes = await fetch('/api/usuarios/atualizar-sessao');
-    const sessaoData = await sessaoRes.json();
-    
-    if (sessaoData.aprovado === true) {
-      await update(); // Forçar atualização da sessão NextAuth
-      setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
-      // Recarregar tudo
-      carregarDados();
-      carregarEstatisticas();
+    if (data.aprovado === true) {
+      // Forçar recarregamento completo da página para atualizar a sessão
+      window.location.reload();
     } else {
       setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
       setLoading(false);

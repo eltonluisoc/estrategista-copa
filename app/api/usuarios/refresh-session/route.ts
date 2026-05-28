@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)

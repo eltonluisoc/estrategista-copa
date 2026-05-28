@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Eye, Edit, Users, UserCheck, UserX } from 'lucide-react';
+import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Eye, Edit, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -32,7 +32,7 @@ interface Estatisticas {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,22 +49,43 @@ export default function DashboardPage() {
 
   // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
-    // Se não está logado, redireciona para login
     if (status === 'unauthenticated') {
       router.replace('/login');
       return;
     }
-    // Se é admin, redireciona para admin
     if (session?.user?.email === 'admin@estrategista.com') {
       router.replace('/admin');
       return;
     }
-    // Se é participante normal, carrega dados
     if (status === 'authenticated' && session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
       carregarDados();
       carregarEstatisticas();
     }
   }, [status, session]);
+
+  // --- VERIFICAÇÃO AUTOMÁTICA DE APROVAÇÃO (a cada 30 segundos) ---
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com' && !estaAprovado) {
+        try {
+          const res = await fetch('/api/usuarios/atualizar-sessao');
+          const data = await res.json();
+          
+          if (data.aprovado === true) {
+            // Forçar atualização da sessão NextAuth
+            await update();
+            // Recarregar dados do usuário
+            carregarDados();
+            setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+          }
+        } catch (error) {
+          console.error('Erro ao verificar aprovação:', error);
+        }
+      }
+    }, 30000); // 30 segundos
+    
+    return () => clearInterval(interval);
+  }, [session, estaAprovado, update]);
 
   const carregarEstatisticas = async () => {
     try {
@@ -152,6 +173,23 @@ export default function DashboardPage() {
     }
   };
 
+  // Forçar recarregamento manual
+  const forcarRecarregamento = async () => {
+    setMensagem(null);
+    await carregarDados();
+    if (!estaAprovado) {
+      const res = await fetch('/api/usuarios/atualizar-sessao');
+      const data = await res.json();
+      if (data.aprovado === true) {
+        await update();
+        carregarDados();
+        setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+      } else {
+        setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
+      }
+    }
+  };
+
   // Tela de carregamento enquanto verifica sessão
   if (status === 'loading') {
     return (
@@ -161,7 +199,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Se não é participante válido, não renderiza (redirecionamento já aconteceu)
   if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
     return null;
   }
@@ -210,6 +247,14 @@ export default function DashboardPage() {
               <Trophy className="w-4 h-4" />
               Mata-mata
             </button>
+            <button
+              onClick={forcarRecarregamento}
+              className="flex items-center gap-2 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-4 py-2 rounded-lg transition"
+              title="Verificar aprovação"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Atualizar
+            </button>
             <span className="text-gray-300 hidden md:inline">
               Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
             </span>
@@ -253,6 +298,20 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Mensagem de aprovação pendente */}
+        {!estaAprovado && (
+          <div className="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6">
+            <p className="text-yellow-400 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              ⏳ Sua conta está aguardando aprovação do administrador.
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Após a confirmação do pagamento, você poderá fazer seus palpites. 
+              Clique em "Atualizar" para verificar o status.
+            </p>
+          </div>
+        )}
+
         {/* Status do participante */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -292,6 +351,13 @@ export default function DashboardPage() {
                 <p className="text-gray-500 text-sm mt-4">
                   📱 Dúvidas? Entre em contato pelo WhatsApp: (61) 99850-7770
                 </p>
+                <button
+                  onClick={forcarRecarregamento}
+                  className="mt-4 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 px-4 py-2 rounded-lg transition flex items-center gap-2 mx-auto"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Verificar aprovação
+                </button>
               </div>
             ) : usuario?.status === 'eliminado' ? (
               <div className="text-center py-8">
@@ -348,7 +414,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Histórico de palpites com botão de editar */}
+          {/* Histórico de palpites */}
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
             <h3 className="text-lg font-bold text-white mb-4">Seus palpites</h3>
             {palpites.length === 0 ? (

@@ -41,20 +41,20 @@ export async function POST() {
       grupos[item.grupo].push(item)
     }
     
-    // Pegar vencedores (1º lugar) e segundos lugares (2º lugar)
+    // Pegar vencedores, segundos e terceiros
     const vencedores: any[] = []
     const segundos: any[] = []
-    const terceiros: any[] = []
+    const todosTerceiros: any[] = []
     
     for (const grupo of Object.keys(grupos).sort()) {
       const times = grupos[grupo]
       if (times[0]) vencedores.push({ ...times[0], grupo })
       if (times[1]) segundos.push({ ...times[1], grupo })
-      if (times[2]) terceiros.push({ ...times[2], grupo })
+      if (times[2]) todosTerceiros.push({ ...times[2], grupo })
     }
     
-    // Pegar melhores terceiros (top 8)
-    const melhoresTerceiros = terceiros
+    // Pegar os 8 melhores terceiros
+    const melhoresTerceiros = todosTerceiros
       .sort((a, b) => b.pontos - a.pontos || b.saldo_gols - a.saldo_gols || b.gols_pro - a.gols_pro)
       .slice(0, 8)
     

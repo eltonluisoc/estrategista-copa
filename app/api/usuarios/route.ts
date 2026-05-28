@@ -8,23 +8,22 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const excluirAdmin = searchParams.get('excluirAdmin') === 'true'
   
-  let query = `
-    SELECT id, nome, email, status, rodada_eliminacao 
-    FROM usuarios 
-    ORDER BY nome
-  `
-  
   if (excluirAdmin) {
-    query = `
+    const usuarios = await sql`
       SELECT id, nome, email, status, rodada_eliminacao 
       FROM usuarios 
       WHERE email != 'admin@estrategista.com'
       ORDER BY nome
     `
+    return NextResponse.json(usuarios)
+  } else {
+    const usuarios = await sql`
+      SELECT id, nome, email, status, rodada_eliminacao 
+      FROM usuarios 
+      ORDER BY nome
+    `
+    return NextResponse.json(usuarios)
   }
-  
-  const usuarios = await sql(query)
-  return NextResponse.json(usuarios)
 }
 
 // POST - Criar novo usuário

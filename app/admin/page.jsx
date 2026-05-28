@@ -60,24 +60,24 @@ export default function AdminPage() {
   };
 
   const processarResultado = async (jogoId, vencedor, rodada) => {
-    setMensagem(null);
-    try {
-      const res = await fetch('/api/admin/jogos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jogoId, vencedor, rodada })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
-        carregarJogos();
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+  setMensagem(null);
+  try {
+    const res = await fetch('/api/admin/jogos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jogoId, vencedor, rodada })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
+      carregarJogos();
+    } else {
+      setMensagem({ tipo: 'erro', texto: data.error });
     }
-  };
+  } catch (error) {
+    setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+  }
+};
 
   const salvarJogo = async () => {
     const dados = editando ? editando : novoJogo;
@@ -159,11 +159,12 @@ export default function AdminPage() {
                   <div className="flex gap-2">
                     <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => deletarJogo(jogo.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></button>
-                    <select id={'v-' + jogo.id} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-sm">
-                      <option value="">Vencedor</option>
-                      <option value={jogo.time_casa}>{jogo.time_casa}</option>
-                      <option value={jogo.time_fora}>{jogo.time_fora}</option>
-                    </select>
+                    <select id={'v-' + jogo.id} className="...">
+  <option value="">Resultado</option>
+  <option value={jogo.time_casa}>{jogo.time_casa} venceu</option>
+  <option value={jogo.time_fora}>{jogo.time_fora} venceu</option>
+  <option value="EMPATE">EMPATE</option>
+</select>
                     <button onClick={() => {
                       const select = document.getElementById('v-' + jogo.id);
                       if (select.value) {

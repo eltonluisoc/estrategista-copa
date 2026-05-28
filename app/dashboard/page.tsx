@@ -178,48 +178,58 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-yellow-500" />
-            <h1 className="text-2xl font-bold text-white tracking-tighter">
-              Estrategista<span className="text-yellow-500"> da Copa</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/rodada')}
-              className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2 rounded-lg transition"
-            >
-              <Eye className="w-4 h-4" />
-              Ver Rodada Atual
-            </button>
-            <button
-              onClick={() => router.push('/classificacao')}
-              className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg transition"
-            >
-              <Trophy className="w-4 h-4" />
-              Classificação
-            </button>
-            <button
-              onClick={() => router.push('/mata-mata')}
-              className="flex items-center gap-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-4 py-2 rounded-lg transition"
-            >
-              <Trophy className="w-4 h-4" />
-              Mata-mata
-            </button>
-            <span className="text-gray-300 hidden md:inline">
-              Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
-            </span>
-            <button
-              onClick={() => signOut()}
-              className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"
-            >
-              <LogOut className="w-4 h-4" />
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
+  <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div className="flex items-center gap-3">
+      <Trophy className="w-8 h-8 text-yellow-500" />
+      <h1 className="text-2xl font-bold text-white tracking-tighter">
+        Estrategista<span className="text-yellow-500"> da Copa</span>
+      </h1>
+    </div>
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => router.push('/rodada')}
+        className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-4 py-2 rounded-lg transition"
+      >
+        <Eye className="w-4 h-4" />
+        Ver Rodada Atual
+      </button>
+      <button
+        onClick={() => router.push('/classificacao')}
+        className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg transition"
+      >
+        <Trophy className="w-4 h-4" />
+        Classificação
+      </button>
+      <button
+        onClick={() => router.push('/mata-mata')}
+        className="flex items-center gap-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-4 py-2 rounded-lg transition"
+      >
+        <Trophy className="w-4 h-4" />
+        Mata-mata
+      </button>
+      <span className="text-gray-300 hidden md:inline">
+        Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
+      </span>
+      {/* BOTÃO WHATSAPP - ADICIONE AQUI */}
+      <a
+        href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
+      >
+        <span>📱</span>
+        WhatsApp
+      </a>
+      <button
+        onClick={() => signOut()}
+        className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"
+      >
+        <LogOut className="w-4 h-4" />
+        Sair
+      </button>
+    </div>
+  </div>
+</header>
 
       <div className="container mx-auto px-4 py-8">
         {/* Cards de Estatísticas */}

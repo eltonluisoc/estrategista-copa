@@ -99,7 +99,42 @@ export default function ComoFuncionaPage() {
             </ul>
           </div>
         </div>
+{/* Como Pagar */}
+        <div className="bg-green-500/10 rounded-xl p-6 border border-green-500/30 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl">💰</span>
+            <h2 className="text-xl font-bold text-white">Como Pagar a Inscrição</h2>
+          </div>
+          <div className="space-y-3 text-gray-300">
+            <p>Após se cadastrar, você será aprovado pelo administrador assim que o pagamento for confirmado.</p>
+            <div className="bg-black/30 rounded-lg p-4 text-center">
+              <p className="text-yellow-400 font-bold mb-2">Dados para pagamento via PIX:</p>
+              <p className="text-white text-lg font-mono">61998507770</p>
+              <p className="text-gray-400 text-sm mt-1">Titular: Elton Luis</p>
+              <p className="text-gray-500 text-xs mt-2">⚠️ Envie o comprovante por WhatsApp para ativar sua conta</p>
+            </div>
+          </div>
+        </div>
 
+        {/* Contato */}
+        <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl">📱</span>
+            <h2 className="text-xl font-bold text-white">Dúvidas?</h2>
+          </div>
+          <div className="text-center">
+            <p className="text-gray-300 mb-3">Entre em contato pelo WhatsApp:</p>
+            <a 
+              href="https://wa.me/5561998507770?text=Olá!%20Tenho%20dúvidas%20sobre%20o%20bolão%20Estrategista%20da%20Copa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-lg transition text-lg"
+            >
+              📱 (61) 99850-7770
+            </a>
+            <p className="text-gray-500 text-xs mt-3">Clique no número para abrir o WhatsApp</p>
+          </div>
+        </div>
         {/* Premiação */}
         <div className="bg-yellow-500/10 rounded-xl p-6 border border-yellow-500/30 text-center">
           <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-3" />

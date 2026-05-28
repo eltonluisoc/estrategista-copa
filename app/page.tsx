@@ -100,18 +100,21 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-white/10">
-        <p className="mb-2">Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-        <div className="flex justify-center gap-3 text-xs text-gray-600 flex-wrap">
-          <span>⚽ Brasil 2002</span>
-          <span>🏆 Alemanha 2014</span>
-          <span>🇫🇷 França 2018</span>
-          <span>🇦🇷 Argentina 2022</span>
-        </div>
-        <div className="mt-4 pt-3 border-t border-white/5">
-          <p>Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span></p>
-          <p className="text-xs text-gray-600 mt-1">© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
-        </div>
-      </footer>
+  <p className="mb-2">Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
+  <div className="flex justify-center gap-3 text-xs text-gray-600 flex-wrap">
+    <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
+      📱 Dúvidas? WhatsApp
+    </a>
+    <span>⚽ Brasil 2002</span>
+    <span>🏆 Alemanha 2014</span>
+    <span>🇫🇷 França 2018</span>
+    <span>🇦🇷 Argentina 2022</span>
+  </div>
+  <div className="mt-4 pt-3 border-t border-white/5">
+    <p>Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span></p>
+    <p className="text-xs text-gray-600 mt-1">© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
+  </div>
+</footer>
     </div>
   );
 }

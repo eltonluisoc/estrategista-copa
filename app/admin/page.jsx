@@ -81,23 +81,31 @@ export default function AdminPage() {
   };
 
   const aprovarUsuario = async (usuarioId) => {
-    try {
-      const res = await fetch('/api/admin/usuarios/aprovar', {
+  try {
+    const res = await fetch('/api/admin/usuarios/aprovar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId })
+    });
+    
+    if (res.ok) {
+      setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
+      carregarUsuariosPendentes();
+      carregarFinanceiro();
+      
+      // Forçar atualização da sessão do usuário aprovado
+      await fetch('/api/admin/forcar-atualizacao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId })
       });
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
-        carregarUsuariosPendentes();
-        carregarFinanceiro();
-      } else {
-        setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+    } else {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
     }
-  };
+  } catch (error) {
+    setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+  }
+};
 
   const processarResultado = async (jogoId, gols_casa, gols_fora, rodada) => {
     setMensagem(null);

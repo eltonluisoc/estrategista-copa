@@ -94,6 +94,34 @@ export default function DashboardPage() {
   
   return () => clearInterval(interval);
 }, [session, estaAprovado, update]);
+// 🔴 🔴 🔴 ADICIONE ESTE USEFFECT AQUI 🔴 🔴 🔴
+  // --- USEFFECT 3: EventSource para detecção instantânea ---
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    
+    const eventSource = new EventSource('/api/usuarios/status-stream');
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.aprovado === true && !estaAprovado) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Erro ao processar evento SSE:', error);
+      }
+    };
+    
+    eventSource.onerror = () => {
+      console.error('Erro na conexão SSE');
+      eventSource.close();
+    };
+    
+    return () => {
+      eventSource.close();
+    };
+  }, [session, estaAprovado]);
 
   const carregarEstatisticas = async () => {
     try {

@@ -50,6 +50,14 @@ if (rodada >= 4 && rodada <= 7) {
     body: JSON.stringify({ jogoId, vencedor, rodadaAtual: rodada })
   }).catch(console.error)
 }
+// Após processar resultado, atualizar próxima fase (se for mata-mata)
+if (rodada >= 4 && rodada <= 7) {
+  fetch(`${process.env.NEXTAUTH_URL}/api/admin/atualizar-proxima-fase`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jogoId, vencedor, rodadaAtual: rodada })
+  }).catch(console.error)
+}
       
       // Buscar todos os palpites desta rodada
       const todosPalpites = await sql`

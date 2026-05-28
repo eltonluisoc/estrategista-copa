@@ -1,69 +1,74 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(request: Request) {
   try {
+    const session = await auth()
+    if (session?.user?.email !== 'admin@estrategista.com') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     const { jogoId, vencedor, rodadaAtual } = await request.json()
     const proximaRodada = rodadaAtual + 1
 
-    // Buscar o jogo que foi finalizado
+    // Buscar o jogo finalizado
     const jogoFinalizado = await sql`
       SELECT * FROM jogos WHERE id = ${jogoId}
     `
-    
     if (jogoFinalizado.length === 0) {
       return NextResponse.json({ error: 'Jogo não encontrado' }, { status: 404 })
     }
 
-    const jogo = jogoFinalizado[0]
-
-    // Mapeamento de qual slot da próxima fase deve ser preenchido
-    // Exemplo: Jogo 1 do Round of 32 (id 49) alimenta Jogo 1 das Oitavas (id 65)
-    const mapeamento: { [key: string]: { fase: string; posicao: string } } = {
-      // Round of 32 (rodada 4) -> Oitavas (rodada 5)
-      '4_1': { fase: 'Oitavas', posicao: 'casa' },
-      '4_2': { fase: 'Oitavas', posicao: 'fora' },
-      // ... mapeamento completo
-    }
-
-    // Encontrar o jogo da próxima fase que precisa ser atualizado
-    const proximoJogo = await sql`
+    // Buscar jogos da próxima fase que ainda têm placeholders
+    const jogosProximaFase = await sql`
       SELECT * FROM jogos 
       WHERE rodada = ${proximaRodada} 
-      AND (time_casa LIKE '%Vencedor%' OR time_fora LIKE '%Vencedor%')
+      AND (time_casa LIKE '%Vencedor%' OR time_fora LIKE '%Vencedor%' 
+           OR time_casa LIKE '%Vitória%' OR time_fora LIKE '%Vitória%')
       ORDER BY id
-      LIMIT 1
     `
 
-    if (proximoJogo.length > 0) {
-      // Determinar se é time casa ou fora
-      const precisaCasa = proximoJogo[0].time_casa.includes('Vencedor')
-      const precisaFora = proximoJogo[0].time_fora.includes('Vencedor')
+    if (jogosProximaFase.length === 0) {
+      return NextResponse.json({ message: 'Nenhum slot pendente na próxima fase' })
+    }
 
-      if (precisaCasa) {
+    // Encontrar o primeiro slot não preenchido
+    let slotAtualizado = false
+    for (const jogo of jogosProximaFase) {
+      if (jogo.time_casa.includes('Vencedor') || jogo.time_casa.includes('Vitória')) {
         await sql`
           UPDATE jogos 
           SET time_casa = ${vencedor}
-          WHERE id = ${proximoJogo[0].id}
+          WHERE id = ${jogo.id}
         `
-      } else if (precisaFora) {
+        slotAtualizado = true
+        break
+      }
+      if (jogo.time_fora.includes('Vencedor') || jogo.time_fora.includes('Vitória')) {
         await sql`
           UPDATE jogos 
           SET time_fora = ${vencedor}
-          WHERE id = ${proximoJogo[0].id}
+          WHERE id = ${jogo.id}
         `
+        slotAtualizado = true
+        break
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Próxima fase atualizada com ${vencedor}`
-    })
+    if (slotAtualizado) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `✅ ${vencedor} avançou para a próxima fase!` 
+      })
+    } else {
+      return NextResponse.json({ message: 'Nenhum slot disponível' })
+    }
 
   } catch (error) {
-    console.error('Erro ao atualizar próxima fase:', error)
+    console.error('Erro:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

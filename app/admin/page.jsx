@@ -99,13 +99,13 @@ export default function AdminPage() {
     }
   };
 
-  const processarResultado = async (jogoId, vencedor, rodada) => {
+  const processarResultado = async (jogoId, gols_casa, gols_fora, rodada) => {
     setMensagem(null);
     try {
       const res = await fetch('/api/admin/jogos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jogoId, vencedor, rodada })
+        body: JSON.stringify({ jogoId, gols_casa, gols_fora, rodada })
       });
       const data = await res.json();
       if (res.ok) {
@@ -147,24 +147,6 @@ export default function AdminPage() {
     }
   };
 
-  const executarMataMata = async () => {
-    setProcessandoMataMata(true);
-    setMensagem(null);
-    try {
-      const res = await fetch('/api/mata-mata/calcular', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: data.message });
-        carregarJogos();
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao processar mata-mata' });
-    }
-    setProcessandoMataMata(false);
-  };
-
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
@@ -182,24 +164,18 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 p-4">
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="flex items-center gap-2">
             <Trophy className="w-8 h-8 text-yellow-500" />
-            <h1 className="text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1">
+          <div className="flex flex-wrap justify-center gap-2">
+            <button onClick={() => { setEditando(null); setModalAberto(true); }} 
+              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1">
               <Plus className="w-4 h-4" /> Novo Jogo
             </button>
-            <button
-              onClick={executarMataMata}
-              disabled={processandoMataMata}
-              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
-            >
-              <Trophy className="w-4 h-4" />
-              {processandoMataMata ? 'Processando...' : 'Calcular Mata-mata'}
-            </button>
-            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white">
+            <button onClick={() => router.push('/dashboard')} 
+              className="text-gray-400 hover:text-white px-2 py-1.5">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -215,7 +191,7 @@ export default function AdminPage() {
         )}
 
         {/* Cards Financeiros */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
             <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
@@ -245,7 +221,7 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-2">
               {usuariosPendentes.map(usuario => (
-                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
+                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <div className="text-white font-medium">{usuario.nome}</div>
                     <div className="text-gray-400 text-sm">{usuario.email}</div>
@@ -263,42 +239,86 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Jogos Pendentes */}
+        {/* Jogos Pendentes - Tabela com placar numérico */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (
             <div className="text-center py-12 text-gray-400">Nenhum jogo pendente</div>
           ) : (
-            jogosPendentes.map((jogo) => (
-              <div key={jogo.id} className="bg-black/30 rounded-lg p-4 mb-3">
-                <div className="flex justify-between items-center flex-wrap gap-3">
-                  <div>
-                    <div className="text-white font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
-                    <div className="text-gray-400 text-sm">Rodada {jogo.rodada} • {jogo.grupo}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => deletarJogo(jogo.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></button>
-                    <select id={'v-' + jogo.id} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-sm">
-                      <option value="">Resultado</option>
-                      <option value={jogo.time_casa}>{jogo.time_casa} venceu</option>
-                      <option value={jogo.time_fora}>{jogo.time_fora} venceu</option>
-                      <option value="EMPATE">EMPATE</option>
-                    </select>
-                    <button onClick={() => {
-                      const select = document.getElementById('v-' + jogo.id);
-                      if (select.value) {
-                        processarResultado(jogo.id, select.value, jogo.rodada);
-                      } else {
-                        alert('Selecione o resultado');
-                      }
-                    }} className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1">
-                      <Save className="w-3 h-3" /> Finalizar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-black/50 border-b border-white/10">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-gray-400">Data/Hora</th>
+                    <th className="px-3 py-2 text-left text-gray-400">Jogo</th>
+                    <th className="px-3 py-2 text-center text-gray-400">Placar</th>
+                    <th className="px-3 py-2 text-center text-gray-400">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jogosPendentes.map((jogo) => (
+                    <tr key={jogo.id} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="px-3 py-3 text-gray-400 whitespace-nowrap">
+                        {new Date(jogo.data_hora).toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="text-white">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
+                        <div className="text-gray-500 text-xs">Rodada {jogo.rodada} • {jogo.grupo}</div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <input
+                            type="number"
+                            id={`gols-casa-${jogo.id}`}
+                            placeholder="0"
+                            className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center"
+                          />
+                          <span className="text-yellow-500 font-bold">x</span>
+                          <input
+                            type="number"
+                            id={`gols-fora-${jogo.id}`}
+                            placeholder="0"
+                            className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
+                              const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
+                              if (golsCasa === '' || golsFora === '') {
+                                alert('Preencha o placar do jogo');
+                                return;
+                              }
+                              processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
+                            }}
+                            className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                          >
+                            <Save className="w-3 h-3" /> Finalizar
+                          </button>
+                          <button
+                            onClick={() => { setEditando(jogo); setModalAberto(true); }}
+                            className="text-blue-400 hover:text-blue-300"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deletarJogo(jogo.id)}
+                            className="text-red-400 hover:text-red-300"
+                            title="Deletar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

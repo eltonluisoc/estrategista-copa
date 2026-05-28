@@ -30,12 +30,20 @@ export default function ClassificacaoPage() {
   const [grupoAtual, setGrupoAtual] = useState('A');
   const [classificacaoGrupo, setClassificacaoGrupo] = useState<ClassificacaoItem[]>([]);
 
+  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.replace('/login');
+      return;
     }
-    carregarClassificacao();
-  }, [status]);
+    if (session?.user?.email === 'admin@estrategista.com') {
+      router.replace('/admin');
+      return;
+    }
+    if (status === 'authenticated') {
+      carregarClassificacao();
+    }
+  }, [status, session]);
 
   useEffect(() => {
     const filtrado = classificacao.filter(c => c.grupo === grupoAtual);
@@ -64,16 +72,30 @@ export default function ClassificacaoPage() {
     if (index < grupos.length - 1) setGrupoAtual(grupos[index + 1]);
   };
 
+  // Tela de carregamento
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950到black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+      </div>
+    );
+  }
+
+  // Redirecionamento para não participantes
+  if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
+    return null;
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando...</div>
+      <div className="min-h-screen bg-gradient-to-br from-green-950到black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Carregando classificação...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-green-950到black">
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -86,7 +108,7 @@ export default function ClassificacaoPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Navegação entre grupos */}
         <div className="flex items-center justify-between mb-6">
           <button

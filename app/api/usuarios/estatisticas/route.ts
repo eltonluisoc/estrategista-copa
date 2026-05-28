@@ -4,9 +4,11 @@ import { NextResponse } from 'next/server'
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
+  // Excluir admin da contagem
   const usuarios = await sql`
     SELECT status, COUNT(*) as total 
     FROM usuarios 
+    WHERE email != 'admin@estrategista.com'
     GROUP BY status
   `
   

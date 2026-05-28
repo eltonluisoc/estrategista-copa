@@ -259,14 +259,14 @@ export default function DashboardPage() {
               Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
             </span>
             <a
-              href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
-            >
-              <span>📱</span>
-              WhatsApp
-            </a>
+  href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-4 py-2 rounded-lg transition"
+>
+  <span>📱</span>
+  Dúvidas? WhatsApp
+</a>
             <button
               onClick={() => signOut()}
               className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition"

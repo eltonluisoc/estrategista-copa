@@ -106,9 +106,13 @@ export default function ComoFuncionaPage() {
           <h2 className="text-xl font-bold text-white mb-2">Premiação</h2>
           <p className="text-gray-300">
             Quanto mais participantes, maior o prêmio!<br />
-            O último sobrevivente leva <strong>93% do valor arrecadado</strong>.<br />
+            O valor é calculado automaticamente: <strong>R$20,00 por participante</strong>.<br />
+            <span className="text-yellow-400 font-semibold">Exemplo:</span> 55 participantes = R$990,00 | 105 participantes = R$1.890,00
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
             Em caso de múltiplos campeões, o prêmio é dividido igualmente.
           </p>
+          <p className="text-gray-500 text-xs mt-1">*Prêmio líquido após custos operacionais</p>
         </div>
       </div>
     </div>

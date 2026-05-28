@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, Users, DollarSign, UserCheck } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -14,19 +14,14 @@ const timesLista = [
   'Equador', 'Japão', 'Suécia', 'Tunísia', 'Egito', 'Irã', 'Nova Zelândia'
 ];
 
-const VALOR_INSCRICAO = 30; // R$30,00
-
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [jogos, setJogos] = useState([]);
-  const [usuariosPendentes, setUsuariosPendentes] = useState([]);
-  const [financeiro, setFinanceiro] = useState({ totalArrecadado: 0, custos: 0, premio: 0, totalAprovados: 0 });
   const [loading, setLoading] = useState(true);
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [processandoMataMata, setProcessandoMataMata] = useState(false);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -35,19 +30,23 @@ export default function AdminPage() {
     grupo: 'Grupos'
   });
 
+  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
+    // Se o usuário não está logado, redireciona para o login
     if (status === 'unauthenticated') {
       router.push('/login');
     }
+    // Se está logado, mas o email NÃO é o do admin, redireciona para o dashboard normal
+    if (session?.user?.email && session.user.email !== 'admin@estrategista.com') {
+      router.push('/dashboard');
+    }
+    // Se é o admin, carrega os dados
     if (session?.user?.email === 'admin@estrategista.com') {
       carregarJogos();
-      carregarUsuariosPendentes();
-      carregarFinanceiro();
-    } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
-      router.push('/dashboard');
     }
   }, [status, session]);
 
+  // --- FUNÇÕES DE CARREGAMENTO E CRUD ---
   const carregarJogos = async () => {
     try {
       const res = await fetch('/api/admin/jogos');
@@ -57,45 +56,6 @@ export default function AdminPage() {
       console.error('Erro:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const carregarUsuariosPendentes = async () => {
-    try {
-      const res = await fetch('/api/admin/usuarios/pendentes');
-      const data = await res.json();
-      setUsuariosPendentes(data);
-    } catch (error) {
-      console.error('Erro:', error);
-    }
-  };
-
-  const carregarFinanceiro = async () => {
-    try {
-      const res = await fetch('/api/admin/financeiro');
-      const data = await res.json();
-      setFinanceiro(data);
-    } catch (error) {
-      console.error('Erro:', error);
-    }
-  };
-
-  const aprovarUsuario = async (usuarioId) => {
-    try {
-      const res = await fetch('/api/admin/usuarios/aprovar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuarioId })
-      });
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
-        carregarUsuariosPendentes();
-        carregarFinanceiro();
-      } else {
-        setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
     }
   };
 
@@ -111,7 +71,6 @@ export default function AdminPage() {
       if (res.ok) {
         setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
-        carregarFinanceiro();
       } else {
         setMensagem({ tipo: 'erro', texto: data.error });
       }
@@ -139,48 +98,23 @@ export default function AdminPage() {
 
   const deletarJogo = async (id) => {
     if (confirm('Tem certeza?')) {
-      const res = await fetch('/api/admin/jogos/' + id, { method: 'DELETE' });
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: 'Jogo deletado!' });
-        carregarJogos();
-      }
+      await fetch('/api/admin/jogos/' + id, { method: 'DELETE' });
+      setMensagem({ tipo: 'sucesso', texto: 'Jogo deletado!' });
+      carregarJogos();
     }
   };
 
-  const executarMataMata = async () => {
-    setProcessandoMataMata(true);
-    setMensagem(null);
-    try {
-      const res = await fetch('/api/mata-mata/calcular', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: data.message });
-        carregarJogos();
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao processar mata-mata' });
-    }
-    setProcessandoMataMata(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500">Carregando...</div>
-      </div>
-    );
+  // --- TELA DE CARREGAMENTO ---
+  if (status === 'loading' || loading) {
+    return <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center text-yellow-500">Carregando...</div>;
   }
 
+  // --- SE NÃO FOR ADMIN, NÃO MOSTRA O CONTEÚDO (Só uma segurança extra) ---
   if (session?.user?.email !== 'admin@estrategista.com') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500">Acesso negado...</div>
-      </div>
-    );
+    return null;
   }
 
+  // --- RENDERIZAÇÃO DO ADMIN ---
   const jogosPendentes = jogos.filter(j => !j.finalizado);
 
   return (
@@ -192,19 +126,8 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => { setEditando(null); setModalAberto(true); }}
-              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
-            >
+            <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1">
               <Plus className="w-4 h-4" /> Novo Jogo
-            </button>
-            <button
-              onClick={executarMataMata}
-              disabled={processandoMataMata}
-              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
-            >
-              <Trophy className="w-4 h-4" />
-              {processandoMataMata ? 'Processando...' : 'Calcular Mata-mata'}
             </button>
             <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white">
               <LogOut className="w-5 h-5" />
@@ -221,78 +144,21 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Cards Financeiros */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
-            <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
-            <div className="text-gray-400 text-sm">Total Arrecadado</div>
-            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes aprovados</div>
-          </div>
-          <div className="bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 text-center">
-            <Users className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
-            <div className="text-gray-400 text-sm">10% Custos do Site</div>
-          </div>
-          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
-            <Trophy className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-blue-400">R$ {financeiro.premio}</div>
-            <div className="text-gray-400 text-sm">Prêmio Final</div>
-          </div>
-        </div>
-
-        {/* Usuários Pendentes de Aprovação */}
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-yellow-500" />
-            👥 Usuários Pendentes ({usuariosPendentes.length})
-          </h2>
-          {usuariosPendentes.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
-          ) : (
-            <div className="space-y-2">
-              {usuariosPendentes.map(usuario => (
-                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
-                  <div>
-                    <div className="text-white font-medium">{usuario.nome}</div>
-                    <div className="text-gray-400 text-sm">{usuario.email}</div>
-                    <div className="text-gray-500 text-xs">Cadastrado em: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}</div>
-                  </div>
-                  <button
-                    onClick={() => aprovarUsuario(usuario.id)}
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Aprovar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Jogos Pendentes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <p>Nenhum jogo pendente</p>
-              <p className="text-sm mt-2">Clique em "Novo Jogo" para adicionar</p>
-            </div>
+            <div className="text-center py-12 text-gray-400">Nenhum jogo pendente</div>
           ) : (
             jogosPendentes.map((jogo) => (
               <div key={jogo.id} className="bg-black/30 rounded-lg p-4 mb-3">
                 <div className="flex justify-between items-center flex-wrap gap-3">
                   <div>
-                    <div className="text-white font-medium">{jogo.time_casa} x {jogo.time_fora}</div>
-                    <div className="text-gray-400 text-sm">Rodada {jogo.rodada} - {jogo.grupo}</div>
+                    <div className="text-white font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
+                    <div className="text-gray-400 text-sm">Rodada {jogo.rodada} • {jogo.grupo}</div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => deletarJogo(jogo.id)} className="text-red-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => deletarJogo(jogo.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></button>
                     <select id={'v-' + jogo.id} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-sm">
                       <option value="">Vencedor</option>
                       <option value={jogo.time_casa}>{jogo.time_casa}</option>
@@ -318,33 +184,46 @@ export default function AdminPage() {
 
       {modalAberto && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-yellow-600/30">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">{editando ? 'Editar Jogo' : 'Novo Jogo'}</h3>
+              <h3 className="text-xl font-bold text-white">{editando ? '✏️ Editar Jogo' : '➕ Novo Jogo'}</h3>
               <button onClick={() => setModalAberto(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3">
-              <select value={editando?.time_casa || novoJogo.time_casa} onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="">Time Casa</option>
-                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-              </select>
-              <select value={editando?.time_fora || novoJogo.time_fora} onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="">Time Fora</option>
-                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-              </select>
-              <input type="datetime-local" value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="Grupos">Fase de Grupos</option>
-                <option value="Round of 32">Round of 32</option>
-                <option value="Oitavas">Oitavas de Final</option>
-                <option value="Quartas">Quartas de Final</option>
-                <option value="Semifinal">Semifinal</option>
-                <option value="Final">Final</option>
-              </select>
-              <button onClick={salvarJogo} className="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded font-bold mt-2">
-                Salvar
-              </button>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Time Casa</label>
+                <select value={editando?.time_casa || novoJogo.time_casa} onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                  <option value="">Time Casa</option>
+                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Time Fora</label>
+                <select value={editando?.time_fora || novoJogo.time_fora} onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                  <option value="">Time Fora</option>
+                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Data e Hora</label>
+                <input type="datetime-local" value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Rodada</label>
+                <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Fase/Grupo</label>
+                <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                  <option value="Grupos">Fase de Grupos</option>
+                  <option value="Round of 32">Round of 32</option>
+                  <option value="Oitavas">Oitavas de Final</option>
+                  <option value="Quartas">Quartas de Final</option>
+                  <option value="Semifinal">Semifinal</option>
+                  <option value="Final">Final</option>
+                </select>
+              </div>
+              <button onClick={salvarJogo} className="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded font-bold mt-2">Salvar</button>
             </div>
           </div>
         </div>

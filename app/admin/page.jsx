@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -14,14 +14,19 @@ const timesLista = [
   'Equador', 'Japão', 'Suécia', 'Tunísia', 'Egito', 'Irã', 'Nova Zelândia'
 ];
 
+const VALOR_INSCRICAO = 20;
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [jogos, setJogos] = useState([]);
+  const [usuariosPendentes, setUsuariosPendentes] = useState([]);
+  const [financeiro, setFinanceiro] = useState({ totalArrecadado: 0, custos: 0, premio: 0, totalAprovados: 0 });
   const [loading, setLoading] = useState(true);
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [processandoMataMata, setProcessandoMataMata] = useState(false);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -30,23 +35,19 @@ export default function AdminPage() {
     grupo: 'Grupos'
   });
 
-  // --- PROTEÇÃO DE ACESSO ---
   useEffect(() => {
-    // Se o usuário não está logado, redireciona para o login
     if (status === 'unauthenticated') {
       router.push('/login');
     }
-    // Se está logado, mas o email NÃO é o do admin, redireciona para o dashboard normal
-    if (session?.user?.email && session.user.email !== 'admin@estrategista.com') {
-      router.push('/dashboard');
-    }
-    // Se é o admin, carrega os dados
     if (session?.user?.email === 'admin@estrategista.com') {
       carregarJogos();
+      carregarUsuariosPendentes();
+      carregarFinanceiro();
+    } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
+      router.push('/dashboard');
     }
   }, [status, session]);
 
-  // --- FUNÇÕES DE CARREGAMENTO E CRUD ---
   const carregarJogos = async () => {
     try {
       const res = await fetch('/api/admin/jogos');
@@ -56,6 +57,45 @@ export default function AdminPage() {
       console.error('Erro:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarUsuariosPendentes = async () => {
+    try {
+      const res = await fetch('/api/admin/usuarios/pendentes');
+      const data = await res.json();
+      setUsuariosPendentes(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const carregarFinanceiro = async () => {
+    try {
+      const res = await fetch('/api/admin/financeiro');
+      const data = await res.json();
+      setFinanceiro(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const aprovarUsuario = async (usuarioId) => {
+    try {
+      const res = await fetch('/api/admin/usuarios/aprovar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId })
+      });
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
+        carregarUsuariosPendentes();
+        carregarFinanceiro();
+      } else {
+        setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
     }
   };
 
@@ -71,6 +111,7 @@ export default function AdminPage() {
       if (res.ok) {
         setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
+        carregarFinanceiro();
       } else {
         setMensagem({ tipo: 'erro', texto: data.error });
       }
@@ -98,23 +139,44 @@ export default function AdminPage() {
 
   const deletarJogo = async (id) => {
     if (confirm('Tem certeza?')) {
-      await fetch('/api/admin/jogos/' + id, { method: 'DELETE' });
-      setMensagem({ tipo: 'sucesso', texto: 'Jogo deletado!' });
-      carregarJogos();
+      const res = await fetch('/api/admin/jogos/' + id, { method: 'DELETE' });
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Jogo deletado!' });
+        carregarJogos();
+      }
     }
   };
 
-  // --- TELA DE CARREGAMENTO ---
+  const executarMataMata = async () => {
+    setProcessandoMataMata(true);
+    setMensagem(null);
+    try {
+      const res = await fetch('/api/mata-mata/calcular', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: data.message });
+        carregarJogos();
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao processar mata-mata' });
+    }
+    setProcessandoMataMata(false);
+  };
+
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center text-yellow-500">Carregando...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500">Carregando...</div>
+      </div>
+    );
   }
 
-  // --- SE NÃO FOR ADMIN, NÃO MOSTRA O CONTEÚDO (Só uma segurança extra) ---
   if (session?.user?.email !== 'admin@estrategista.com') {
     return null;
   }
 
-  // --- RENDERIZAÇÃO DO ADMIN ---
   const jogosPendentes = jogos.filter(j => !j.finalizado);
 
   return (
@@ -128,6 +190,14 @@ export default function AdminPage() {
           <div className="flex gap-3">
             <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1">
               <Plus className="w-4 h-4" /> Novo Jogo
+            </button>
+            <button
+              onClick={executarMataMata}
+              disabled={processandoMataMata}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
+            >
+              <Trophy className="w-4 h-4" />
+              {processandoMataMata ? 'Processando...' : 'Calcular Mata-mata'}
             </button>
             <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white">
               <LogOut className="w-5 h-5" />
@@ -144,6 +214,56 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Cards Financeiros */}
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
+            <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
+            <div className="text-gray-400 text-sm">Total Arrecadado</div>
+            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes aprovados</div>
+          </div>
+          <div className="bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 text-center">
+            <Users className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
+            <div className="text-gray-400 text-sm">10% Custos do Site</div>
+          </div>
+          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
+            <Trophy className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-400">R$ {financeiro.premio}</div>
+            <div className="text-gray-400 text-sm">Prêmio Final</div>
+          </div>
+        </div>
+
+        {/* Usuários Pendentes de Aprovação */}
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <UserCheck className="w-6 h-6 text-yellow-500" />
+            👥 Usuários Pendentes ({usuariosPendentes.length})
+          </h2>
+          {usuariosPendentes.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
+          ) : (
+            <div className="space-y-2">
+              {usuariosPendentes.map(usuario => (
+                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
+                  <div>
+                    <div className="text-white font-medium">{usuario.nome}</div>
+                    <div className="text-gray-400 text-sm">{usuario.email}</div>
+                    <div className="text-gray-500 text-xs">Cadastrado em: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}</div>
+                  </div>
+                  <button
+                    onClick={() => aprovarUsuario(usuario.id)}
+                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Aprovar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Jogos Pendentes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (

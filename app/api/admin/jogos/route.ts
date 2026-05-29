@@ -12,18 +12,7 @@ export async function GET() {
 
   const jogos = await sql`
     SELECT * FROM jogos 
-    ORDER BY 
-      CASE 
-        WHEN rodada = 1 THEN 1
-        WHEN rodada = 2 THEN 2
-        WHEN rodada = 3 THEN 3
-        WHEN rodada = 4 THEN 4
-        WHEN rodada = 5 THEN 5
-        WHEN rodada = 6 THEN 6
-        WHEN rodada = 7 THEN 7
-        WHEN rodada = 8 THEN 8
-      END,
-      data_hora
+    ORDER BY rodada, data_hora
   `
   return NextResponse.json(jogos)
 }
@@ -64,49 +53,48 @@ export async function POST(request: Request) {
       WHERE id = ${jogoId}
     `
 
-    // Buscar todos os palpites da rodada
-    const todosPalpites = await sql`
-      SELECT p.usuario_id, p.time_id, t.nome as time_nome
+    // Buscar APENAS os palpites deste jogo específico (não da rodada toda)
+    const palpitesDesteJogo = await sql`
+      SELECT p.usuario_id, p.time_id, t.nome as time_escolhido
       FROM palpites p
       JOIN times t ON p.time_id = t.id
       WHERE p.rodada = ${rodada}
     `
 
     let eliminados = 0
-    let eliminadosLista = []
+    const eliminadosIds = []
 
     if (vencedor === 'EMPATE') {
-      // Em caso de empate, TODOS são eliminados
-      for (const p of todosPalpites) {
+      // Empate: todos que palpitaram nesta rodada são eliminados
+      for (const p of palpitesDesteJogo) {
         await sql`
           UPDATE usuarios 
           SET status = 'eliminado', rodada_eliminacao = ${rodada} 
           WHERE id = ${p.usuario_id} AND status = 'ativo'
         `
         eliminados++
-        eliminadosLista.push(p.usuario_id)
+        eliminadosIds.push(p.usuario_id)
       }
     } else {
-      // Vitória: elimina quem NÃO apostou no vencedor
-      for (const p of todosPalpites) {
-        const timeApostado = p.time_nome
-        if (timeApostado !== vencedor) {
+      // Vitória: elimina apenas quem NÃO escolheu o vencedor
+      for (const p of palpitesDesteJogo) {
+        if (p.time_escolhido !== vencedor) {
           await sql`
             UPDATE usuarios 
             SET status = 'eliminado', rodada_eliminacao = ${rodada} 
             WHERE id = ${p.usuario_id} AND status = 'ativo'
           `
           eliminados++
-          eliminadosLista.push(p.usuario_id)
+          eliminadosIds.push(p.usuario_id)
         }
       }
     }
 
     // Registrar log de eliminação
-    if (eliminadosLista.length > 0) {
+    if (eliminadosIds.length > 0) {
       await sql`
         INSERT INTO eliminacoes_log (jogo_id, rodada, vencedor, eliminados_ids, created_at)
-        VALUES (${jogoId}, ${rodada}, ${vencedor}, ${eliminadosLista.join(',')}, NOW())
+        VALUES (${jogoId}, ${rodada}, ${vencedor}, ${eliminadosIds.join(',')}, NOW())
       `
     }
 

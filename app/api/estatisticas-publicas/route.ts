@@ -5,7 +5,6 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   try {
-    // Buscar todos os usuários (exceto admin)
     const usuarios = await sql`
       SELECT status, COUNT(*) as total 
       FROM usuarios 
@@ -21,15 +20,13 @@ export async function GET() {
       if (u.status === 'eliminado') eliminados = parseInt(u.total)
     }
     
-    console.log('Estatísticas:', { total: ativos + eliminados, ativos, eliminados })
-    
     return NextResponse.json({
       total: ativos + eliminados,
       ativos,
       eliminados
     })
   } catch (error) {
-    console.error('Erro na API de estatísticas:', error)
+    console.error('Erro:', error)
     return NextResponse.json({ total: 0, ativos: 0, eliminados: 0 })
   }
 }

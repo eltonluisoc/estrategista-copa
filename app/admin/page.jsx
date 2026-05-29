@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Clock } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -29,6 +29,8 @@ export default function AdminPage() {
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [verificando, setVerificando] = useState(false);
+  const [rodadaVerificacao, setRodadaVerificacao] = useState(4);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -183,6 +185,29 @@ export default function AdminPage() {
     }
   };
 
+  const verificarDisponibilidade = async () => {
+    setVerificando(true);
+    setMensagem(null);
+    try {
+      const res = await fetch('/api/usuarios/verificar-disponibilidade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rodada: rodadaVerificacao })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: data.message });
+        carregarUsuarios();
+        carregarEliminados();
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao verificar disponibilidade' });
+    }
+    setVerificando(false);
+  };
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
@@ -213,6 +238,14 @@ export default function AdminPage() {
                 className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition"
               >
                 <Plus className="w-4 h-4" /> Novo Jogo
+              </button>
+              <button
+                onClick={verificarDisponibilidade}
+                disabled={verificando}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition"
+              >
+                <Shield className="w-4 h-4" />
+                {verificando ? 'Verificando...' : 'Verificar Disponibilidade'}
               </button>
               <button
                 onClick={() => router.push('/dashboard')}

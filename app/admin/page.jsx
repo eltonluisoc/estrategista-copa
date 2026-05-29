@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [editando, setEditando] = useState(null);
   const [verificando, setVerificando] = useState(false);
   const [rodadaVerificacao, setRodadaVerificacao] = useState(4);
+  const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -49,10 +50,21 @@ export default function AdminPage() {
       carregarFinanceiro();
       carregarUsuarios();
       carregarEliminados();
+      carregarStatusInscricoes();
     } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
       router.push('/dashboard');
     }
   }, [status, session]);
+
+  const carregarStatusInscricoes = async () => {
+    try {
+      const res = await fetch('/api/configuracoes/inscricoes');
+      const data = await res.json();
+      setInscricoesAbertas(data.inscricoes_abertas);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
 
   const carregarJogos = async () => {
     try {
@@ -208,6 +220,22 @@ export default function AdminPage() {
     setVerificando(false);
   };
 
+  const toggleInscricoes = async () => {
+    try {
+      const res = await fetch('/api/configuracoes/inscricoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inscricoes_abertas: !inscricoesAbertas })
+      });
+      if (res.ok) {
+        setInscricoesAbertas(!inscricoesAbertas);
+        setMensagem({ tipo: 'sucesso', texto: `Inscrições ${!inscricoesAbertas ? 'abertas' : 'encerradas'}!` });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao alterar' });
+    }
+  };
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
@@ -246,6 +274,14 @@ export default function AdminPage() {
               >
                 <Shield className="w-4 h-4" />
                 {verificando ? 'Verificando...' : 'Verificar Disponibilidade'}
+              </button>
+              <button
+                onClick={toggleInscricoes}
+                className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition ${
+                  inscricoesAbertas ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                }`}
+              >
+                {inscricoesAbertas ? '📝 Inscrições Abertas' : '🔒 Inscrições Encerradas'}
               </button>
               <button
                 onClick={() => router.push('/dashboard')}

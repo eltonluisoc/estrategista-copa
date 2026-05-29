@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     // Buscar o jogo para saber os times
     const jogo = await sql`
-      SELECT time_casa, time_fora FROM jogos WHERE id = ${jogoId}
+      SELECT id, time_casa, time_fora FROM jogos WHERE id = ${jogoId}
     `
     if (jogo.length === 0) {
       return NextResponse.json({ error: 'Jogo não encontrado' }, { status: 404 })
@@ -53,19 +53,21 @@ export async function POST(request: Request) {
       WHERE id = ${jogoId}
     `
 
-    // Buscar APENAS os palpites deste jogo específico (não da rodada toda)
+    // Buscar APENAS os palpites deste jogo específico
+    // CORREÇÃO: Só considera quem apostou nos times que jogaram
     const palpitesDesteJogo = await sql`
       SELECT p.usuario_id, p.time_id, t.nome as time_escolhido
       FROM palpites p
       JOIN times t ON p.time_id = t.id
       WHERE p.rodada = ${rodada}
+        AND (t.nome = ${jogo[0].time_casa} OR t.nome = ${jogo[0].time_fora})
     `
 
     let eliminados = 0
     const eliminadosIds = []
 
     if (vencedor === 'EMPATE') {
-      // Empate: todos que palpitaram nesta rodada são eliminados
+      // Empate: todos que apostaram neste jogo são eliminados
       for (const p of palpitesDesteJogo) {
         await sql`
           UPDATE usuarios 
@@ -134,6 +136,7 @@ export async function PUT(request: Request) {
     }
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error('Erro ao salvar jogo:', error)
     return NextResponse.json({ error: 'Erro ao salvar' }, { status: 500 })
   }
 }

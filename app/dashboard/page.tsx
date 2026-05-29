@@ -325,9 +325,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Grid Principal: Palpites | Jogos + Ranking */}
         <div className="grid lg:grid-cols-2 gap-6">
           
-          {/* Coluna Esquerda - Palpites e Jogos */}
+          {/* Coluna Esquerda - Palpites */}
           <div>
             {/* Área de palpite */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
@@ -398,7 +399,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Seus palpites e Times Usados */}
+            {/* Seus palpites */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
               {palpites.length === 0 ? (
@@ -431,7 +432,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Coluna Direita - Jogos e Ranking */}
+          {/* Coluna Direita - Jogos + Ranking */}
           <div>
             {/* Jogos da Rodada */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
@@ -502,8 +503,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Times já usados (não pode mais escolher) */}
-        <div className="mt-6 bg-white/5 rounded-xl p-5 border border-white/10">
+        {/* Times já usados (não pode mais escolher) - com design do site */}
+        <div className="mt-6 bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <XCircle className="w-4 h-4 text-red-400" />
             Times que você já usou ({timesUsadosList.length})
@@ -511,12 +512,14 @@ export default function DashboardPage() {
           {timesUsadosList.length === 0 ? (
             <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {timesUsadosList.map((time) => (
-                <div key={time.id} className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                <div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center hover:border-red-500/30 transition-all">
                   <div className="text-white text-sm font-medium">{time.nome}</div>
                   <div className="text-gray-500 text-xs">Grupo {time.grupo}</div>
-                  <div className="text-red-400 text-xs mt-1">❌ Já usado</div>
+                  <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
+                    <XCircle className="w-3 h-3" /> Usado
+                  </div>
                 </div>
               ))}
             </div>

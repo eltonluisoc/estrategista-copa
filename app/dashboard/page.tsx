@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
+import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw, TrendingUp, Award } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -35,10 +35,26 @@ interface Jogo {
   rodada: number;
 }
 
-interface Estatisticas {
-  total: number;
-  ativos: number;
-  eliminados: number;
+interface ClassificacaoItem {
+  id: number;
+  grupo: string;
+  time_id: number;
+  time_nome: string;
+  pontos: number;
+  jogos: number;
+  vitorias: number;
+  empates: number;
+  derrotas: number;
+  gols_pro: number;
+  gols_contra: number;
+  saldo_gols: number;
+}
+
+interface ParticipanteRanking {
+  id: string;
+  nome: string;
+  status: string;
+  rodada_eliminacao?: number;
 }
 
 export default function DashboardPage() {
@@ -49,7 +65,9 @@ export default function DashboardPage() {
   const [times, setTimes] = useState<Time[]>([]);
   const [palpites, setPalpites] = useState<Palpite[]>([]);
   const [jogos, setJogos] = useState<Jogo[]>([]);
-  const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
+  const [classificacao, setClassificacao] = useState<ClassificacaoItem[]>([]);
+  const [rankingParticipantes, setRankingParticipantes] = useState<ParticipanteRanking[]>([]);
+  const [grupoSelecionado, setGrupoSelecionado] = useState('A');
   const [rodadaAtual, setRodadaAtual] = useState(1);
   const [timeSelecionado, setTimeSelecionado] = useState('');
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
@@ -68,87 +86,50 @@ export default function DashboardPage() {
     }
     if (status === 'authenticated' && session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
       carregarDados();
-      carregarEstatisticas();
     }
   }, [status, session]);
 
   useEffect(() => {
-  const interval = setInterval(async () => {
-    if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
-      try {
-        // Verificar status atualizado do usuário
-        const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
-        const userData = await userRes.json();
-        
-        if (userData.aprovado === true && !estaAprovado) {
-          await update();
-          carregarDados();
-          carregarEstatisticas();
-          setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+    const interval = setInterval(async () => {
+      if (session?.user?.id && session?.user?.email !== 'admin@estrategista.com' && !estaAprovado) {
+        try {
+          const res = await fetch('/api/usuarios/atualizar-sessao');
+          const data = await res.json();
+          if (data.aprovado === true) {
+            await update();
+            carregarDados();
+            setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+          }
+        } catch (error) {
+          console.error('Erro ao verificar aprovação:', error);
         }
-      } catch (error) {
-        console.error('Erro ao verificar aprovação:', error);
       }
-    }
-  }, 15000); // 15 segundos
-  
-  return () => clearInterval(interval);
-}, [session, estaAprovado, update]);
-// 🔴 🔴 🔴 ADICIONE ESTE USEFFECT AQUI 🔴 🔴 🔴
-  // --- USEFFECT 3: EventSource para detecção instantânea ---
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    
-    const eventSource = new EventSource('/api/usuarios/status-stream');
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.aprovado === true && !estaAprovado) {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error('Erro ao processar evento SSE:', error);
-      }
-    };
-    
-    eventSource.onerror = () => {
-      console.error('Erro na conexão SSE');
-      eventSource.close();
-    };
-    
-    return () => {
-      eventSource.close();
-    };
-  }, [session, estaAprovado]);
-
-  const carregarEstatisticas = async () => {
-    try {
-      const res = await fetch('/api/usuarios/estatisticas');
-      const data = await res.json();
-      setEstatisticas(data);
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-    }
-  };
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [session, estaAprovado, update]);
 
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const [timesRes, palpitesRes, jogosRes] = await Promise.all([
+      const [timesRes, palpitesRes, jogosRes, classificacaoRes, rankingRes] = await Promise.all([
         fetch('/api/times'),
         fetch(`/api/palpites?usuarioId=${session?.user?.id}`),
-        fetch('/api/jogos')
+        fetch('/api/jogos'),
+        fetch('/api/classificacao'),
+        fetch('/api/participantes')
       ]);
       
       const timesData = await timesRes.json();
       const palpitesData = await palpitesRes.json();
       const jogosData = await jogosRes.json();
+      const classificacaoData = await classificacaoRes.json();
+      const rankingData = await rankingRes.json();
       
       setTimes(timesData);
       setPalpites(palpitesData);
       setJogos(jogosData);
+      setClassificacao(classificacaoData);
+      setRankingParticipantes(rankingData);
       
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora);
@@ -222,36 +203,66 @@ export default function DashboardPage() {
   };
 
   const forcarRecarregamento = async () => {
-  setMensagem(null);
-  setLoading(true);
-  
-  try {
-    // Verificar status atualizado
-    const res = await fetch('/api/usuarios/refresh-session');
-    const data = await res.json();
-    
-    if (data.aprovado === true) {
-      // Forçar recarregamento completo da página para atualizar a sessão
-      window.location.reload();
-    } else {
-      setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
+    setMensagem(null);
+    setLoading(true);
+    try {
+      const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
+      const userData = await userRes.json();
+      setUsuario(userData);
+      
+      const sessaoRes = await fetch('/api/usuarios/atualizar-sessao');
+      const sessaoData = await sessaoRes.json();
+      
+      if (sessaoData.aprovado === true) {
+        await update();
+        setMensagem({ tipo: 'sucesso', texto: '✅ Conta aprovada! Agora você pode fazer seus palpites.' });
+        carregarDados();
+      } else {
+        setMensagem({ tipo: 'erro', texto: 'Sua conta ainda aguarda aprovação.' });
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      setMensagem({ tipo: 'erro', texto: 'Erro ao verificar aprovação' });
       setLoading(false);
     }
-  } catch (error) {
-    console.error('Erro:', error);
-    setMensagem({ tipo: 'erro', texto: 'Erro ao verificar aprovação' });
-    setLoading(false);
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+      </div>
+    );
   }
-};
+
+  if (status !== 'authenticated' || session?.user?.email === 'admin@estrategista.com') {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Carregando dados...</div>
+      </div>
+    );
+  }
 
   const timesJaUsados = palpites.map(p => p.time_id);
   const timesDisponiveis = times.filter(t => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some(p => p.rodada === rodadaAtual);
   const jogosRodada = jogos.filter(j => j.rodada === rodadaAtual && !j.finalizado);
+  
+  const classificacaoFiltrada = classificacao.filter(c => c.grupo === grupoSelecionado);
+  const grupos = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  
+  const participantesAtivos = rankingParticipantes.filter(p => p.status === 'ativo').length;
+  const participantesEliminados = rankingParticipantes.filter(p => p.status === 'eliminado').length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 p-4">
+      {/* Header */}
+      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
             <div className="flex items-center gap-2">
@@ -261,25 +272,25 @@ export default function DashboardPage() {
               </h1>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
-              <button onClick={() => router.push('/classificacao')}
-                className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded text-sm">
-                Classificação
-              </button>
-              <button onClick={() => router.push('/mata-mata')}
-                className="bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-1.5 rounded text-sm">
-                Mata-mata
-              </button>
-              <button onClick={forcarRecarregamento}
-                className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-1.5 rounded text-sm">
+              <button
+                onClick={forcarRecarregamento}
+                className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-1.5 rounded-lg text-sm transition"
+              >
                 <RefreshCw className="w-4 h-4 inline" /> Atualizar
               </button>
-              <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer"
-                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded text-sm">
+              <a
+                href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition"
+              >
                 📱 Dúvidas
               </a>
-              <button onClick={() => signOut()}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded text-sm">
-                Sair
+              <button
+                onClick={() => signOut()}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition"
+              >
+                <LogOut className="w-4 h-4 inline" /> Sair
               </button>
             </div>
           </div>
@@ -289,106 +300,91 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Cards de Estatísticas */}
+      <div className="container mx-auto px-4 py-6">
+        
+        {/* Cards de Estatísticas do Bolão */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-500/30 text-center">
-            <Users className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 mx-auto mb-2" />
-            <div className="text-2xl sm:text-3xl font-bold text-green-400">{estatisticas.total}</div>
-            <div className="text-gray-400 text-xs sm:text-sm">Total de Participantes</div>
+          <div className="bg-green-500/10 rounded-xl p-3 text-center border border-green-500/30">
+            <Users className="w-6 h-6 text-green-400 mx-auto mb-1" />
+            <div className="text-xl font-bold text-green-400">{rankingParticipantes.length}</div>
+            <div className="text-gray-400 text-xs">Total de Participantes</div>
           </div>
-          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-500/30 text-center">
-            <UserCheck className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400 mx-auto mb-2" />
-            <div className="text-2xl sm:text-3xl font-bold text-blue-400">{estatisticas.ativos}</div>
-            <div className="text-gray-400 text-xs sm:text-sm">Participantes Ativos</div>
+          <div className="bg-blue-500/10 rounded-xl p-3 text-center border border-blue-500/30">
+            <TrendingUp className="w-6 h-6 text-blue-400 mx-auto mb-1" />
+            <div className="text-xl font-bold text-blue-400">{participantesAtivos}</div>
+            <div className="text-gray-400 text-xs">Participantes Ativos</div>
           </div>
-          <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-red-500/30 text-center">
-            <UserX className="w-8 h-8 sm:w-10 sm:h-10 text-red-400 mx-auto mb-2" />
-            <div className="text-2xl sm:text-3xl font-bold text-red-400">{estatisticas.eliminados}</div>
-            <div className="text-gray-400 text-xs sm:text-sm">Participantes Eliminados</div>
+          <div className="bg-red-500/10 rounded-xl p-3 text-center border border-red-500/30">
+            <Award className="w-6 h-6 text-red-400 mx-auto mb-1" />
+            <div className="text-xl font-bold text-red-400">{participantesEliminados}</div>
+            <div className="text-gray-400 text-xs">Participantes Eliminados</div>
           </div>
         </div>
 
-        {/* Mensagem de aprovação pendente */}
-        {!estaAprovado && (
-          <div className="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6">
-            <p className="text-yellow-400 text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              ⏳ Sua conta está aguardando aprovação do administrador.
-            </p>
-            <p className="text-gray-400 text-xs mt-1">
-              Após a confirmação do pagamento, você poderá fazer seus palpites. 
-              Clique em "Atualizar" para verificar o status.
-            </p>
-          </div>
-        )}
-
         {/* Status do participante */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">Seu status</h2>
-              <p className="text-gray-400 text-sm">Você está competindo pelo prêmio!</p>
+              <h2 className="text-lg font-bold text-white mb-0.5">Seu status</h2>
+              <p className="text-gray-400 text-xs">Você está competindo pelo prêmio!</p>
             </div>
             <div className="flex items-center gap-2">
               {usuario?.status === 'ativo' ? (
                 <>
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 font-semibold">ATIVO</span>
+                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 font-semibold text-sm">ATIVO</span>
                 </>
               ) : (
                 <>
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-red-400 font-semibold">ELIMINADO</span>
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                  <span className="text-red-400 font-semibold text-sm">ELIMINADO</span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Área de palpite */}
-          <div className="lg:col-span-2 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-            <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
-            
-            {!estaAprovado ? (
-              <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                <p className="text-yellow-400 font-semibold">⏳ Inscrição pendente</p>
-                <p className="text-gray-400 mt-2">
-                  Seu cadastro aguarda aprovação do administrador.<br />
-                  Após a confirmação do pagamento, você poderá fazer seus palpites.
-                </p>
-                <button
-                  onClick={forcarRecarregamento}
-                  className="mt-4 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 px-4 py-2 rounded-lg transition flex items-center gap-2 mx-auto"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Verificar aprovação
-                </button>
-              </div>
-            ) : usuario?.status === 'eliminado' ? (
-              <div className="text-center py-8">
-                <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-                <p className="text-gray-400">Você foi eliminado!</p>
-                <p className="text-gray-500 text-sm mt-2">Na próxima Copa tem mais.</p>
-              </div>
-            ) : jaPalpitouRodada ? (
-              <div className="text-center py-8">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-300">Palpite já registrado para esta rodada!</p>
-                <p className="text-gray-500 text-sm mt-2">Você pode alterá-lo até o prazo final.</p>
-              </div>
-            ) : (
-              <form onSubmit={handlePalpite} className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 mb-2 text-sm">
-                    Escolha um time para vencer:
-                  </label>
+        <div className="grid lg:grid-cols-2 gap-6">
+          
+          {/* Coluna Esquerda - Palpites */}
+          <div>
+            {/* Área de palpite */}
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
+              <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
+              
+              {!estaAprovado ? (
+                <div className="text-center py-6">
+                  <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-yellow-400 font-semibold text-sm">⏳ Inscrição pendente</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Seu cadastro aguarda aprovação do administrador.<br />
+                    Após a confirmação do pagamento, você poderá fazer seus palpites.
+                  </p>
+                  <button
+                    onClick={forcarRecarregamento}
+                    className="mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 px-3 py-1.5 rounded-lg text-sm transition"
+                  >
+                    <RefreshCw className="w-3 h-3 inline" /> Verificar aprovação
+                  </button>
+                </div>
+              ) : usuario?.status === 'eliminado' ? (
+                <div className="text-center py-6">
+                  <XCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                  <p className="text-gray-400">Você foi eliminado!</p>
+                  <p className="text-gray-500 text-xs mt-1">Na próxima Copa tem mais.</p>
+                </div>
+              ) : jaPalpitouRodada ? (
+                <div className="text-center py-6">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                  <p className="text-gray-300 text-sm">Palpite já registrado para esta rodada!</p>
+                  <p className="text-gray-500 text-xs mt-1">Você pode alterá-lo até o prazo final.</p>
+                </div>
+              ) : (
+                <form onSubmit={handlePalpite} className="space-y-3">
                   <select
                     value={timeSelecionado}
                     onChange={(e) => setTimeSelecionado(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-yellow-500"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg py-2.5 px-3 text-white text-sm focus:outline-none focus:border-yellow-500"
                     required
                   >
                     <option value="">Selecione um time</option>
@@ -398,108 +394,216 @@ export default function DashboardPage() {
                       </option>
                     ))}
                   </select>
+
+                  {mensagem && (
+                    <div className={`p-2 rounded-lg text-xs ${
+                      mensagem.tipo === 'sucesso' 
+                        ? 'bg-green-500/20 border border-green-500 text-green-400'
+                        : 'bg-red-500/20 border border-red-500 text-red-400'
+                    }`}>
+                      {mensagem.texto}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={palpiteEnviando || timesDisponiveis.length === 0}
+                    className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
+                  >
+                    {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'}
+                    <ChevronRight className="w-3 h-3 inline ml-1" />
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Seus palpites */}
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
+              {palpites.length === 0 ? (
+                <div className="text-center py-6">
+                  <Calendar className="w-10 h-10 text-yellow-500 mx-auto mb-2 opacity-50" />
+                  <p className="text-gray-400 text-sm">Nenhum palpite ainda</p>
                 </div>
-
-                {mensagem && (
-                  <div className={`p-3 rounded-lg ${
-                    mensagem.tipo === 'sucesso' 
-                      ? 'bg-green-500/20 border border-green-500 text-green-400'
-                      : 'bg-red-500/20 border border-red-500 text-red-400'
-                  }`}>
-                    {mensagem.texto}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={palpiteEnviando || timesDisponiveis.length === 0}
-                  className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'}
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </form>
-            )}
+              ) : (
+                <div className="space-y-1.5">
+                  {palpites.map(palpite => {
+                    const time = times.find(t => t.id === palpite.time_id);
+                    return (
+                      <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
+                        <span className="text-gray-300 text-sm">Rodada {palpite.rodada}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-yellow-500 font-semibold text-sm">{time?.nome || 'Time'}</span>
+                          <button
+                            onClick={() => deletarPalpite(palpite.id, palpite.rodada)}
+                            className="text-blue-400 hover:text-blue-300 transition"
+                            title="Alterar palpite"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Histórico de palpites */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-            <h3 className="text-lg font-bold text-white mb-4">Seus palpites</h3>
-            {palpites.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-yellow-500 mx-auto mb-3 opacity-50" />
-                <p className="text-gray-400">Nenhum palpite ainda</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {palpites.map(palpite => {
-                  const time = times.find(t => t.id === palpite.time_id);
-                  return (
-                    <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
-                      <span className="text-gray-300">Rodada {palpite.rodada}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-yellow-500 font-semibold">{time?.nome || 'Time'}</span>
-                        <button
-                          onClick={() => deletarPalpite(palpite.id, palpite.rodada)}
-                          className="text-blue-400 hover:text-blue-300 transition"
-                          title="Alterar palpite (apenas antes do prazo)"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+          {/* Coluna Direita - Jogos e Classificação */}
+          <div>
+            {/* Jogos da Rodada */}
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-yellow-500" />
+                Jogos da Rodada {rodadaAtual}
+              </h3>
+              {jogosRodada.length === 0 ? (
+                <p className="text-gray-400 text-center py-4 text-sm">Nenhum jogo disponível.</p>
+              ) : (
+                <div className="space-y-2">
+                  {jogosRodada.map(jogo => (
+                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                        <span className="text-gray-500 text-xs">{new Date(jogo.data_hora).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Classificação dos Grupos */}
+            <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+              <div className="bg-yellow-600/20 px-4 py-2 border-b border-white/10">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1">
+                    <Trophy className="w-3 h-3 text-yellow-500" />
+                    Classificação dos Grupos
+                  </h3>
+                  <div className="flex flex-wrap gap-1">
+                    {grupos.slice(0, 6).map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setGrupoSelecionado(g)}
+                        className={`px-1.5 py-0.5 rounded text-xs font-medium transition ${
+                          grupoSelecionado === g 
+                            ? 'bg-yellow-600 text-white' 
+                            : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
+              <div className="p-3 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-gray-500 border-b border-white/10">
+                    <tr>
+                      <th className="text-left py-1 px-1">#</th>
+                      <th className="text-left py-1 px-1">Time</th>
+                      <th className="text-center py-1 px-1">P</th>
+                      <th className="text-center py-1 px-1">J</th>
+                      <th className="text-center py-1 px-1">V</th>
+                      <th className="text-center py-1 px-1">E</th>
+                      <th className="text-center py-1 px-1">D</th>
+                      <th className="text-center py-1 px-1">SG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classificacaoFiltrada.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-4 text-gray-500">Sem dados</td>
+                      </tr>
+                    ) : (
+                      classificacaoFiltrada.slice(0, 4).map((item, idx) => (
+                        <tr key={item.id} className="border-b border-white/5">
+                          <td className="py-1 px-1 text-white">{idx + 1}</td>
+                          <td className="py-1 px-1 text-white truncate max-w-[80px]">{item.time_nome}</td>
+                          <td className="py-1 px-1 text-center text-yellow-500 font-bold">{item.pontos}</td>
+                          <td className="py-1 px-1 text-center text-gray-400">{item.jogos}</td>
+                          <td className="py-1 px-1 text-center text-gray-400">{item.vitorias}</td>
+                          <td className="py-1 px-1 text-center text-gray-400">{item.empates}</td>
+                          <td className="py-1 px-1 text-center text-gray-400">{item.derrotas}</td>
+                          <td className="py-1 px-1 text-center text-gray-400">{item.saldo_gols}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                {classificacaoFiltrada.length > 4 && (
+                  <div className="text-center mt-2">
+                    <button className="text-yellow-500 text-xs hover:underline">Ver mais →</button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Jogos da Rodada Atual */}
-        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-yellow-500" />
-            Jogos da Rodada {rodadaAtual}
+        {/* Ranking dos Participantes (resumido) */}
+        <div className="mt-6 bg-white/5 rounded-xl p-5 border border-white/10">
+          <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            Ranking dos Participantes
           </h3>
-          {jogosRodada.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">Nenhum jogo disponível para esta rodada.</p>
-          ) : (
-            <div className="space-y-2">
-              {jogosRodada.map(jogo => (
-                <div key={jogo.id} className="bg-black/30 rounded-lg p-3 flex justify-between items-center">
-                  <span className="text-white">
-                    {jogo.time_casa} 🆚 {jogo.time_fora}
-                  </span>
-                  <span className="text-gray-400 text-sm">
-                    {new Date(jogo.data_hora).toLocaleString('pt-BR')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-gray-400 border-b border-white/10">
+                <tr>
+                  <th className="text-left py-2 px-2">#</th>
+                  <th className="text-left py-2 px-2">Participante</th>
+                  <th className="text-center py-2 px-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankingParticipantes.slice(0, 10).map((p, idx) => (
+                  <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
+                    <td className="py-2 px-2 text-white">{p.nome}</td>
+                    <td className="py-2 px-2 text-center">
+                      {p.status === 'ativo' ? (
+                        <span className="text-green-400 text-xs">✅ Ativo</span>
+                      ) : (
+                        <span className="text-red-400 text-xs">❌ Eliminado (Rodada {p.rodada_eliminacao})</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {rankingParticipantes.length > 10 && (
+              <div className="text-center mt-3">
+                <button className="text-yellow-500 text-xs hover:underline">Ver todos os {rankingParticipantes.length} participantes →</button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Times disponíveis */}
-        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-          <h3 className="text-lg font-bold text-white mb-4">Times disponíveis ({timesDisponiveis.length})</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {timesDisponiveis.slice(0, 20).map(time => (
-              <div key={time.id} className="text-gray-400 text-sm">
+        <div className="mt-6 bg-white/5 rounded-xl p-5 border border-white/10">
+          <h3 className="text-lg font-bold text-white mb-3">Times disponíveis ({timesDisponiveis.length})</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {timesDisponiveis.slice(0, 12).map(time => (
+              <div key={time.id} className="text-gray-400 text-xs">
                 {time.nome} ({time.grupo})
               </div>
             ))}
-            {timesDisponiveis.length > 20 && (
-              <div className="text-gray-500 text-sm">+ {timesDisponiveis.length - 20} times</div>
+            {timesDisponiveis.length > 12 && (
+              <div className="text-gray-500 text-xs">+ {timesDisponiveis.length - 12} times</div>
             )}
           </div>
         </div>
       </div>
 
-      <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-white/10">
+      <footer className="text-center py-6 text-gray-500 text-xs border-t border-white/10 mt-6">
         <p>Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-        <div className="mt-2">
+        <div className="mt-1">
           <p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p>
-          <p className="text-xs mt-1">© {new Date().getFullYear()} - Todos os direitos reservados</p>
+          <p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p>
         </div>
       </footer>
     </div>

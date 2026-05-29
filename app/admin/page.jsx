@@ -103,7 +103,6 @@ export default function AdminPage() {
         setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
         carregarUsuariosPendentes();
         carregarFinanceiro();
-        
         await fetch('/api/admin/forcar-atualizacao', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -167,11 +166,7 @@ export default function AdminPage() {
   };
 
   if (status === 'loading' || loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500">Carregando...</div>
-      </div>
-    );
+    return <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center text-yellow-500">Carregando...</div>;
   }
 
   if (session?.user?.email !== 'admin@estrategista.com') {
@@ -188,13 +183,11 @@ export default function AdminPage() {
             <Trophy className="w-8 h-8 text-yellow-500" />
             <h1 className="text-lg sm:text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
           </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            <button onClick={() => { setEditando(null); setModalAberto(true); }} 
-              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1">
-              <Plus className="w-4 h-4" /> Novo Jogo
+          <div className="flex gap-2">
+            <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm">
+              <Plus className="w-4 h-4 inline" /> Novo Jogo
             </button>
-            <button onClick={() => router.push('/dashboard')} 
-              className="text-gray-400 hover:text-white px-2 py-1.5">
+            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white px-2 py-1.5">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -203,243 +196,133 @@ export default function AdminPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {mensagem && (
-          <div className={'mb-6 p-4 rounded-lg flex items-center gap-2 ' + (mensagem.tipo === 'sucesso' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
-            {mensagem.tipo === 'sucesso' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <div className={'mb-6 p-4 rounded-lg ' + (mensagem.tipo === 'sucesso' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
             {mensagem.texto}
           </div>
         )}
 
         {/* Cards Financeiros */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
-            <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+          <div className="bg-green-500/10 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
             <div className="text-gray-400 text-sm">Total Arrecadado</div>
-            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes</div>
+            <div className="text-xs text-gray-500">{financeiro.totalAprovados} participantes</div>
           </div>
-          <div className="bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 text-center">
-            <Users className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+          <div className="bg-yellow-500/10 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
             <div className="text-gray-400 text-sm">10% Custos</div>
           </div>
-          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
-            <Trophy className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+          <div className="bg-blue-500/10 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-blue-400">R$ {financeiro.premio}</div>
             <div className="text-gray-400 text-sm">Prêmio Final</div>
           </div>
         </div>
 
         {/* Usuários Pendentes */}
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-yellow-500" />
-            Usuários Pendentes ({usuariosPendentes.length})
-          </h2>
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">Usuários Pendentes ({usuariosPendentes.length})</h2>
           {usuariosPendentes.length === 0 ? (
             <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
           ) : (
+            usuariosPendentes.map(usuario => (
+              <div key={usuario.id} className="bg-black/30 rounded-lg p-3 mb-2 flex justify-between items-center">
+                <div>
+                  <div className="text-white">{usuario.nome}</div>
+                  <div className="text-gray-400 text-sm">{usuario.email}</div>
+                </div>
+                <button onClick={() => aprovarUsuario(usuario.id)} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">
+                  Aprovar
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Jogos Pendentes */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">Jogos Pendentes</h2>
+          {jogosPendentes.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Nenhum jogo pendente</p>
+          ) : (
             <div className="space-y-2">
-              {usuariosPendentes.map(usuario => (
-                <div key={usuario.id} className="bg-black/30 rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div>
-                    <div className="text-white font-medium">{usuario.nome}</div>
-                    <div className="text-gray-400 text-sm">{usuario.email}</div>
-                    <div className="text-gray-500 text-xs">Cadastrado em: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}</div>
+              {jogosPendentes.map(jogo => (
+                <div key={jogo.id} className="bg-black/30 rounded-lg p-3">
+                  <div className="flex flex-wrap justify-between items-center gap-2">
+                    <div className="text-white">{jogo.time_casa} x {jogo.time_fora}</div>
+                    <div className="text-gray-400 text-sm">Rodada {jogo.rodada} - {jogo.grupo}</div>
                   </div>
-                  <button
-                    onClick={() => aprovarUsuario(usuario.id)}
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm flex items-center gap-1"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Aprovar
-                  </button>
+                  <div className="flex flex-wrap justify-between items-center gap-2 mt-2">
+                    <div className="flex gap-2">
+                      <input type="number" id={`gols-casa-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center" />
+                      <span className="text-yellow-500">x</span>
+                      <input type="number" id={`gols-fora-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
+                        const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
+                        if (golsCasa === '' || golsFora === '') {
+                          alert('Preencha o placar');
+                          return;
+                        }
+                        processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
+                      }} className="bg-yellow-600 hover:bg-yellow-500 text-white px-2 py-1 rounded text-sm">Finalizar</button>
+                      <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400">Editar</button>
+                      <button onClick={() => deletarJogo(jogo.id)} className="text-red-400">Deletar</button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Jogos Pendentes */}
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Jogos Pendentes</h2>
-          {jogosPendentes.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">Nenhum jogo pendente</p>
+        {/* Últimos Eliminados */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <h2 className="text-xl font-bold text-white mb-4">Últimos Eliminados</h2>
+          {eliminados.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">Nenhum eliminado ainda</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-black/50 border-b border-white/10">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-gray-400">Data/Hora</th>
-                    <th className="px-3 py-2 text-left text-gray-400">Jogo</th>
-                    <th className="px-3 py-2 text-center text-gray-400">Placar</th>
-                    <th className="px-3 py-2 text-center text-gray-400">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jogosPendentes.map((jogo) => (
-                    <tr key={jogo.id} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="px-3 py-3 text-gray-400 whitespace-nowrap">
-                        {new Date(jogo.data_hora).toLocaleString('pt-BR')}
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="text-white">{jogo.time_casa} x {jogo.time_fora}</div>
-                        <div className="text-gray-500 text-xs">Rodada {jogo.rodada} - {jogo.grupo}</div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <input
-                            type="number"
-                            id={`gols-casa-${jogo.id}`}
-                            placeholder="0"
-                            className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center"
-                          />
-                          <span className="text-yellow-500 font-bold">x</span>
-                          <input
-                            type="number"
-                            id={`gols-fora-${jogo.id}`}
-                            placeholder="0"
-                            className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
-                              const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
-                              if (golsCasa === '' || golsFora === '') {
-                                alert('Preencha o placar do jogo');
-                                return;
-                              }
-                              processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
-                            }}
-                            className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
-                          >
-                            <Save className="w-3 h-3" /> Finalizar
-                          </button>
-                          <button
-                            onClick={() => { setEditando(jogo); setModalAberto(true); }}
-                            className="text-blue-400 hover:text-blue-300"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deletarJogo(jogo.id)}
-                            className="text-red-400 hover:text-red-300"
-                            title="Deletar"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              {eliminados.map(elim => (
+                <div key={elim.id} className="bg-black/30 rounded-lg p-3">
+                  <div className="font-medium text-white">{elim.nome}</div>
+                  <div className="text-gray-400 text-sm">Palpite: {elim.time_escolhido}</div>
+                  <div className="text-gray-400 text-sm">Jogo: {elim.time_casa} x {elim.time_fora} ({elim.gols_casa}-{elim.gols_fora})</div>
+                  <div className="text-sm">{elim.vencedor === elim.time_escolhido ? '✅ Acertou' : '❌ Errou'} - Rodada {elim.rodada_eliminacao}</div>
+                </div>
+              ))}
             </div>
           )}
-        </div>
-
-        {/* Últimos Eliminados */}
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <XCircle className="w-6 h-6 text-red-400" />
-            Últimos Eliminados
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-black/50 border-b border-white/10">
-                <tr>
-                  <th className="px-3 py-2 text-left text-gray-400">Participante</th>
-                  <th className="px-3 py-2 text-left text-gray-400">Palpite</th>
-                  <th className="px-3 py-2 text-left text-gray-400">Jogo</th>
-                  <th className="px-3 py-2 text-center text-gray-400">Placar</th>
-                  <th className="px-3 py-2 text-center text-gray-400">Resultado</th>
-                  <th className="px-3 py-2 text-center text-gray-400">Rodada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {eliminados.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-4 text-center text-gray-400">Nenhum eliminado ainda</td>
-                  </tr>
-                ) : (
-                  eliminados.map((elim) => (
-                    <tr key={elim.id} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="px-3 py-2">
-                        <div className="text-white font-medium">{elim.nome}</div>
-                        <div className="text-gray-500 text-xs">{elim.email}</div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="text-yellow-500 font-semibold">{elim.time_escolhido}</span>
-                      </td>
-                      <td className="px-3 py-2 text-white">
-                        {elim.time_casa} x {elim.time_fora}
-                      </td>
-                      <td className="px-3 py-2 text-center text-white">
-                        {elim.gols_casa} - {elim.gols_fora}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {elim.vencedor === elim.time_escolhido ? (
-                          <span className="text-green-400 font-semibold">Acertou</span>
-                        ) : (
-                          <span className="text-red-400 font-semibold">Errou</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center text-red-400">
-                        Rodada {elim.rodada_eliminacao}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
 
       {modalAberto && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-yellow-600/30">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-white">{editando ? 'Editar Jogo' : 'Novo Jogo'}</h3>
               <button onClick={() => setModalAberto(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3">
-              <div>
-                <label className="text-gray-300 text-sm mb-1 block">Time Casa</label>
-                <select value={editando?.time_casa || novoJogo.time_casa} onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                  <option value="">Time Casa</option>
-                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-gray-300 text-sm mb-1 block">Time Fora</label>
-                <select value={editando?.time_fora || novoJogo.time_fora} onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                  <option value="">Time Fora</option>
-                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-gray-300 text-sm mb-1 block">Data e Hora</label>
-                <input type="datetime-local" value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              </div>
-              <div>
-                <label className="text-gray-300 text-sm mb-1 block">Rodada</label>
-                <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              </div>
-              <div>
-                <label className="text-gray-300 text-sm mb-1 block">Fase/Grupo</label>
-                <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                  <option value="Grupos">Fase de Grupos</option>
-                  <option value="Round of 32">Round of 32</option>
-                  <option value="Oitavas">Oitavas de Final</option>
-                  <option value="Quartas">Quartas de Final</option>
-                  <option value="Semifinal">Semifinal</option>
-                  <option value="Final">Final</option>
-                </select>
-              </div>
+              <select value={editando?.time_casa || novoJogo.time_casa} onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                <option value="">Time Casa</option>
+                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+              </select>
+              <select value={editando?.time_fora || novoJogo.time_fora} onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                <option value="">Time Fora</option>
+                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+              </select>
+              <input type="datetime-local" value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
+              <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
+              <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
+                <option value="Grupos">Fase de Grupos</option>
+                <option value="Round of 32">Round of 32</option>
+                <option value="Oitavas">Oitavas</option>
+                <option value="Quartas">Quartas</option>
+                <option value="Semifinal">Semifinal</option>
+                <option value="Final">Final</option>
+              </select>
               <button onClick={salvarJogo} className="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded font-bold mt-2">Salvar</button>
             </div>
           </div>

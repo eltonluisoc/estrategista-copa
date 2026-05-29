@@ -11,9 +11,9 @@ export async function GET() {
   }
 
   try {
-    // Buscar eliminados com o jogo CORRETO onde foram eliminados
+    // Buscar eliminados com DISTINCT para evitar duplicatas
     const eliminacoes = await sql`
-      SELECT 
+      SELECT DISTINCT ON (u.id)
         u.id,
         u.nome,
         u.email,
@@ -35,7 +35,7 @@ export async function GET() {
       WHERE u.status = 'eliminado' 
         AND u.email != 'admin@estrategista.com'
         AND j.finalizado = true
-      ORDER BY u.rodada_eliminacao DESC, u.nome ASC
+      ORDER BY u.id, u.rodada_eliminacao DESC
     `
     return NextResponse.json(eliminacoes)
   } catch (error) {

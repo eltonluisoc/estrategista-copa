@@ -260,13 +260,14 @@ export default function DashboardPage() {
                 <RefreshCw className="w-4 h-4 inline" /> Atualizar
               </button>
               <a
-                href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition"
-              >
-                📱 Dúvidas
-              </a>
+  href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2"
+>
+  <span>📱</span>
+  Falar com Administrador
+</a>
               <button
                 onClick={() => signOut()}
                 className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition"

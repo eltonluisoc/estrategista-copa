@@ -243,9 +243,14 @@ export default function Home() {
         <footer className="text-center py-4 sm:py-6 text-gray-500 text-[10px] sm:text-xs border-t border-white/10 mt-6 sm:mt-8">
           <p>Estrategista da Copa 2026</p>
           <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mt-1">
-            <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
-              📱 WhatsApp
-            </a>
+            <a
+  href="https://wa.me/5561998507770"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="hover:text-yellow-500 transition flex items-center gap-1"
+>
+  📱 Falar com Administrador
+</a>
             <Link href="/como-funciona" className="hover:text-yellow-500 transition">
               Como funciona
             </Link>

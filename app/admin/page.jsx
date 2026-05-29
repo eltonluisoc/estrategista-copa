@@ -84,7 +84,7 @@ export default function AdminPage() {
 
   const carregarEliminados = async () => {
     try {
-      const res = await fetch('/api/admin/eliminados');
+      const res = await fetch('/api/admin/eliminacoes-detalhadas');
       const data = await res.json();
       setEliminados(data);
     } catch (error) {
@@ -202,7 +202,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {mensagem && (
           <div className={'mb-6 p-4 rounded-lg flex items-center gap-2 ' + (mensagem.tipo === 'sucesso' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
             {mensagem.tipo === 'sucesso' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -337,12 +337,12 @@ export default function AdminPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </tr>
             </div>
           )}
         </div>
 
-        {/* Últimos Eliminados */}
+        {/* Últimos Eliminados com Detalhes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <XCircle className="w-6 h-6 text-red-400" />
@@ -352,22 +352,45 @@ export default function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-black/50 border-b border-white/10">
                 <tr>
-                  <th className="px-4 py-2 text-left text-gray-400">Nome</th>
-                  <th className="px-4 py-2 text-left text-gray-400">Email</th>
-                  <th className="px-4 py-2 text-center text-gray-400">Eliminado na Rodada</th>
+                  <th className="px-3 py-2 text-left text-gray-400">Participante</th>
+                  <th className="px-3 py-2 text-left text-gray-400">Palpite</th>
+                  <th className="px-3 py-2 text-left text-gray-400">Jogo</th>
+                  <th className="px-3 py-2 text-center text-gray-400">Placar</th>
+                  <th className="px-3 py-2 text-center text-gray-400">Resultado</th>
+                  <th className="px-3 py-2 text-center text-gray-400">Rodada</th>
                 </tr>
               </thead>
               <tbody>
                 {eliminados.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-4 text-center text-gray-400">Nenhum eliminado ainda</td>
+                    <td colSpan={6} className="px-4 py-4 text-center text-gray-400">Nenhum eliminado ainda</td>
                   </tr>
                 ) : (
-                  eliminados.map(elim => (
-                    <tr key={elim.id} className="border-b border-white/5">
-                      <td className="px-4 py-2 text-white">{elim.nome}</td>
-                      <td className="px-4 py-2 text-gray-300">{elim.email}</td>
-                      <td className="px-4 py-2 text-center text-red-400">Rodada {elim.rodada_eliminacao}</td>
+                  eliminados.map((elim) => (
+                    <tr key={elim.id} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="px-3 py-2">
+                        <div className="text-white font-medium">{elim.nome}</div>
+                        <div className="text-gray-500 text-xs">{elim.email}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-yellow-500 font-semibold">{elim.time_escolhido}</span>
+                      </td>
+                      <td className="px-3 py-2 text-white">
+                        {elim.time_casa} 🆚 {elim.time_fora}
+                      </td>
+                      <td className="px-3 py-2 text-center text-white">
+                        {elim.gols_casa} - {elim.gols_fora}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {elim.vencedor === elim.time_escolhido ? (
+                          <span className="text-green-400 font-semibold">✅ Acertou</span>
+                        ) : (
+                          <span className="text-red-400 font-semibold">❌ Errou</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center text-red-400">
+                        Rodada {elim.rodada_eliminacao}
+                      </td>
                     </tr>
                   ))
                 )}

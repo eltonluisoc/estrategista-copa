@@ -115,22 +115,22 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Cards de Estatísticas */}
+                {/* Cards de Estatísticas */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-green-500/10 rounded-xl p-2 sm:p-4 text-center border border-green-500/30">
             <Users className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-green-400">{estatisticas.total}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Total</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Total de Participantes</div>
           </div>
           <div className="bg-blue-500/10 rounded-xl p-2 sm:p-4 text-center border border-blue-500/30">
-            <TrendingUp className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1" />
+            <CheckCircle className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-blue-400">{estatisticas.ativos}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Ativos</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Ativos</div>
           </div>
           <div className="bg-red-500/10 rounded-xl p-2 sm:p-4 text-center border border-red-500/30">
-            <Award className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1" />
+            <XCircle className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-red-400">{estatisticas.eliminados}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Eliminados</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Eliminados</div>
           </div>
         </div>
 

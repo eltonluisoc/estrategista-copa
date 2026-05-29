@@ -1,120 +1,321 @@
-import { Trophy, Target, Users, Calendar } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Trophy, Target, Users, Calendar, Eye, TrendingUp, Award } from 'lucide-react';
+import Link from 'next/link';
+
+interface ClassificacaoItem {
+  id: number;
+  grupo: string;
+  time_id: number;
+  time_nome: string;
+  pontos: number;
+  jogos: number;
+  vitorias: number;
+  empates: number;
+  derrotas: number;
+  gols_pro: number;
+  gols_contra: number;
+  saldo_gols: number;
+}
+
+interface Jogo {
+  id: number;
+  time_casa: string;
+  time_fora: string;
+  data_hora: string;
+  grupo: string;
+  finalizado: boolean;
+  rodada: number;
+}
+
+interface EstatisticasGerais {
+  totalParticipantes: number;
+  ativos: number;
+  eliminados: number;
+}
 
 export default function Home() {
+  const [classificacao, setClassificacao] = useState<ClassificacaoItem[]>([]);
+  const [proximosJogos, setProximosJogos] = useState<Jogo[]>([]);
+  const [estatisticas, setEstatisticas] = useState<EstatisticasGerais>({ totalParticipantes: 0, ativos: 0, eliminados: 0 });
+  const [loading, setLoading] = useState(true);
+  const [grupoSelecionado, setGrupoSelecionado] = useState('A');
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = async () => {
+    try {
+      const [classificacaoRes, jogosRes, statsRes] = await Promise.all([
+        fetch('/api/classificacao'),
+        fetch('/api/jogos'),
+        fetch('/api/estatisticas-publicas')
+      ]);
+
+      const classificacaoData = await classificacaoRes.json();
+      const jogosData = await jogosRes.json();
+      const statsData = await statsRes.json();
+
+      setClassificacao(classificacaoData);
+      setEstatisticas(statsData);
+
+      // Filtrar próximos jogos (não finalizados e futuros)
+      const agora = new Date();
+      const futuros = jogosData.filter((j: Jogo) => 
+        !j.finalizado && new Date(j.data_hora) > agora
+      ).sort((a: Jogo, b: Jogo) => 
+        new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
+      ).slice(0, 6);
+      
+      setProximosJogos(futuros);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const classificacaoFiltrada = classificacao.filter(c => c.grupo === grupoSelecionado);
+  const grupos = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Carregando...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black relative overflow-x-hidden">
       
       {/* Fundo estilo campo de futebol */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Gramado base */}
         <div className="absolute inset-0 bg-gradient-to-b from-green-900/20 to-green-950/20"></div>
-        
-        {/* Linha do meio de campo */}
         <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white/10 -translate-y-1/2"></div>
-        
-        {/* Círculo central */}
         <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full border-2 border-white/10 -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border border-white/5 -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full bg-white/20 -translate-x-1/2 -translate-y-1/2"></div>
-
-        {/* Áreas dos gols */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 border-2 border-white/5 rounded-b-3xl"></div>
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-32 border-2 border-white/5 rounded-t-3xl"></div>
-
-        {/* Linhas laterais */}
-        <div className="absolute left-[10%] top-0 bottom-0 w-[1px] bg-white/5"></div>
-        <div className="absolute right-[10%] top-0 bottom-0 w-[1px] bg-white/5"></div>
       </div>
 
       {/* Header */}
       <header className="relative z-10 bg-black/40 backdrop-blur-md border-b border-yellow-600/30">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-yellow-500" />
-            <h1 className="text-2xl font-bold text-white tracking-tighter">
-              Estrategista<span className="text-yellow-500"> da Copa</span>
-            </h1>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Trophy className="w-8 h-8 text-yellow-500" />
+              <h1 className="text-2xl font-bold text-white tracking-tighter">
+                Estrategista<span className="text-yellow-500"> da Copa</span>
+              </h1>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/participantes" className="text-gray-300 hover:text-yellow-500 transition px-3 py-1">
+                Participantes
+              </Link>
+              <Link href="/login" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition">
+                Entrar
+              </Link>
+            </div>
           </div>
-          <a href="/login" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition shadow-md hover:shadow-lg">
-            Entrar
-          </a>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative z-10 container mx-auto px-4 py-20 text-center">
-        <p className="text-yellow-500 font-semibold tracking-wider text-sm mb-4 uppercase">
-          Copa do Mundo 2026 • 🇺🇸🇨🇦🇲🇽
-        </p>
-        <h2 className="text-5xl md:text-6xl font-extrabold text-white mb-4 tracking-tighter">
-          Sobreviva às <span className="text-yellow-500">8 rodadas</span>
-        </h2>
-        <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-4">
-          Escolha um time por rodada. Empatou ou perdeu? Está eliminado.
-        </p>
-        <p className="text-md text-yellow-500/70 max-w-2xl mx-auto mb-8 italic">
-          48 seleções. 8 rodadas. 1 estrategista.
-        </p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <a href="/cadastro" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-8 rounded-lg text-lg transition shadow-lg hover:shadow-xl">
-            Começar agora
-          </a>
-          <a href="/como-funciona" className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 px-8 rounded-lg text-lg transition">
-            Como funciona
-          </a>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <p className="text-yellow-500 font-semibold tracking-wider text-sm mb-2 uppercase">
+            Copa do Mundo 2026 • 🇺🇸🇨🇦🇲🇽
+          </p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+            Sobreviva às <span className="text-yellow-500">8 rodadas</span>
+          </h2>
+          <p className="text-gray-300 max-w-2xl mx-auto mb-6">
+            Escolha um time por rodada. Empatou ou perdeu? Está eliminado. 
+            O último sobrevivente leva o prêmio!
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link href="/cadastro" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-8 rounded-lg transition shadow-lg">
+              Começar agora
+            </Link>
+            <Link href="/como-funciona" className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 px-8 rounded-lg transition">
+              Como funciona
+            </Link>
+          </div>
         </div>
-      </section>
 
-      {/* Features */}
-      <section className="relative z-10 container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all hover:-translate-y-1">
-            <Trophy className="w-12 h-12 text-yellow-500 mb-4" />
+        {/* Cards de Estatísticas Gerais */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+          <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 text-center border border-green-500/30">
+            <Users className="w-8 h-8 text-green-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-400">{estatisticas.totalParticipantes}</div>
+            <div className="text-gray-400 text-sm">Total de Participantes</div>
+          </div>
+          <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 text-center border border-blue-500/30">
+            <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-400">{estatisticas.ativos}</div>
+            <div className="text-gray-400 text-sm">Participantes Ativos</div>
+          </div>
+          <div className="bg-red-500/10 backdrop-blur-sm rounded-xl p-4 text-center border border-red-500/30">
+            <Award className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-red-400">{estatisticas.eliminados}</div>
+            <div className="text-gray-400 text-sm">Participantes Eliminados</div>
+          </div>
+        </div>
+
+        {/* Classificação dos Grupos */}
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-12 overflow-hidden">
+          <div className="bg-yellow-600/20 px-6 py-4 border-b border-white/10">
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Classificação dos Grupos
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {grupos.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setGrupoSelecionado(g)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                      grupoSelecionado === g 
+                        ? 'bg-yellow-600 text-white' 
+                        : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                    }`}
+                  >
+                    Grupo {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="p-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-gray-400 border-b border-white/10">
+                <tr>
+                  <th className="text-left py-2 px-2">#</th>
+                  <th className="text-left py-2 px-2">Time</th>
+                  <th className="text-center py-2 px-2">P</th>
+                  <th className="text-center py-2 px-2">J</th>
+                  <th className="text-center py-2 px-2">V</th>
+                  <th className="text-center py-2 px-2">E</th>
+                  <th className="text-center py-2 px-2">D</th>
+                  <th className="text-center py-2 px-2">GP</th>
+                  <th className="text-center py-2 px-2">GC</th>
+                  <th className="text-center py-2 px-2">SG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classificacaoFiltrada.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="text-center py-8 text-gray-400">
+                      Nenhum jogo finalizado neste grupo ainda
+                    </td>
+                  </tr>
+                ) : (
+                  classificacaoFiltrada.map((item, idx) => (
+                    <tr key={item.id} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
+                      <td className="py-2 px-2 text-white">{item.time_nome}</td>
+                      <td className="py-2 px-2 text-center text-yellow-500 font-bold">{item.pontos}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.jogos}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.vitorias}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.empates}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.derrotas}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.gols_pro}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.gols_contra}</td>
+                      <td className="py-2 px-2 text-center text-gray-300">{item.saldo_gols}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Próximos Jogos */}
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-12 overflow-hidden">
+          <div className="bg-blue-600/20 px-6 py-4 border-b border-white/10">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              Próximos Jogos
+            </h2>
+          </div>
+          <div className="p-4">
+            {proximosJogos.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">Nenhum jogo programado</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {proximosJogos.map(jogo => (
+                  <div key={jogo.id} className="bg-black/30 rounded-lg p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-400 text-xs">{jogo.grupo}</span>
+                      <span className="text-gray-500 text-xs">{new Date(jogo.data_hora).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div className="text-center text-white font-medium">
+                      {jogo.time_casa} 🆚 {jogo.time_fora}
+                    </div>
+                    <div className="text-gray-500 text-xs text-center mt-1">
+                      {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
+            <Target className="w-12 h-12 text-yellow-500 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">1 erro = eliminação</h3>
             <p className="text-gray-400">Empate ou derrota e você está fora. Só a vitória mantém você vivo!</p>
           </div>
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all hover:-translate-y-1">
-            <Target className="w-12 h-12 text-yellow-500 mb-4" />
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
+            <Calendar className="w-12 h-12 text-yellow-500 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">1 palpite por rodada</h3>
-            <p className="text-gray-400">Simples e direto. Escolha seu time até 23h59 do dia anterior.</p>
+            <p className="text-gray-400">Escolha seu time até 23h59 do dia anterior ao jogo.</p>
           </div>
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all hover:-translate-y-1">
-            <Users className="w-12 h-12 text-yellow-500 mb-4" />
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
+            <Trophy className="w-12 h-12 text-yellow-500 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Prêmio acumulado</h3>
-            <p className="text-gray-400">Quanto mais participantes, maior o prêmio! O último sobrevivente leva tudo.</p>
+            <p className="text-gray-400">Quanto mais participantes, maior o prêmio!</p>
           </div>
         </div>
-      </section>
 
-      {/* Bandeiras decorativas */}
-      <div className="relative z-10 flex justify-center gap-4 py-8 opacity-40 flex-wrap">
-        <span className="text-2xl">🇧🇷</span>
-        <span className="text-2xl">🇦🇷</span>
-        <span className="text-2xl">🇫🇷</span>
-        <span className="text-2xl">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-        <span className="text-2xl">🇩🇪</span>
-        <span className="text-2xl">🇵🇹</span>
-        <span className="text-2xl">🇪🇸</span>
-        <span className="text-2xl">🇮🇹</span>
+        {/* Bandeiras decorativas */}
+        <div className="flex justify-center gap-4 py-6 opacity-40 flex-wrap">
+          <span className="text-2xl">🇧🇷</span>
+          <span className="text-2xl">🇦🇷</span>
+          <span className="text-2xl">🇫🇷</span>
+          <span className="text-2xl">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+          <span className="text-2xl">🇩🇪</span>
+          <span className="text-2xl">🇵🇹</span>
+          <span className="text-2xl">🇪🇸</span>
+          <span className="text-2xl">🇮🇹</span>
+        </div>
+
+        {/* Footer */}
+        <footer className="text-center py-8 text-gray-500 text-sm border-t border-white/10">
+          <p className="mb-2">Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
+          <div className="flex justify-center gap-3 text-xs text-gray-600 flex-wrap">
+            <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
+              📱 Dúvidas? WhatsApp
+            </a>
+            <span>⚽ Brasil 2002</span>
+            <span>🏆 Alemanha 2014</span>
+            <span>🇫🇷 França 2018</span>
+            <span>🇦🇷 Argentina 2022</span>
+          </div>
+          <div className="mt-4 pt-3 border-t border-white/5">
+            <p>Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span></p>
+            <p className="text-xs text-gray-600 mt-1">© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
+          </div>
+        </footer>
       </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-white/10">
-  <p className="mb-2">Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-  <div className="flex justify-center gap-3 text-xs text-gray-600 flex-wrap">
-    <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
-      📱 Dúvidas? WhatsApp
-    </a>
-    <span>⚽ Brasil 2002</span>
-    <span>🏆 Alemanha 2014</span>
-    <span>🇫🇷 França 2018</span>
-    <span>🇦🇷 Argentina 2022</span>
-  </div>
-  <div className="mt-4 pt-3 border-t border-white/5">
-    <p>Desenvolvido por <span className="text-yellow-500 font-semibold">Elton Luis</span></p>
-    <p className="text-xs text-gray-600 mt-1">© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
-  </div>
-</footer>
     </div>
   );
 }

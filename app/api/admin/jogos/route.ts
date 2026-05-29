@@ -37,18 +37,20 @@ export async function POST(request: Request) {
   try {
     const { jogoId, gols_casa, gols_fora, rodada } = await request.json()
 
+    // Buscar o jogo para saber os times
+    const jogo = await sql`
+      SELECT time_casa, time_fora FROM jogos WHERE id = ${jogoId}
+    `
+    if (jogo.length === 0) {
+      return NextResponse.json({ error: 'Jogo não encontrado' }, { status: 404 })
+    }
+
     // Determinar vencedor baseado no placar
     let vencedor = null
     if (gols_casa > gols_fora) {
-      const timeCasa = await sql`
-        SELECT time_casa FROM jogos WHERE id = ${jogoId}
-      `
-      vencedor = timeCasa[0]?.time_casa
+      vencedor = jogo[0].time_casa
     } else if (gols_fora > gols_casa) {
-      const timeFora = await sql`
-        SELECT time_fora FROM jogos WHERE id = ${jogoId}
-      `
-      vencedor = timeFora[0]?.time_fora
+      vencedor = jogo[0].time_fora
     } else {
       vencedor = 'EMPATE'
     }
@@ -57,40 +59,63 @@ export async function POST(request: Request) {
     await sql`
       UPDATE jogos 
       SET gols_casa = ${gols_casa}, gols_fora = ${gols_fora}, 
-          vencedor_id = (SELECT id FROM times WHERE nome = ${vencedor === 'EMPATE' ? 'EMPATE' : vencedor}),
+          vencedor_id = ${vencedor === 'EMPATE' ? null : (await sql`SELECT id FROM times WHERE nome = ${vencedor}`)[0]?.id},
           finalizado = true 
       WHERE id = ${jogoId}
     `
 
-    // Processar eliminação
+    // Buscar todos os palpites da rodada
+    const todosPalpites = await sql`
+      SELECT p.usuario_id, p.time_id, t.nome as time_nome
+      FROM palpites p
+      JOIN times t ON p.time_id = t.id
+      WHERE p.rodada = ${rodada}
+    `
+
+    let eliminados = 0
+    let eliminadosLista = []
+
     if (vencedor === 'EMPATE') {
-      const todosPalpites = await sql`
-        SELECT p.usuario_id FROM palpites p
-        WHERE p.rodada = ${rodada}
-      `
+      // Em caso de empate, TODOS são eliminados
       for (const p of todosPalpites) {
         await sql`
           UPDATE usuarios 
           SET status = 'eliminado', rodada_eliminacao = ${rodada} 
           WHERE id = ${p.usuario_id} AND status = 'ativo'
         `
+        eliminados++
+        eliminadosLista.push(p.usuario_id)
       }
-      return NextResponse.json({ eliminados: todosPalpites.length })
     } else {
-      const palpitesErrados = await sql`
-        SELECT p.usuario_id FROM palpites p
-        WHERE p.rodada = ${rodada} 
-        AND p.time_id != (SELECT id FROM times WHERE nome = ${vencedor})
-      `
-      for (const p of palpitesErrados) {
-        await sql`
-          UPDATE usuarios 
-          SET status = 'eliminado', rodada_eliminacao = ${rodada} 
-          WHERE id = ${p.usuario_id} AND status = 'ativo'
-        `
+      // Vitória: elimina quem NÃO apostou no vencedor
+      for (const p of todosPalpites) {
+        const timeApostado = p.time_nome
+        if (timeApostado !== vencedor) {
+          await sql`
+            UPDATE usuarios 
+            SET status = 'eliminado', rodada_eliminacao = ${rodada} 
+            WHERE id = ${p.usuario_id} AND status = 'ativo'
+          `
+          eliminados++
+          eliminadosLista.push(p.usuario_id)
+        }
       }
-      return NextResponse.json({ eliminados: palpitesErrados.length })
     }
+
+    // Registrar log de eliminação
+    if (eliminadosLista.length > 0) {
+      await sql`
+        INSERT INTO eliminacoes_log (jogo_id, rodada, vencedor, eliminados_ids, created_at)
+        VALUES (${jogoId}, ${rodada}, ${vencedor}, ${eliminadosLista.join(',')}, NOW())
+      `
+    }
+
+    return NextResponse.json({ 
+      eliminados, 
+      message: `${eliminados} participante(s) eliminado(s)`,
+      vencedor 
+    })
+
   } catch (error) {
     console.error('Erro ao processar resultado:', error)
     return NextResponse.json({ error: 'Erro ao processar' }, { status: 500 })

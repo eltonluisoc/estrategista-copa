@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [jogos, setJogos] = useState([]);
   const [usuariosPendentes, setUsuariosPendentes] = useState([]);
   const [financeiro, setFinanceiro] = useState({ totalArrecadado: 0, custos: 0, premio: 0, totalAprovados: 0 });
+  const [eliminados, setEliminados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
@@ -43,6 +44,7 @@ export default function AdminPage() {
       carregarJogos();
       carregarUsuariosPendentes();
       carregarFinanceiro();
+      carregarEliminados();
     } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
       router.push('/dashboard');
     }
@@ -80,32 +82,41 @@ export default function AdminPage() {
     }
   };
 
+  const carregarEliminados = async () => {
+    try {
+      const res = await fetch('/api/admin/eliminados');
+      const data = await res.json();
+      setEliminados(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
   const aprovarUsuario = async (usuarioId) => {
-  try {
-    const res = await fetch('/api/admin/usuarios/aprovar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuarioId })
-    });
-    
-    if (res.ok) {
-      setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
-      carregarUsuariosPendentes();
-      carregarFinanceiro();
-      
-      // Forçar atualização da sessão do usuário aprovado
-      await fetch('/api/admin/forcar-atualizacao', {
+    try {
+      const res = await fetch('/api/admin/usuarios/aprovar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId })
       });
-    } else {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
+      
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
+        carregarUsuariosPendentes();
+        carregarFinanceiro();
+        
+        await fetch('/api/admin/forcar-atualizacao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuarioId })
+        });
+      } else {
+        setMensagem({ tipo: 'erro', texto: 'Erro ao aprovar usuário' });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
     }
-  } catch (error) {
-    setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
-  }
-};
+  };
 
   const processarResultado = async (jogoId, gols_casa, gols_fora, rodada) => {
     setMensagem(null);
@@ -120,6 +131,7 @@ export default function AdminPage() {
         setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
         carregarFinanceiro();
+        carregarEliminados();
       } else {
         setMensagem({ tipo: 'erro', texto: data.error });
       }
@@ -248,7 +260,7 @@ export default function AdminPage() {
         </div>
 
         {/* Jogos Pendentes - Tabela com placar numérico */}
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (
             <div className="text-center py-12 text-gray-400">Nenhum jogo pendente</div>
@@ -328,6 +340,40 @@ export default function AdminPage() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Últimos Eliminados */}
+        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <XCircle className="w-6 h-6 text-red-400" />
+            Últimos Eliminados
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-black/50 border-b border-white/10">
+                <tr>
+                  <th className="px-4 py-2 text-left text-gray-400">Nome</th>
+                  <th className="px-4 py-2 text-left text-gray-400">Email</th>
+                  <th className="px-4 py-2 text-center text-gray-400">Eliminado na Rodada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {eliminados.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-4 text-center text-gray-400">Nenhum eliminado ainda</td>
+                  </tr>
+                ) : (
+                  eliminados.map(elim => (
+                    <tr key={elim.id} className="border-b border-white/5">
+                      <td className="px-4 py-2 text-white">{elim.nome}</td>
+                      <td className="px-4 py-2 text-gray-300">{elim.email}</td>
+                      <td className="px-4 py-2 text-center text-red-400">Rodada {elim.rodada_eliminacao}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

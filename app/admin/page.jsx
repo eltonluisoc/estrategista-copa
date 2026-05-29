@@ -27,7 +27,6 @@ export default function AdminPage() {
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [processandoMataMata, setProcessandoMataMata] = useState(false);
   const [novoJogo, setNovoJogo] = useState({
     time_casa: '',
     time_fora: '',
@@ -128,7 +127,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
+        setMensagem({ tipo: 'sucesso', texto: 'Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
         carregarFinanceiro();
         carregarEliminados();
@@ -216,12 +215,12 @@ export default function AdminPage() {
             <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
             <div className="text-gray-400 text-sm">Total Arrecadado</div>
-            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes aprovados</div>
+            <div className="text-xs text-gray-500 mt-1">{financeiro.totalAprovados} participantes</div>
           </div>
           <div className="bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 text-center">
             <Users className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
-            <div className="text-gray-400 text-sm">10% Custos do Site</div>
+            <div className="text-gray-400 text-sm">10% Custos</div>
           </div>
           <div className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 text-center">
             <Trophy className="w-8 h-8 text-blue-400 mx-auto mb-2" />
@@ -230,11 +229,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Usuários Pendentes de Aprovação */}
+        {/* Usuários Pendentes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-yellow-500" />
-            👥 Usuários Pendentes ({usuariosPendentes.length})
+            Usuários Pendentes ({usuariosPendentes.length})
           </h2>
           {usuariosPendentes.length === 0 ? (
             <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
@@ -259,11 +258,11 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Jogos Pendentes - Tabela com placar numérico */}
+        {/* Jogos Pendentes */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">🎮 Jogos Pendentes</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Jogos Pendentes</h2>
           {jogosPendentes.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">Nenhum jogo pendente</div>
+            <p className="text-gray-400 text-center py-8">Nenhum jogo pendente</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -282,8 +281,8 @@ export default function AdminPage() {
                         {new Date(jogo.data_hora).toLocaleString('pt-BR')}
                       </td>
                       <td className="px-3 py-3">
-                        <div className="text-white">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
-                        <div className="text-gray-500 text-xs">Rodada {jogo.rodada} • {jogo.grupo}</div>
+                        <div className="text-white">{jogo.time_casa} x {jogo.time_fora}</div>
+                        <div className="text-gray-500 text-xs">Rodada {jogo.rodada} - {jogo.grupo}</div>
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center justify-center gap-2">
@@ -337,12 +336,12 @@ export default function AdminPage() {
                     </tr>
                   ))}
                 </tbody>
-              </tr>
+              </table>
             </div>
           )}
         </div>
 
-        {/* Últimos Eliminados com Detalhes */}
+        {/* Últimos Eliminados */}
         <div className="bg-white/5 rounded-xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <XCircle className="w-6 h-6 text-red-400" />
@@ -376,16 +375,16 @@ export default function AdminPage() {
                         <span className="text-yellow-500 font-semibold">{elim.time_escolhido}</span>
                       </td>
                       <td className="px-3 py-2 text-white">
-                        {elim.time_casa} 🆚 {elim.time_fora}
+                        {elim.time_casa} x {elim.time_fora}
                       </td>
                       <td className="px-3 py-2 text-center text-white">
                         {elim.gols_casa} - {elim.gols_fora}
                       </td>
                       <td className="px-3 py-2 text-center">
                         {elim.vencedor === elim.time_escolhido ? (
-                          <span className="text-green-400 font-semibold">✅ Acertou</span>
+                          <span className="text-green-400 font-semibold">Acertou</span>
                         ) : (
-                          <span className="text-red-400 font-semibold">❌ Errou</span>
+                          <span className="text-red-400 font-semibold">Errou</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-center text-red-400">
@@ -404,7 +403,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-yellow-600/30">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">{editando ? '✏️ Editar Jogo' : '➕ Novo Jogo'}</h3>
+              <h3 className="text-xl font-bold text-white">{editando ? 'Editar Jogo' : 'Novo Jogo'}</h3>
               <button onClick={() => setModalAberto(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3">

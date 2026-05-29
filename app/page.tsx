@@ -1,22 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Users, Calendar, Eye, TrendingUp, Award } from 'lucide-react';
+import { Trophy, Target, Users, Calendar, Eye, TrendingUp, Award, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
-interface ClassificacaoItem {
-  id: number;
-  grupo: string;
-  time_id: number;
-  time_nome: string;
-  pontos: number;
-  jogos: number;
-  vitorias: number;
-  empates: number;
-  derrotas: number;
-  gols_pro: number;
-  gols_contra: number;
-  saldo_gols: number;
+interface Participante {
+  id: string;
+  nome: string;
+  email: string;
+  status: string;
+  rodada_eliminacao?: number;
+  palpites_acertados?: number;
 }
 
 interface Jogo {
@@ -36,11 +30,11 @@ interface EstatisticasGerais {
 }
 
 export default function Home() {
-  const [classificacao, setClassificacao] = useState<ClassificacaoItem[]>([]);
+  const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [proximosJogos, setProximosJogos] = useState<Jogo[]>([]);
   const [estatisticas, setEstatisticas] = useState<EstatisticasGerais>({ totalParticipantes: 0, ativos: 0, eliminados: 0 });
   const [loading, setLoading] = useState(true);
-  const [grupoSelecionado, setGrupoSelecionado] = useState('A');
+  const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
 
   useEffect(() => {
     carregarDados();
@@ -48,17 +42,24 @@ export default function Home() {
 
   const carregarDados = async () => {
     try {
-      const [classificacaoRes, jogosRes, statsRes] = await Promise.all([
-        fetch('/api/classificacao'),
+      const [participantesRes, jogosRes, statsRes] = await Promise.all([
+        fetch('/api/participantes'),
         fetch('/api/jogos'),
         fetch('/api/estatisticas-publicas')
       ]);
 
-      const classificacaoData = await classificacaoRes.json();
+      const participantesData = await participantesRes.json();
       const jogosData = await jogosRes.json();
       const statsData = await statsRes.json();
 
-      setClassificacao(classificacaoData);
+      // Ordenar: ativos primeiro, depois eliminados
+      const ordenados = participantesData.sort((a: Participante, b: Participante) => {
+        if (a.status === 'ativo' && b.status !== 'ativo') return -1;
+        if (a.status !== 'ativo' && b.status === 'ativo') return 1;
+        return 0;
+      });
+
+      setParticipantes(ordenados);
       setEstatisticas(statsData);
 
       // Filtrar próximos jogos (não finalizados e futuros)
@@ -77,8 +78,11 @@ export default function Home() {
     }
   };
 
-  const classificacaoFiltrada = classificacao.filter(c => c.grupo === grupoSelecionado);
-  const grupos = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  const participantesFiltrados = participantes.filter(p => {
+    if (mostrar === 'ativos') return p.status === 'ativo';
+    if (mostrar === 'eliminados') return p.status === 'eliminado';
+    return true;
+  });
 
   if (loading) {
     return (
@@ -97,8 +101,6 @@ export default function Home() {
         <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white/10 -translate-y-1/2"></div>
         <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full border-2 border-white/10 -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border border-white/5 -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 border-2 border-white/5 rounded-b-3xl"></div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-32 border-2 border-white/5 rounded-t-3xl"></div>
       </div>
 
       {/* Header */}
@@ -112,9 +114,6 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex gap-3">
-              <Link href="/participantes" className="text-gray-300 hover:text-yellow-500 transition px-3 py-1">
-                Participantes
-              </Link>
               <Link href="/login" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition">
                 Entrar
               </Link>
@@ -126,12 +125,12 @@ export default function Home() {
       <div className="relative z-10 container mx-auto px-4 py-8">
         
         {/* Hero Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <p className="text-yellow-500 font-semibold tracking-wider text-sm mb-2 uppercase">
             Copa do Mundo 2026 • 🇺🇸🇨🇦🇲🇽
           </p>
           <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
-            Sobreviva às <span className="text-yellow-500">8 rodadas</span>
+            Bolão <span className="text-yellow-500">Estrategista da Copa</span>
           </h2>
           <p className="text-gray-300 max-w-2xl mx-auto mb-6">
             Escolha um time por rodada. Empatou ou perdeu? Está eliminado. 
@@ -139,7 +138,7 @@ export default function Home() {
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link href="/cadastro" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-8 rounded-lg transition shadow-lg">
-              Começar agora
+              Participar do Bolão
             </Link>
             <Link href="/como-funciona" className="border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 px-8 rounded-lg transition">
               Como funciona
@@ -147,8 +146,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Cards de Estatísticas Gerais */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+        {/* Cards de Estatísticas da Competição */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-4 text-center border border-green-500/30">
             <Users className="w-8 h-8 text-green-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-400">{estatisticas.totalParticipantes}</div>
@@ -166,81 +165,96 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Classificação dos Grupos */}
-        <div className="bg-white/5 rounded-xl border border-white/10 mb-12 overflow-hidden">
+        {/* Ranking dos Participantes */}
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-10 overflow-hidden">
           <div className="bg-yellow-600/20 px-6 py-4 border-b border-white/10">
             <div className="flex flex-wrap justify-between items-center gap-3">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                Classificação dos Grupos
+                Ranking dos Participantes
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {grupos.map(g => (
-                  <button
-                    key={g}
-                    onClick={() => setGrupoSelecionado(g)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                      grupoSelecionado === g 
-                        ? 'bg-yellow-600 text-white' 
-                        : 'bg-white/10 text-gray-400 hover:bg-white/20'
-                    }`}
-                  >
-                    Grupo {g}
-                  </button>
-                ))}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMostrar('todos')}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    mostrar === 'todos' 
+                      ? 'bg-yellow-600 text-white' 
+                      : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setMostrar('ativos')}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    mostrar === 'ativos' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                  }`}
+                >
+                  Ativos
+                </button>
+                <button
+                  onClick={() => setMostrar('eliminados')}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    mostrar === 'eliminados' 
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                  }`}
+                >
+                  Eliminados
+                </button>
               </div>
             </div>
           </div>
-          <div className="p-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-gray-400 border-b border-white/10">
-                <tr>
-                  <th className="text-left py-2 px-2">#</th>
-                  <th className="text-left py-2 px-2">Time</th>
-                  <th className="text-center py-2 px-2">P</th>
-                  <th className="text-center py-2 px-2">J</th>
-                  <th className="text-center py-2 px-2">V</th>
-                  <th className="text-center py-2 px-2">E</th>
-                  <th className="text-center py-2 px-2">D</th>
-                  <th className="text-center py-2 px-2">GP</th>
-                  <th className="text-center py-2 px-2">GC</th>
-                  <th className="text-center py-2 px-2">SG</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classificacaoFiltrada.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="text-center py-8 text-gray-400">
-                      Nenhum jogo finalizado neste grupo ainda
-                    </td>
-                  </tr>
-                ) : (
-                  classificacaoFiltrada.map((item, idx) => (
-                    <tr key={item.id} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
-                      <td className="py-2 px-2 text-white">{item.time_nome}</td>
-                      <td className="py-2 px-2 text-center text-yellow-500 font-bold">{item.pontos}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.jogos}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.vitorias}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.empates}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.derrotas}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.gols_pro}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.gols_contra}</td>
-                      <td className="py-2 px-2 text-center text-gray-300">{item.saldo_gols}</td>
+          <div className="p-4">
+            {participantesFiltrados.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">Nenhum participante encontrado</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-400 border-b border-white/10">
+                    <tr>
+                      <th className="text-left py-2 px-3">#</th>
+                      <th className="text-left py-2 px-3">Participante</th>
+                      <th className="text-center py-2 px-3">Status</th>
+                      <th className="text-center py-2 px-3">Rodada Eliminação</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {participantesFiltrados.map((p, idx) => (
+                      <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-2 px-3 text-white font-medium">{idx + 1}</td>
+                        <td className="py-2 px-3 text-white">{p.nome}</td>
+                        <td className="py-2 px-3 text-center">
+                          {p.status === 'ativo' ? (
+                            <span className="inline-flex items-center gap-1 text-green-400">
+                              <CheckCircle className="w-3 h-3" /> Ativo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-red-400">
+                              <XCircle className="w-3 h-3" /> Eliminado
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-center text-gray-400">
+                          {p.rodada_eliminacao ? `Rodada ${p.rodada_eliminacao}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Próximos Jogos */}
-        <div className="bg-white/5 rounded-xl border border-white/10 mb-12 overflow-hidden">
+        {/* Próximos Jogos da Copa */}
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-10 overflow-hidden">
           <div className="bg-blue-600/20 px-6 py-4 border-b border-white/10">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-blue-400" />
-              Próximos Jogos
+              Próximos Jogos da Copa
             </h2>
           </div>
           <div className="p-4">
@@ -268,7 +282,7 @@ export default function Home() {
         </div>
 
         {/* Features */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
             <Target className="w-12 h-12 text-yellow-500 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">1 erro = eliminação</h3>

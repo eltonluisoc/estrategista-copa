@@ -5,7 +5,7 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
   const participantes = await sql`
-    SELECT id, nome, email, status 
+    SELECT id, nome, email, status, rodada_eliminacao
     FROM usuarios 
     WHERE email != 'admin@estrategista.com'
     ORDER BY 

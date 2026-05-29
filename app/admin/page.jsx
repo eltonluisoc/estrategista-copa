@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Clock } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -143,7 +143,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: 'Processado! ' + data.eliminados + ' eliminado(s).' });
+        setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
         carregarFinanceiro();
         carregarUsuarios();
@@ -184,7 +184,11 @@ export default function AdminPage() {
   };
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center text-yellow-500">Carregando...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+        <div className="text-yellow-500 text-xl">Carregando...</div>
+      </div>
+    );
   }
 
   if (session?.user?.email !== 'admin@estrategista.com') {
@@ -195,212 +199,369 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 p-4">
-        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-8 h-8 text-yellow-500" />
-            <h1 className="text-lg sm:text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm">
-              <Plus className="w-4 h-4 inline" /> Novo Jogo
-            </button>
-            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white px-2 py-1.5">
-              <LogOut className="w-5 h-5" />
-            </button>
+      {/* Header */}
+      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Trophy className="w-8 h-8 text-yellow-500" />
+              <h1 className="text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setEditando(null); setModalAberto(true); }}
+                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition"
+              >
+                <Plus className="w-4 h-4" /> Novo Jogo
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition"
+              >
+                <LogOut className="w-4 h-4" /> Sair
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8">
+        {/* Mensagem de feedback */}
         {mensagem && (
-          <div className={'mb-6 p-4 rounded-lg ' + (mensagem.tipo === 'sucesso' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400')}>
-            {mensagem.texto}
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+            mensagem.tipo === 'sucesso' 
+              ? 'bg-green-500/20 border border-green-500 text-green-400' 
+              : 'bg-red-500/20 border border-red-500 text-red-400'
+          }`}>
+            {mensagem.tipo === 'sucesso' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            <span>{mensagem.texto}</span>
           </div>
         )}
 
         {/* Cards Financeiros */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-green-500/10 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
-            <div className="text-gray-400 text-sm">Total Arrecadado</div>
-            <div className="text-xs text-gray-500">{financeiro.totalAprovados} participantes</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-6 border border-green-500/30 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="w-8 h-8 text-green-400" />
+              <span className="text-xs text-gray-500">Total</span>
+            </div>
+            <div className="text-3xl font-bold text-green-400">R$ {financeiro.totalArrecadado}</div>
+            <div className="text-gray-400 text-sm mt-1">Arrecadado</div>
+            <div className="text-xs text-gray-500 mt-2">{financeiro.totalAprovados} participantes</div>
           </div>
-          <div className="bg-yellow-500/10 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
-            <div className="text-gray-400 text-sm">10% Custos</div>
+          <div className="bg-gradient-to-br from-yellow-900/30 to-yellow-950/30 rounded-xl p-6 border border-yellow-500/30 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="w-8 h-8 text-yellow-400" />
+              <span className="text-xs text-gray-500">10%</span>
+            </div>
+            <div className="text-3xl font-bold text-yellow-400">R$ {financeiro.custos}</div>
+            <div className="text-gray-400 text-sm mt-1">Custos do Site</div>
           </div>
-          <div className="bg-blue-500/10 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">R$ {financeiro.premio}</div>
-            <div className="text-gray-400 text-sm">Prêmio Final</div>
+          <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 rounded-xl p-6 border border-blue-500/30 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Trophy className="w-8 h-8 text-blue-400" />
+              <span className="text-xs text-gray-500">Prêmio</span>
+            </div>
+            <div className="text-3xl font-bold text-blue-400">R$ {financeiro.premio}</div>
+            <div className="text-gray-400 text-sm mt-1">Prêmio Final</div>
           </div>
         </div>
 
         {/* Resumo da Competição */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">📊 Resumo da Competição</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-green-500/20 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-green-400">{usuariosAtivos.length}</div>
-              <div className="text-gray-400 text-sm">Participantes Ativos</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-green-900/20 to-green-950/20 rounded-xl p-6 border border-green-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <CheckCircle className="w-6 h-6 text-green-400" />
+              <h2 className="text-lg font-bold text-white">Participantes Ativos</h2>
             </div>
-            <div className="bg-red-500/20 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-red-400">{usuariosEliminados.length}</div>
-              <div className="text-gray-400 text-sm">Participantes Eliminados</div>
+            <div className="text-4xl font-bold text-green-400 mb-2">{usuariosAtivos.length}</div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {usuariosAtivos.slice(0, 5).map(u => (
+                <span key={u.id} className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">{u.nome}</span>
+              ))}
+              {usuariosAtivos.length > 5 && (
+                <span className="text-xs text-gray-400">+{usuariosAtivos.length - 5}</span>
+              )}
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-red-900/20 to-red-950/20 rounded-xl p-6 border border-red-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <XCircle className="w-6 h-6 text-red-400" />
+              <h2 className="text-lg font-bold text-white">Participantes Eliminados</h2>
+            </div>
+            <div className="text-4xl font-bold text-red-400 mb-2">{usuariosEliminados.length}</div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {usuariosEliminados.slice(0, 5).map(u => (
+                <span key={u.id} className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">{u.nome}</span>
+              ))}
+              {usuariosEliminados.length > 5 && (
+                <span className="text-xs text-gray-400">+{usuariosEliminados.length - 5}</span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Usuários Pendentes */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Usuários Pendentes ({usuariosPendentes.length})</h2>
-          {usuariosPendentes.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">Nenhum usuário aguardando aprovação</p>
-          ) : (
-            usuariosPendentes.map(usuario => (
-              <div key={usuario.id} className="bg-black/30 rounded-lg p-3 mb-2 flex justify-between items-center">
-                <div>
-                  <div className="text-white">{usuario.nome}</div>
-                  <div className="text-gray-400 text-sm">{usuario.email}</div>
-                </div>
-                <button onClick={() => aprovarUsuario(usuario.id)} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">
-                  Aprovar
-                </button>
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">
+          <div className="bg-yellow-600/20 px-6 py-3 border-b border-white/10">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-yellow-400" />
+              Usuários Pendentes ({usuariosPendentes.length})
+            </h2>
+          </div>
+          <div className="p-6">
+            {usuariosPendentes.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">✅ Nenhum usuário aguardando aprovação</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="text-left text-gray-400 text-sm border-b border-white/10">
+                    <tr>
+                      <th className="pb-2">Nome</th>
+                      <th className="pb-2">Email</th>
+                      <th className="pb-2">Data Cadastro</th>
+                      <th className="pb-2 text-center">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {usuariosPendentes.map(usuario => (
+                      <tr key={usuario.id} className="border-b border-white/5">
+                        <td className="py-3 text-white">{usuario.nome}</td>
+                        <td className="py-3 text-gray-400">{usuario.email}</td>
+                        <td className="py-3 text-gray-500">{new Date(usuario.created_at).toLocaleDateString('pt-BR')}</td>
+                        <td className="py-3 text-center">
+                          <button
+                            onClick={() => aprovarUsuario(usuario.id)}
+                            className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm transition"
+                          >
+                            Aprovar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))
-          )}
+            )}
+          </div>
         </div>
 
         {/* Jogos Pendentes */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Jogos Pendentes</h2>
-          {jogosPendentes.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">Nenhum jogo pendente</p>
-          ) : (
-            <div className="space-y-2">
-              {jogosPendentes.map(jogo => (
-                <div key={jogo.id} className="bg-black/30 rounded-lg p-3">
-                  <div className="flex flex-wrap justify-between items-center gap-2">
-                    <div className="text-white">{jogo.time_casa} x {jogo.time_fora}</div>
-                    <div className="text-gray-400 text-sm">Rodada {jogo.rodada} - {jogo.grupo}</div>
-                  </div>
-                  <div className="flex flex-wrap justify-between items-center gap-2 mt-2">
-                    <div className="flex gap-2">
-                      <input type="number" id={`gols-casa-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center" />
-                      <span className="text-yellow-500">x</span>
-                      <input type="number" id={`gols-fora-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-center" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => {
-                        const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
-                        const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
-                        if (golsCasa === '' || golsFora === '') {
-                          alert('Preencha o placar');
-                          return;
-                        }
-                        processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
-                      }} className="bg-yellow-600 hover:bg-yellow-500 text-white px-2 py-1 rounded text-sm">Finalizar</button>
-                      <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400">Editar</button>
-                      <button onClick={() => deletarJogo(jogo.id)} className="text-red-400">Deletar</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Participantes Ativos */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
-            Participantes Ativos ({usuariosAtivos.length})
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-            {usuariosAtivos.length === 0 ? (
-              <p className="text-gray-400 text-center py-4 col-span-3">Nenhum participante ativo</p>
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">
+          <div className="bg-blue-600/20 px-6 py-3 border-b border-white/10">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              Jogos Pendentes ({jogosPendentes.length})
+            </h2>
+          </div>
+          <div className="p-6">
+            {jogosPendentes.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">✅ Nenhum jogo pendente</p>
             ) : (
-              usuariosAtivos.map(usuario => (
-                <div key={usuario.id} className="bg-black/30 rounded-lg p-2 px-3">
-                  <div className="text-white text-sm font-medium">{usuario.nome}</div>
-                  <div className="text-gray-400 text-xs">{usuario.email}</div>
-                </div>
-              ))
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="text-left text-gray-400 text-sm border-b border-white/10">
+                    <tr>
+                      <th className="pb-2">Data/Hora</th>
+                      <th className="pb-2">Jogo</th>
+                      <th className="pb-2">Rodada</th>
+                      <th className="pb-2 text-center">Placar</th>
+                      <th className="pb-2 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {jogosPendentes.map((jogo) => (
+                      <tr key={jogo.id} className="border-b border-white/5">
+                        <td className="py-3 text-gray-400 whitespace-nowrap">
+                          {new Date(jogo.data_hora).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="py-3">
+                          <div className="text-white font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
+                          <div className="text-gray-500 text-xs">{jogo.grupo}</div>
+                        </td>
+                        <td className="py-3">
+                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">Rodada {jogo.rodada}</span>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <input
+                              type="number"
+                              id={`gols-casa-${jogo.id}`}
+                              placeholder="0"
+                              className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500"
+                            />
+                            <span className="text-yellow-500 font-bold">x</span>
+                            <input
+                              type="number"
+                              id={`gols-fora-${jogo.id}`}
+                              placeholder="0"
+                              className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
+                                const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
+                                if (golsCasa === '' || golsFora === '') {
+                                  alert('Preencha o placar do jogo');
+                                  return;
+                                }
+                                processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
+                              }}
+                              className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition"
+                            >
+                              <Save className="w-3 h-3" /> Finalizar
+                            </button>
+                            <button
+                              onClick={() => { setEditando(jogo); setModalAberto(true); }}
+                              className="text-blue-400 hover:text-blue-300 transition"
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deletarJogo(jogo.id)}
+                              className="text-red-400 hover:text-red-300 transition"
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Participantes Eliminados */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <XCircle className="w-5 h-5 text-red-400" />
-            Participantes Eliminados ({usuariosEliminados.length})
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-            {usuariosEliminados.length === 0 ? (
-              <p className="text-gray-400 text-center py-4 col-span-3">Nenhum eliminado ainda</p>
+        {/* Últimos Eliminados */}
+        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+          <div className="bg-red-600/20 px-6 py-3 border-b border-white/10">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-400" />
+              Últimos Eliminados ({eliminados.length})
+            </h2>
+          </div>
+          <div className="p-6">
+            {eliminados.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">Nenhum eliminado ainda</p>
             ) : (
-              usuariosEliminados.map(usuario => (
-                <div key={usuario.id} className="bg-black/30 rounded-lg p-2 px-3">
-                  <div className="text-white text-sm font-medium">{usuario.nome}</div>
-                  <div className="text-gray-400 text-xs">{usuario.email}</div>
-                  <div className="text-red-400 text-xs">Eliminado na Rodada {usuario.rodada_eliminacao || '?'}</div>
-                </div>
-              ))
+              <div className="space-y-3">
+                {eliminados.map((elim, idx) => (
+                  <div key={idx} className="bg-black/30 rounded-lg p-4">
+                    <div className="flex flex-wrap justify-between items-start gap-3">
+                      <div>
+                        <div className="text-white font-semibold">{elim.nome}</div>
+                        <div className="text-gray-400 text-sm">{elim.email}</div>
+                      </div>
+                      <div className="text-red-400 text-sm font-medium">Rodada {elim.rodada_eliminacao}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-sm">
+                      <div className="bg-black/50 rounded-lg p-2">
+                        <div className="text-gray-500 text-xs">Palpite</div>
+                        <div className="text-yellow-400 font-medium">{elim.time_escolhido}</div>
+                      </div>
+                      <div className="bg-black/50 rounded-lg p-2">
+                        <div className="text-gray-500 text-xs">Jogo</div>
+                        <div className="text-white">{elim.time_casa} x {elim.time_fora}</div>
+                        <div className="text-gray-400 text-xs">{elim.gols_casa} - {elim.gols_fora}</div>
+                      </div>
+                      <div className="bg-black/50 rounded-lg p-2">
+                        <div className="text-gray-500 text-xs">Resultado</div>
+                        <div className={elim.vencedor === elim.time_escolhido ? 'text-green-400' : 'text-red-400'}>
+                          {elim.vencedor === elim.time_escolhido ? '✅ Acertou' : '❌ Errou'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Últimos Eliminados com Detalhes */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <XCircle className="w-5 h-5 text-red-400" />
-            Últimos Eliminados (Detalhes)
-          </h2>
-          {eliminados.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">Nenhum eliminado ainda</p>
-          ) : (
-            <div className="space-y-2">
-              {eliminados.map((elim, idx) => (
-                <div key={idx} className="bg-black/30 rounded-lg p-3">
-                  <div className="font-medium text-white">{elim.nome}</div>
-                  <div className="text-gray-400 text-sm">Palpite: {elim.time_escolhido}</div>
-                  <div className="text-gray-400 text-sm">Jogo: {elim.time_casa} x {elim.time_fora} ({elim.gols_casa}-{elim.gols_fora})</div>
-                  <div className="text-sm">{elim.vencedor === elim.time_escolhido ? '✅ Acertou' : '❌ Errou'} - Rodada {elim.rodada_eliminacao}</div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Modal de Edição/Criação */}
       {modalAberto && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">{editando ? 'Editar Jogo' : 'Novo Jogo'}</h3>
-              <button onClick={() => setModalAberto(false)}><X className="w-5 h-5 text-gray-400" /></button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-yellow-600/30 shadow-2xl">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-xl font-bold text-white">{editando ? '✏️ Editar Jogo' : '➕ Novo Jogo'}</h3>
+              <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="space-y-3">
-              <select value={editando?.time_casa || novoJogo.time_casa} onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="">Time Casa</option>
-                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-              </select>
-              <select value={editando?.time_fora || novoJogo.time_fora} onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="">Time Fora</option>
-                {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
-              </select>
-              <input type="datetime-local" value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white" />
-              <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded p-2 text-white">
-                <option value="Grupos">Fase de Grupos</option>
-                <option value="Round of 32">Round of 32</option>
-                <option value="Oitavas">Oitavas</option>
-                <option value="Quartas">Quartas</option>
-                <option value="Semifinal">Semifinal</option>
-                <option value="Final">Final</option>
-              </select>
-              <button onClick={salvarJogo} className="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded font-bold mt-2">Salvar</button>
+            <div className="space-y-4">
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Time Casa</label>
+                <select 
+                  value={editando?.time_casa || novoJogo.time_casa} 
+                  onChange={(e) => editando ? setEditando({...editando, time_casa: e.target.value}) : setNovoJogo({...novoJogo, time_casa: e.target.value})}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500"
+                >
+                  <option value="">Selecione o time</option>
+                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Time Fora</label>
+                <select 
+                  value={editando?.time_fora || novoJogo.time_fora} 
+                  onChange={(e) => editando ? setEditando({...editando, time_fora: e.target.value}) : setNovoJogo({...novoJogo, time_fora: e.target.value})}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500"
+                >
+                  <option value="">Selecione o time</option>
+                  {timesLista.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm mb-1 block">Data e Hora</label>
+                <input 
+                  type="datetime-local" 
+                  value={editando?.data_hora?.slice(0,16) || novoJogo.data_hora} 
+                  onChange={(e) => editando ? setEditando({...editando, data_hora: e.target.value}) : setNovoJogo({...novoJogo, data_hora: e.target.value})}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm mb-1 block">Rodada</label>
+                  <input 
+                    type="number" 
+                    placeholder="Rodada" 
+                    value={editando?.rodada || novoJogo.rodada} 
+                    onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm mb-1 block">Fase/Grupo</label>
+                  <select
+                    value={editando?.grupo || novoJogo.grupo}
+                    onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="Grupos">Fase de Grupos</option>
+                    <option value="Round of 32">Round of 32</option>
+                    <option value="Oitavas">Oitavas de Final</option>
+                    <option value="Quartas">Quartas de Final</option>
+                    <option value="Semifinal">Semifinal</option>
+                    <option value="Final">Final</option>
+                  </select>
+                </div>
+              </div>
+              <button 
+                onClick={salvarJogo} 
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl transition mt-2"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>

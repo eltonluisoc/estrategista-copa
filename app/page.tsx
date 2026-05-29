@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Users, TrendingUp, Award, CheckCircle, XCircle, Lock } from 'lucide-react';
+import { Trophy, Target, Users, TrendingUp, Award, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface Participante {
@@ -12,13 +12,15 @@ interface Participante {
   rodada_eliminacao?: number;
 }
 
-interface Configuracao {
-  inscricoes_abertas: boolean;
+interface Estatisticas {
+  total: number;
+  ativos: number;
+  eliminados: number;
 }
 
 export default function Home() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
-  const [estatisticas, setEstatisticas] = useState({ total: 0, ativos: 0, eliminados: 0 });
+  const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
@@ -46,7 +48,11 @@ export default function Home() {
       });
 
       setParticipantes(ordenados);
-      setEstatisticas(statsData);
+      setEstatisticas({
+        total: statsData.total || 0,
+        ativos: statsData.ativos || 0,
+        eliminados: statsData.eliminados || 0
+      });
       setInscricoesAbertas(configData.inscricoes_abertas);
     } catch (error) {
       console.error('Erro:', error);
@@ -84,15 +90,24 @@ export default function Home() {
             </div>
             <div className="flex gap-3">
               {inscricoesAbertas ? (
-                <Link href="/cadastro" className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 sm:px-6 rounded-lg transition text-sm sm:text-base">
+                <Link 
+                  href="/cadastro" 
+                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-4 sm:px-6 rounded-lg transition shadow-md hover:shadow-lg text-sm sm:text-base"
+                >
                   📝 Inscrever-se
                 </Link>
               ) : (
-                <button disabled className="bg-gray-600 cursor-not-allowed text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base">
+                <button 
+                  disabled 
+                  className="bg-gray-600 cursor-not-allowed text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base"
+                >
                   🔒 Inscrições Encerradas
                 </button>
               )}
-              <Link href="/login" className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-4 sm:px-6 rounded-lg transition text-sm sm:text-base">
+              <Link 
+                href="/login" 
+                className="border-2 border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-2 px-4 sm:px-6 rounded-lg transition text-sm sm:text-base"
+              >
                 🔑 Entrar
               </Link>
             </div>
@@ -102,7 +117,7 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
-        {/* Hero Section simplificada */}
+        {/* Hero Section */}
         <div className="text-center mb-6 sm:mb-8">
           <p className="text-yellow-500 font-semibold tracking-wider text-xs sm:text-sm mb-1 uppercase">
             Copa do Mundo 2026
@@ -115,7 +130,7 @@ export default function Home() {
           </p>
         </div>
 
-                {/* Cards de Estatísticas */}
+        {/* Cards de Estatísticas */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-green-500/10 rounded-xl p-2 sm:p-4 text-center border border-green-500/30">
             <Users className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1" />
@@ -134,7 +149,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Ranking dos Participantes (expandido) */}
+        {/* Ranking dos Participantes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-6 sm:mb-8 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 sm:px-6 py-2 sm:py-3 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -205,19 +220,19 @@ export default function Home() {
 
         {/* Features (Regras) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10">
+          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
             <Target className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" />
             <h3 className="text-base sm:text-xl font-bold text-white mb-1">1 erro = eliminação</h3>
             <p className="text-gray-400 text-xs sm:text-sm">Empate ou derrota e você está fora.</p>
           </div>
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10">
+          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
             <svg className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="text-base sm:text-xl font-bold text-white mb-1">1 palpite por rodada</h3>
             <p className="text-gray-400 text-xs sm:text-sm">Até 23h59 do dia anterior ao jogo.</p>
           </div>
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10">
+          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
             <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" />
             <h3 className="text-base sm:text-xl font-bold text-white mb-1">Prêmio acumulado</h3>
             <p className="text-gray-400 text-xs sm:text-sm">Quanto mais participantes, maior o prêmio!</p>

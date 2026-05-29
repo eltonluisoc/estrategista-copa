@@ -111,7 +111,6 @@ export default function DashboardPage() {
       setJogos(jogosData);
       setRankingParticipantes(rankingData);
       
-      // Determinar rodada atual baseada na data
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
       if (jogosFuturos.length > 0) {
@@ -233,6 +232,7 @@ export default function DashboardPage() {
   }
 
   const timesJaUsados = palpites.map((p) => p.time_id);
+  const timesUsadosList = times.filter((t) => timesJaUsados.includes(t.id));
   const timesDisponiveis = times.filter((t) => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some((p) => p.rodada === rodadaAtual);
   const jogosRodada = jogos.filter((j) => j.rodada === rodadaAtual && !j.finalizado);
@@ -327,7 +327,7 @@ export default function DashboardPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           
-          {/* Coluna Esquerda - Palpites */}
+          {/* Coluna Esquerda - Palpites e Jogos */}
           <div>
             {/* Área de palpite */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
@@ -398,7 +398,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Seus palpites */}
+            {/* Seus palpites e Times Usados */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
               {palpites.length === 0 ? (
@@ -431,9 +431,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Coluna Direita - Jogos da Rodada */}
+          {/* Coluna Direita - Jogos e Ranking */}
           <div>
-            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+            {/* Jogos da Rodada */}
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-yellow-500" />
                 Jogos da Rodada {rodadaAtual}
@@ -458,62 +459,68 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* Ranking dos Participantes */}
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-500" />
+                Ranking dos Participantes
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-400 border-b border-white/10">
+                    <tr>
+                      <th className="text-left py-2 px-2">#</th>
+                      <th className="text-left py-2 px-2">Participante</th>
+                      <th className="text-center py-2 px-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rankingParticipantes.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="text-center py-4 text-gray-400">Nenhum participante encontrado</td>
+                      </tr>
+                    ) : (
+                      rankingParticipantes.map((p, idx) => (
+                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
+                          <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
+                          <td className="py-2 px-2 text-white">{p.nome}</td>
+                          <td className="py-2 px-2 text-center">
+                            {p.status === 'ativo' ? (
+                              <span className="text-green-400 text-xs">✅ Ativo</span>
+                            ) : (
+                              <span className="text-red-400 text-xs">❌ Eliminado (Rodada {p.rodada_eliminacao})</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Ranking dos Participantes */}
+        {/* Times já usados (não pode mais escolher) */}
         <div className="mt-6 bg-white/5 rounded-xl p-5 border border-white/10">
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            Ranking dos Participantes
+            <XCircle className="w-4 h-4 text-red-400" />
+            Times que você já usou ({timesUsadosList.length})
           </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-gray-400 border-b border-white/10">
-                <tr>
-                  <th className="text-left py-2 px-2">#</th>
-                  <th className="text-left py-2 px-2">Participante</th>
-                  <th className="text-center py-2 px-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankingParticipantes.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="text-center py-4 text-gray-400">Nenhum participante encontrado</td>
-                  </tr>
-                ) : (
-                  rankingParticipantes.map((p, idx) => (
-                    <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
-                      <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
-                      <td className="py-2 px-2 text-white">{p.nome}</td>
-                      <td className="py-2 px-2 text-center">
-                        {p.status === 'ativo' ? (
-                          <span className="text-green-400 text-xs">✅ Ativo</span>
-                        ) : (
-                          <span className="text-red-400 text-xs">❌ Eliminado (Rodada {p.rodada_eliminacao})</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Times disponíveis */}
-        <div className="mt-6 bg-white/5 rounded-xl p-5 border border-white/10">
-          <h3 className="text-lg font-bold text-white mb-3">Times disponíveis ({timesDisponiveis.length})</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            {timesDisponiveis.slice(0, 12).map((time) => (
-              <div key={time.id} className="text-gray-400 text-xs">
-                {time.nome} ({time.grupo})
-              </div>
-            ))}
-            {timesDisponiveis.length > 12 && (
-              <div className="text-gray-500 text-xs">+ {timesDisponiveis.length - 12} times</div>
-            )}
-          </div>
+          {timesUsadosList.length === 0 ? (
+            <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {timesUsadosList.map((time) => (
+                <div key={time.id} className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                  <div className="text-white text-sm font-medium">{time.nome}</div>
+                  <div className="text-gray-500 text-xs">Grupo {time.grupo}</div>
+                  <div className="text-red-400 text-xs mt-1">❌ Já usado</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

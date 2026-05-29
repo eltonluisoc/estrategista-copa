@@ -21,6 +21,8 @@ export default function AdminPage() {
   const router = useRouter();
   const [jogos, setJogos] = useState([]);
   const [usuariosPendentes, setUsuariosPendentes] = useState([]);
+  const [usuariosAtivos, setUsuariosAtivos] = useState([]);
+  const [usuariosEliminados, setUsuariosEliminados] = useState([]);
   const [financeiro, setFinanceiro] = useState({ totalArrecadado: 0, custos: 0, premio: 0, totalAprovados: 0 });
   const [eliminados, setEliminados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ export default function AdminPage() {
       carregarJogos();
       carregarUsuariosPendentes();
       carregarFinanceiro();
+      carregarUsuarios();
       carregarEliminados();
     } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
       router.push('/dashboard');
@@ -66,6 +69,19 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/usuarios/pendentes');
       const data = await res.json();
       setUsuariosPendentes(data);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const carregarUsuarios = async () => {
+    try {
+      const res = await fetch('/api/usuarios?excluirAdmin=true');
+      const data = await res.json();
+      const ativos = data.filter(u => u.status === 'ativo');
+      const eliminados = data.filter(u => u.status === 'eliminado');
+      setUsuariosAtivos(ativos);
+      setUsuariosEliminados(eliminados);
     } catch (error) {
       console.error('Erro:', error);
     }
@@ -103,6 +119,7 @@ export default function AdminPage() {
         setMensagem({ tipo: 'sucesso', texto: 'Usuário aprovado com sucesso!' });
         carregarUsuariosPendentes();
         carregarFinanceiro();
+        carregarUsuarios();
         await fetch('/api/admin/forcar-atualizacao', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -129,6 +146,7 @@ export default function AdminPage() {
         setMensagem({ tipo: 'sucesso', texto: 'Processado! ' + data.eliminados + ' eliminado(s).' });
         carregarJogos();
         carregarFinanceiro();
+        carregarUsuarios();
         carregarEliminados();
       } else {
         setMensagem({ tipo: 'erro', texto: data.error });
@@ -218,6 +236,21 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Resumo da Competição */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">📊 Resumo da Competição</h2>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-green-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-green-400">{usuariosAtivos.length}</div>
+              <div className="text-gray-400 text-sm">Participantes Ativos</div>
+            </div>
+            <div className="bg-red-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-red-400">{usuariosEliminados.length}</div>
+              <div className="text-gray-400 text-sm">Participantes Eliminados</div>
+            </div>
+          </div>
+        </div>
+
         {/* Usuários Pendentes */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
           <h2 className="text-xl font-bold text-white mb-4">Usuários Pendentes ({usuariosPendentes.length})</h2>
@@ -277,15 +310,59 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Últimos Eliminados */}
+        {/* Participantes Ativos */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-400" />
+            Participantes Ativos ({usuariosAtivos.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {usuariosAtivos.length === 0 ? (
+              <p className="text-gray-400 text-center py-4 col-span-3">Nenhum participante ativo</p>
+            ) : (
+              usuariosAtivos.map(usuario => (
+                <div key={usuario.id} className="bg-black/30 rounded-lg p-2 px-3">
+                  <div className="text-white text-sm font-medium">{usuario.nome}</div>
+                  <div className="text-gray-400 text-xs">{usuario.email}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Participantes Eliminados */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <XCircle className="w-5 h-5 text-red-400" />
+            Participantes Eliminados ({usuariosEliminados.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {usuariosEliminados.length === 0 ? (
+              <p className="text-gray-400 text-center py-4 col-span-3">Nenhum eliminado ainda</p>
+            ) : (
+              usuariosEliminados.map(usuario => (
+                <div key={usuario.id} className="bg-black/30 rounded-lg p-2 px-3">
+                  <div className="text-white text-sm font-medium">{usuario.nome}</div>
+                  <div className="text-gray-400 text-xs">{usuario.email}</div>
+                  <div className="text-red-400 text-xs">Eliminado na Rodada {usuario.rodada_eliminacao || '?'}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Últimos Eliminados com Detalhes */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-          <h2 className="text-xl font-bold text-white mb-4">Últimos Eliminados</h2>
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <XCircle className="w-5 h-5 text-red-400" />
+            Últimos Eliminados (Detalhes)
+          </h2>
           {eliminados.length === 0 ? (
             <p className="text-gray-400 text-center py-4">Nenhum eliminado ainda</p>
           ) : (
             <div className="space-y-2">
-              {eliminados.map(elim => (
-                <div key={elim.id} className="bg-black/30 rounded-lg p-3">
+              {eliminados.map((elim, idx) => (
+                <div key={idx} className="bg-black/30 rounded-lg p-3">
                   <div className="font-medium text-white">{elim.nome}</div>
                   <div className="text-gray-400 text-sm">Palpite: {elim.time_escolhido}</div>
                   <div className="text-gray-400 text-sm">Jogo: {elim.time_casa} x {elim.time_fora} ({elim.gols_casa}-{elim.gols_fora})</div>

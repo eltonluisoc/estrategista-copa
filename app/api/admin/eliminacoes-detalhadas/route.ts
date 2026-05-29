@@ -11,6 +11,7 @@ export async function GET() {
   }
 
   try {
+    // Buscar eliminados com o jogo CORRETO onde foram eliminados
     const eliminacoes = await sql`
       SELECT 
         u.id,
@@ -28,7 +29,8 @@ export async function GET() {
       FROM usuarios u
       JOIN palpites p ON u.id = p.usuario_id AND p.rodada = u.rodada_eliminacao
       JOIN times t ON p.time_id = t.id
-      JOIN jogos j ON j.rodada = u.rodada_eliminacao
+      JOIN jogos j ON j.rodada = u.rodada_eliminacao 
+        AND (j.time_casa = t.nome OR j.time_fora = t.nome)
       LEFT JOIN times v ON j.vencedor_id = v.id
       WHERE u.status = 'eliminado' 
         AND u.email != 'admin@estrategista.com'

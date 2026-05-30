@@ -5,7 +5,7 @@ import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircl
 import Link from 'next/link';
 
 // VERSÃO MANUAL - ATUALIZAR A CADA DEPLOY
-const APP_VERSION = 'v4';
+const APP_VERSION = 'v5';
 
 interface Participante {
   id: string;
@@ -168,7 +168,7 @@ export default function Home() {
               <Trophy className="w-4 h-4 text-yellow-500" />
               <span className="text-yellow-500 font-bold text-xs">Prêmio</span>
             </div>
-            <p className="text-gray-300 text-xs">Quanto mais participants, maior o prêmio!</p>
+            <p className="text-gray-300 text-xs">Quanto mais participantes, maior o prêmio!</p>
           </div>
         </div>
 

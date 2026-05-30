@@ -12,11 +12,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Chave obrigatória' }, { status: 400 })
   }
   
-  const config = await sql`
-    SELECT valor FROM configuracoes WHERE chave = ${chave}
-  `
-  
-  return NextResponse.json({ valor: config[0]?.valor || null })
+  try {
+    const config = await sql`
+      SELECT valor FROM configuracoes WHERE chave = ${chave}
+    `
+    return NextResponse.json({ valor: config[0]?.valor || 'false' })
+  } catch (error) {
+    // Se a tabela não existir, retorna false
+    return NextResponse.json({ valor: 'false' })
+  }
 }
 
 export async function POST(request: Request) {
@@ -27,11 +31,14 @@ export async function POST(request: Request) {
   
   const { chave, valor } = await request.json()
   
-  await sql`
-    INSERT INTO configuracoes (chave, valor) 
-    VALUES (${chave}, ${valor})
-    ON CONFLICT (chave) DO UPDATE SET valor = ${valor}
-  `
-  
-  return NextResponse.json({ success: true })
+  try {
+    await sql`
+      INSERT INTO configuracoes (chave, valor) 
+      VALUES (${chave}, ${valor})
+      ON CONFLICT (chave) DO UPDATE SET valor = ${valor}
+    `
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro ao salvar' }, { status: 500 })
+  }
 }

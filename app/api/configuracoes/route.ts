@@ -18,7 +18,6 @@ export async function GET(request: Request) {
     `
     return NextResponse.json({ valor: config[0]?.valor || 'false' })
   } catch (error) {
-    // Se a tabela não existir, retorna false
     return NextResponse.json({ valor: 'false' })
   }
 }

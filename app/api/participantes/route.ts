@@ -17,7 +17,7 @@ export async function GET() {
     WHERE email != 'admin@estrategista.com'
   `
   
-  // Buscar palpites com detalhes dos times, prazos e resultados
+  // Buscar palpites
   const palpites = await sql`
     SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
            j.vencedor_id, j.finalizado, j.prazo
@@ -30,7 +30,6 @@ export async function GET() {
   
   const agora = new Date()
   
-  // Calcular dados de cada participante
   const participantesComDados = participantes.map((p: any) => {
     if (p.status === 'eliminado') {
       return { ...p, rodada_atual: null, acertos: [], palpite_atual: null, palpite_atual_visivel: false }
@@ -47,54 +46,45 @@ export async function GET() {
     let ultimoPalpite = null
     let palpiteAtual = null
     let palpiteAtualVisivel = false
-    let eliminado = false
     
     for (const palpite of palpitesDoUsuario) {
       ultimoPalpite = palpite
-      const prazo = palpite.prazo ? new Date(palpite.prazo) : null
-      const prazoExpirado = prazo ? agora > prazo : false
       
-      if (palpite.finalizado && palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-        // Acertou - avança para próxima rodada
-        acertos.push({
-          rodada: palpite.rodada,
-          time: palpite.time_nome
-        })
-        rodadaAtual = palpite.rodada + 1
-      } else if (palpite.finalizado && palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
-        // Errou - eliminado
-        eliminado = true
-        return { 
-          ...p, 
-          status: 'eliminado', 
-          rodada_eliminacao: palpite.rodada, 
-          acertos,
-          palpite_atual: null,
-          palpite_atual_visivel: false
+      // Se o jogo foi finalizado
+      if (palpite.finalizado) {
+        if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
+          // ACERTOU - avança
+          acertos.push({
+            rodada: palpite.rodada,
+            time: palpite.time_nome
+          })
+          rodadaAtual = palpite.rodada + 1
+        } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
+          // ERROU - eliminado
+          return { 
+            ...p, 
+            status: 'eliminado', 
+            rodada_eliminacao: palpite.rodada, 
+            acertos,
+            palpite_atual: null,
+            palpite_atual_visivel: false
+          }
         }
       } else {
-        // Palpite não finalizado ainda - continua na MESMA rodada
+        // Jogo NÃO finalizado - permanece na rodada do palpite
         rodadaAtual = palpite.rodada
       }
     }
     
-    // Se já foi eliminado, não prossegue
-    if (eliminado) {
-      return null
-    }
-    
-    // Determinar se o palpite atual pode ser mostrado
-    if (ultimoPalpite) {
+    // Palpite atual (apenas o último palpite NÃO finalizado)
+    if (ultimoPalpite && !ultimoPalpite.finalizado) {
       const prazo = ultimoPalpite.prazo ? new Date(ultimoPalpite.prazo) : null
       const prazoExpirado = prazo ? agora > prazo : false
       
-      // Modo teste: mostra sempre
       if (modoTeste) {
         palpiteAtual = ultimoPalpite.time_nome
         palpiteAtualVisivel = true
-      } 
-      // Modo produção: mostra apenas se o jogo já foi finalizado OU prazo expirou
-      else if (ultimoPalpite.finalizado || prazoExpirado) {
+      } else if (prazoExpirado) {
         palpiteAtual = ultimoPalpite.time_nome
         palpiteAtualVisivel = true
       }
@@ -107,9 +97,9 @@ export async function GET() {
       palpite_atual: palpiteAtual,
       palpite_atual_visivel: palpiteAtualVisivel
     }
-  }).filter(p => p !== null) // Remove eliminados que retornaram null
+  })
   
-  // Ordenar: ativos primeiro (por rodada atual decrescente), depois eliminados
+  // Ordenar
   const ordenados = participantesComDados.sort((a: any, b: any) => {
     if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
     if (a.status !== 'eliminado' && b.status === 'eliminado') return -1

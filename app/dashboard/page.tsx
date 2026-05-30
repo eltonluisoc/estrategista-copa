@@ -11,6 +11,7 @@ interface Usuario {
   nome: string;
   status: 'ativo' | 'eliminado';
   rodada_eliminacao?: number;
+  rodada_atual?: number;
 }
 
 interface Time {
@@ -42,6 +43,7 @@ interface ParticipanteRanking {
   nome: string;
   status: string;
   rodada_eliminacao?: number;
+  rodada_atual?: number;
 }
 
 export default function DashboardPage() {
@@ -106,25 +108,53 @@ export default function DashboardPage() {
       const timesData = await timesRes.json();
       const palpitesData = await palpitesRes.json();
       const jogosData = await jogosRes.json();
-      const rankingData = await rankingRes.json();
+      let rankingData = await rankingRes.json();
       
       setTimes(timesData);
       setPalpites(palpitesData);
       setJogos(jogosData);
-      setRankingParticipantes(rankingData);
       
-      // Determinar rodada atual baseada na data
+      // Calcular a rodada atual de cada participante
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
+      let rodadaAtualCalculada = 1;
       if (jogosFuturos.length > 0) {
         const proximoJogo = jogosFuturos.sort((a: Jogo, b: Jogo) => 
           new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
         )[0];
-        setRodadaAtual(proximoJogo.rodada);
+        rodadaAtualCalculada = proximoJogo.rodada;
+        setRodadaAtual(rodadaAtualCalculada);
       } else {
         const proximaRodada = jogosData.filter((j: Jogo) => !j.finalizado).sort((a: Jogo, b: Jogo) => a.rodada - b.rodada)[0];
-        if (proximaRodada) setRodadaAtual(proximaRodada.rodada);
+        if (proximaRodada) {
+          rodadaAtualCalculada = proximaRodada.rodada;
+          setRodadaAtual(rodadaAtualCalculada);
+        }
       }
+      
+      // Para cada participante, calcular em qual rodada ele está
+      rankingData = rankingData.map((p: ParticipanteRanking) => {
+        if (p.status === 'eliminado') return p;
+        
+        // Buscar o último palpite do participante
+        const palpitesDoUsuario = palpitesData.filter((palpite: Palpite) => 
+          palpite.usuario_id === p.id
+        );
+        
+        if (palpitesDoUsuario.length === 0) {
+          // Participante nunca palpitou - ainda está na rodada 1
+          return { ...p, rodada_atual: 1 };
+        }
+        
+        // Última rodada que ele palpitou
+        const ultimaRodadaPalpite = Math.max(...palpitesDoUsuario.map((palpite: Palpite) => palpite.rodada));
+        
+        // Verificar se o palpite dele na última rodada foi válido (time venceu)
+        // Por enquanto, se ele não foi eliminado, consideramos que está na próxima rodada
+        return { ...p, rodada_atual: ultimaRodadaPalpite + 1 };
+      });
+      
+      setRankingParticipantes(rankingData);
       
       const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
       const userData = await userRes.json();
@@ -140,7 +170,6 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!timeSelecionado || !session?.user?.id) return;
 
-    // REGRA DE SEGURANÇA: Verificar se o jogo já não foi finalizado
     const timeSelecionadoNome = times.find(t => t.id === parseInt(timeSelecionado))?.nome;
     const jogoDoTime = jogos.find(j => 
       j.rodada === rodadaAtual && 
@@ -152,7 +181,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // REGRA DE SEGURANÇA: Verificar prazo
     if (jogoDoTime && new Date() > new Date(jogoDoTime.prazo)) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
       return;
@@ -189,7 +217,6 @@ export default function DashboardPage() {
   };
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
-    // REGRA DE SEGURANÇA: Verificar se pode alterar
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
     if (prazoJogo && new Date() > new Date(prazoJogo)) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
@@ -335,26 +362,26 @@ export default function DashboardPage() {
         <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h2 className="text-lg font-bold text-white mb-0.5">Seu status</h2>
+              <h2 className="text-lg font-bold text-white mb-0.5">Sua situação</h2>
               <p className="text-gray-400 text-xs">Você está competindo pelo prêmio!</p>
             </div>
             <div className="flex items-center gap-2">
               {usuario?.status === 'ativo' ? (
-                <>
-                  <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 font-semibold text-sm">ATIVO</span>
-                </>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 font-semibold text-sm">Rodada {rodadaAtual}</span>
+                </div>
               ) : (
-                <>
-                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                  <span className="text-red-400 font-semibold text-sm">ELIMINADO</span>
-                </>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-red-400 font-semibold text-sm">Eliminado na Rodada {usuario?.rodada_eliminacao}</span>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Grid Principal: Esquerda (Palpites + Ranking) | Direita (Jogos) */}
+        {/* Grid Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* COLUNA ESQUERDA - Palpites + Ranking */}
@@ -368,8 +395,7 @@ export default function DashboardPage() {
                   <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
                   <p className="text-yellow-400 font-semibold text-sm">⏳ Inscrição pendente</p>
                   <p className="text-gray-400 text-xs mt-1">
-                    Seu cadastro aguarda aprovação do administrador.<br />
-                    Após a confirmação do pagamento, você poderá fazer seus palpites.
+                    Seu cadastro aguarda aprovação do administrador.
                   </p>
                   <button
                     onClick={forcarRecarregamento}
@@ -460,7 +486,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Ranking dos Participantes - VISUAL PROFISSIONAL */}
+            {/* Ranking dos Participantes */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-3">
                 <Trophy className="w-5 h-5 text-yellow-500" />
@@ -487,15 +513,29 @@ export default function DashboardPage() {
                         <div>
                           <div className="text-white font-medium">{p.nome}</div>
                           <div className="text-gray-500 text-xs">
-                            {p.status === 'ativo' ? '✅ Ativo' : `❌ Eliminado (Rodada ${p.rodada_eliminacao})`}
+                            {p.status === 'ativo' ? (
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                Rodada {p.rodada_atual || 1}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-red-400">
+                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                Eliminado (Rodada {p.rodada_eliminacao})
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         {p.status === 'ativo' ? (
-                          <span className="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full font-medium">Ativo</span>
+                          <span className="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full font-medium">
+                            🟢 Rodada {p.rodada_atual || 1}
+                          </span>
                         ) : (
-                          <span className="bg-red-500/20 text-red-400 text-xs px-3 py-1 rounded-full font-medium">Eliminado</span>
+                          <span className="bg-red-500/20 text-red-400 text-xs px-3 py-1 rounded-full font-medium">
+                            🔴 Eliminado
+                          </span>
                         )}
                       </div>
                     </div>
@@ -503,6 +543,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+          </div>
 
           {/* COLUNA DIREITA - Jogos da Rodada */}
           <div className="space-y-6">

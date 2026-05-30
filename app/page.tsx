@@ -37,33 +37,33 @@ export default function Home() {
   }, []);
 
   const carregarDados = async () => {
-    try {
-      const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
-        fetch('/api/participantes'),
-        fetch('/api/estatisticas-publicas'),
-        fetch('/api/configuracoes/inscricoes'),
-        fetch('/api/configuracoes?chave=modo_teste')
-      ]);
+  try {
+    const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
+      fetch('/api/participantes'),
+      fetch('/api/estatisticas-publicas'),
+      fetch('/api/configuracoes/inscricoes'),
+      fetch('/api/configuracoes?chave=modo_teste')
+    ]);
 
-      const participantesData = await participantesRes.json();
-      const statsData = await statsRes.json();
-      const configData = await configRes.json();
-      const modoTesteData = await modoTesteRes.json();
+    const participantesData = await participantesRes.json();
+    const statsData = await statsRes.json();
+    const configData = await configRes.json();
+    const modoTesteData = await modoTesteRes.json();
 
-      setParticipantes(participantesData);
-      setEstatisticas({
-        total: statsData.total || 0,
-        ativos: statsData.ativos || 0,
-        eliminados: statsData.eliminados || 0
-      });
-      setInscricoesAbertas(configData.inscricoes_abertas);
-      setModoTeste(modoTesteData.valor === 'true');
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setParticipantes(participantesData);
+    setEstatisticas({
+      total: statsData.total || 0,
+      ativos: statsData.ativos || 0,
+      eliminados: statsData.eliminados || 0
+    });
+    setInscricoesAbertas(configData.inscricoes_abertas);
+    setModoTeste(modoTesteData.valor === 'true');  // 🔴 ADICIONE ESTA LINHA
+  } catch (error) {
+    console.error('Erro:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const participantesFiltrados = participantes.filter(p => {
     if (mostrar === 'ativos') return p.status === 'ativo';
@@ -256,34 +256,34 @@ export default function Home() {
                       </button>
                     </div>
                     <div className="text-right">
-                      {p.status === 'ativo' ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-green-400 text-[10px] sm:text-xs flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                            Rodada {p.rodada_atual || 1}
-                          </span>
-                          {/* Próximo palpite (se visível) */}
-                          {p.palpite_atual_visivel && p.palpite_atual && (
-                            <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                              <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                🎯 {p.palpite_atual}
-                              </span>
-                            </div>
-                          )}
-                          {!p.palpite_atual_visivel && p.palpite_atual && (
-                            <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                              <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-red-400 text-[10px] sm:text-xs flex items-center gap-1">
-                          <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
-                        </span>
-                      )}
-                    </div>
+  {p.status === 'ativo' ? (
+    <div className="flex flex-col items-end">
+      <span className="text-green-400 text-[10px] sm:text-xs flex items-center gap-1">
+        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+        Rodada {p.rodada_atual || 1}
+      </span>
+      
+      {/* Próximo palpite */}
+      {p.palpite_atual && (
+  <div className="flex items-center justify-end gap-0.5 mt-0.5">
+    {(p.palpite_atual_visivel || modoTeste) ? (
+      <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+        🎯 {p.palpite_atual}
+      </span>
+    ) : (
+      <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+        <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
+      </span>
+    )}
+  </div>
+)}
+    </div>
+  ) : (
+    <span className="text-red-400 text-[10px] sm:text-xs flex items-center gap-1">
+      <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
+    </span>
+  )}
+</div>
                   </div>
                 ))
               )}

@@ -156,27 +156,32 @@ export default function AdminPage() {
   };
 
   const processarResultado = async (jogoId, gols_casa, gols_fora, rodada) => {
-    setMensagem(null);
-    try {
-      const res = await fetch('/api/admin/jogos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jogoId, gols_casa, gols_fora, rodada })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
-        carregarJogos();
-        carregarFinanceiro();
-        carregarUsuarios();
-        carregarEliminados();
+  setMensagem(null);
+  try {
+    const res = await fetch('/api/admin/jogos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jogoId, gols_casa, gols_fora, rodada })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMensagem({ tipo: 'sucesso', texto: '✅ Processado! ' + data.eliminados + ' eliminado(s).' });
+      // Atualizar a lista de jogos com os dados retornados
+      if (data.jogos) {
+        setJogos(data.jogos);
       } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
+        carregarJogos();
       }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+      carregarFinanceiro();
+      carregarUsuarios();
+      carregarEliminados();
+    } else {
+      setMensagem({ tipo: 'erro', texto: data.error });
     }
-  };
+  } catch (error) {
+    setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+  }
+};
 
   const salvarJogo = async () => {
     const dados = editando ? editando : novoJogo;
@@ -458,7 +463,7 @@ export default function AdminPage() {
                                     type="number"
                                     id={`gols-casa-${jogo.id}`}
                                     placeholder="0"
-                                    className="w-14 bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-white text-center text-sm focus:outline-none focus:border-yellow-500"
+                                    className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                   />
                                   <span className="text-yellow-500 font-bold">x</span>
                                   <input

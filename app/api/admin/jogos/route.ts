@@ -54,7 +54,6 @@ export async function POST(request: Request) {
     `
 
     // Buscar APENAS os palpites deste jogo específico
-    // CORREÇÃO: Só considera quem apostou nos times que jogaram
     const palpitesDesteJogo = await sql`
       SELECT p.usuario_id, p.time_id, t.nome as time_escolhido
       FROM palpites p
@@ -67,7 +66,6 @@ export async function POST(request: Request) {
     const eliminadosIds = []
 
     if (vencedor === 'EMPATE') {
-      // Empate: todos que apostaram neste jogo são eliminados
       for (const p of palpitesDesteJogo) {
         await sql`
           UPDATE usuarios 
@@ -78,7 +76,6 @@ export async function POST(request: Request) {
         eliminadosIds.push(p.usuario_id)
       }
     } else {
-      // Vitória: elimina apenas quem NÃO escolheu o vencedor
       for (const p of palpitesDesteJogo) {
         if (p.time_escolhido !== vencedor) {
           await sql`
@@ -100,10 +97,17 @@ export async function POST(request: Request) {
       `
     }
 
+    // Retornar os jogos atualizados
+    const jogosAtualizados = await sql`
+      SELECT * FROM jogos 
+      ORDER BY rodada, data_hora
+    `
+
     return NextResponse.json({ 
-      eliminados, 
+      eliminados,
       message: `${eliminados} participante(s) eliminado(s)`,
-      vencedor 
+      vencedor,
+      jogos: jogosAtualizados
     })
 
   } catch (error) {
@@ -134,7 +138,13 @@ export async function PUT(request: Request) {
         VALUES (${time_casa}, ${time_fora}, ${data_hora}, ${rodada}, ${grupo})
       `
     }
-    return NextResponse.json({ success: true })
+
+    const jogosAtualizados = await sql`
+      SELECT * FROM jogos 
+      ORDER BY rodada, data_hora
+    `
+
+    return NextResponse.json({ success: true, jogos: jogosAtualizados })
   } catch (error) {
     console.error('Erro ao salvar jogo:', error)
     return NextResponse.json({ error: 'Erro ao salvar' }, { status: 500 })

@@ -50,17 +50,16 @@ export async function GET() {
     for (const palpite of palpitesDoUsuario) {
       ultimoPalpite = palpite
       
-      // Se o jogo foi finalizado
       if (palpite.finalizado) {
         if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-          // ACERTOU - avança
+          // Acertou - avança
           acertos.push({
             rodada: palpite.rodada,
             time: palpite.time_nome
           })
           rodadaAtual = palpite.rodada + 1
         } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
-          // ERROU - eliminado
+          // Errou - eliminado
           return { 
             ...p, 
             status: 'eliminado', 
@@ -71,7 +70,8 @@ export async function GET() {
           }
         }
       } else {
-        // Jogo NÃO finalizado - permanece na rodada do palpite
+        // Jogo NÃO finalizado - permanece na rodada do palpite (NÃO avança)
+        // Se o palpite é da rodada 1, fica na rodada 1
         rodadaAtual = palpite.rodada
       }
     }

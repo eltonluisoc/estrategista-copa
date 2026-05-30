@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface Participante {
@@ -10,6 +10,7 @@ interface Participante {
   email: string;
   status: string;
   rodada_eliminacao?: number;
+  rodada_atual?: number;
 }
 
 interface Estatisticas {
@@ -41,13 +42,7 @@ export default function Home() {
       const statsData = await statsRes.json();
       const configData = await configRes.json();
 
-      const ordenados = participantesData.sort((a: Participante, b: Participante) => {
-        if (a.status === 'ativo' && b.status !== 'ativo') return -1;
-        if (a.status !== 'ativo' && b.status === 'ativo') return 1;
-        return 0;
-      });
-
-      setParticipantes(ordenados);
+      setParticipantes(participantesData);
       setEstatisticas({
         total: statsData.total || 0,
         ativos: statsData.ativos || 0,
@@ -174,7 +169,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Ranking dos Participantes */}
+        {/* Ranking dos Participantes - VERSÃO CORRIGIDA */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 sm:px-6 py-2 sm:py-3 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -224,18 +219,26 @@ export default function Home() {
                 participantesFiltrados.map((p, idx) => (
                   <div key={p.id} className="flex justify-between items-center py-1.5 sm:py-2 border-b border-white/5">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <span className="text-gray-500 text-xs sm:text-sm w-6 sm:w-8">{idx + 1}</span>
+                      <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${
+                        idx === 0 ? 'text-yellow-400' :
+                        idx === 1 ? 'text-gray-300' :
+                        idx === 2 ? 'text-orange-400' :
+                        'text-gray-500'
+                      }`}>{idx + 1}</span>
                       <span className="text-white text-sm sm:text-base">{p.nome}</span>
                     </div>
-                    {p.status === 'ativo' ? (
-                      <span className="text-green-400 text-xs sm:text-sm flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Ativo
-                      </span>
-                    ) : (
-                      <span className="text-red-400 text-xs sm:text-sm flex items-center gap-1">
-                        <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
-                      </span>
-                    )}
+                    <div className="text-right">
+                      {p.status === 'ativo' ? (
+                        <span className="text-green-400 text-xs sm:text-sm flex items-center gap-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          Rodada {p.rodada_atual || 1}
+                        </span>
+                      ) : (
+                        <span className="text-red-400 text-xs sm:text-sm flex items-center gap-1">
+                          <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

@@ -460,50 +460,49 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Ranking dos Participantes - AGORA NA COLUNA ESQUERDA (abaixo dos palpites) */}
+            {/* Ranking dos Participantes - VISUAL PROFISSIONAL */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-yellow-500" />
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-white/10 pb-3">
+                <Trophy className="w-5 h-5 text-yellow-500" />
                 Ranking dos Participantes
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-gray-400 border-b border-white/10">
-                    <tr>
-                      <th className="text-left py-2 px-2">#</th>
-                      <th className="text-left py-2 px-2">Participante</th>
-                      <th className="text-center py-2 px-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingParticipantes.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="text-center py-4 text-gray-400">Nenhum participante encontrado</td>
-                      </tr>
-                    ) : (
-                      rankingParticipantes.map((p, idx) => (
-                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5">
-                          <td className="py-2 px-2 text-white font-medium">{idx + 1}</td>
-                          <td className="py-2 px-2 text-white">{p.nome}</td>
-                          <td className="py-2 px-2 text-center">
-                            {p.status === 'ativo' ? (
-                              <span className="text-green-400 text-xs flex items-center justify-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> Ativo
-                              </span>
-                            ) : (
-                              <span className="text-red-400 text-xs flex items-center justify-center gap-1">
-                                <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {rankingParticipantes.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">Nenhum participante encontrado</p>
+                ) : (
+                  rankingParticipantes.map((p, idx) => (
+                    <div 
+                      key={p.id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-black/30 hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-yellow-500/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          idx === 0 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
+                          idx === 1 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/30' :
+                          idx === 2 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                          'bg-white/10 text-gray-400'
+                        }`}>
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{p.nome}</div>
+                          <div className="text-gray-500 text-xs">
+                            {p.status === 'ativo' ? '✅ Ativo' : `❌ Eliminado (Rodada ${p.rodada_eliminacao})`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {p.status === 'ativo' ? (
+                          <span className="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full font-medium">Ativo</span>
+                        ) : (
+                          <span className="bg-red-500/20 text-red-400 text-xs px-3 py-1 rounded-full font-medium">Eliminado</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-          </div>
 
           {/* COLUNA DIREITA - Jogos da Rodada */}
           <div className="space-y-6">

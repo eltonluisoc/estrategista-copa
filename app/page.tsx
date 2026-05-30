@@ -88,12 +88,11 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       
       {/* Banner de Modo Teste */}
-      {modoTeste && (
-        <div className="bg-red-600/80 text-white text-center py-2 px-4 text-sm font-semibold">
-          ⚠️ SISTEMA EM MODO TESTE - PRAZOS NÃO ESTÃO SENDO APLICADOS ⚠️
-        </div>
-      )}
-
+{modoTeste && (
+  <div className="bg-red-600/80 text-white text-center py-2 px-4 text-sm font-semibold">
+    🔴 MODO TESTE ATIVADO - PRAZOS NÃO ESTÃO SENDO APLICADOS
+  </div>
+)}
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">

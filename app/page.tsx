@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Users, TrendingUp, Award, CheckCircle, XCircle } from 'lucide-react';
+import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface Participante {
@@ -118,7 +118,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
         {/* Hero Section */}
-        <div className="text-center mb-6 sm:mb-8">
+        <div className="text-center mb-6">
           <p className="text-yellow-500 font-semibold tracking-wider text-xs sm:text-sm mb-1 uppercase">
             Copa do Mundo 2026
           </p>
@@ -130,27 +130,52 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Cards de Regras (menores, no topo) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Target className="w-4 h-4 text-yellow-500" />
+              <span className="text-yellow-500 font-bold text-xs">1 erro</span>
+            </div>
+            <p className="text-gray-300 text-xs">Empate ou derrota = eliminação</p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-yellow-500" />
+              <span className="text-yellow-500 font-bold text-xs">1 palpite</span>
+            </div>
+            <p className="text-gray-300 text-xs">Por rodada, até 23h59 do dia anterior</p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-yellow-500" />
+              <span className="text-yellow-500 font-bold text-xs">Prêmio</span>
+            </div>
+            <p className="text-gray-300 text-xs">Quanto mais participantes, maior o prêmio!</p>
+          </div>
+        </div>
+
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
           <div className="bg-green-500/10 rounded-xl p-2 sm:p-4 text-center border border-green-500/30">
             <Users className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-green-400">{estatisticas.total}</div>
             <div className="text-gray-400 text-[10px] sm:text-sm">Total de Participantes</div>
           </div>
           <div className="bg-blue-500/10 rounded-xl p-2 sm:p-4 text-center border border-blue-500/30">
-            <CheckCircle className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1" />
+            <TrendingUp className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-blue-400">{estatisticas.ativos}</div>
             <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Ativos</div>
           </div>
           <div className="bg-red-500/10 rounded-xl p-2 sm:p-4 text-center border border-red-500/30">
-            <XCircle className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1" />
+            <Award className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-red-400">{estatisticas.eliminados}</div>
             <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Eliminados</div>
           </div>
         </div>
 
         {/* Ranking dos Participantes */}
-        <div className="bg-white/5 rounded-xl border border-white/10 mb-6 sm:mb-8 overflow-hidden">
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 sm:px-6 py-2 sm:py-3 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
               <h2 className="text-base sm:text-xl font-bold text-white flex items-center gap-2">
@@ -208,7 +233,7 @@ export default function Home() {
                       </span>
                     ) : (
                       <span className="text-red-400 text-xs sm:text-sm flex items-center gap-1">
-                        <XCircle className="w-3 h-3" /> Eliminado
+                        <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
                       </span>
                     )}
                   </div>
@@ -218,39 +243,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Features (Regras) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
-            <Target className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" />
-            <h3 className="text-base sm:text-xl font-bold text-white mb-1">1 erro = eliminação</h3>
-            <p className="text-gray-400 text-xs sm:text-sm">Empate ou derrota e você está fora.</p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
-            <svg className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-base sm:text-xl font-bold text-white mb-1">1 palpite por rodada</h3>
-            <p className="text-gray-400 text-xs sm:text-sm">Até 23h59 do dia anterior ao jogo.</p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/10 hover:border-yellow-500/30 transition-all">
-            <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 mb-2 sm:mb-4" />
-            <h3 className="text-base sm:text-xl font-bold text-white mb-1">Prêmio acumulado</h3>
-            <p className="text-gray-400 text-xs sm:text-sm">Quanto mais participantes, maior o prêmio!</p>
-          </div>
-        </div>
-
         {/* Footer */}
-        <footer className="text-center py-4 sm:py-6 text-gray-500 text-[10px] sm:text-xs border-t border-white/10 mt-6 sm:mt-8">
+        <footer className="text-center py-4 sm:py-6 text-gray-500 text-[10px] sm:text-xs border-t border-white/10">
           <p>Estrategista da Copa 2026</p>
           <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mt-1">
-            <a
-  href="https://wa.me/5561998507770"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="hover:text-yellow-500 transition flex items-center gap-1"
->
-  📱 Falar com Administrador
-</a>
+            <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
+              📱 Falar com Administrador
+            </a>
             <Link href="/como-funciona" className="hover:text-yellow-500 transition">
               Como funciona
             </Link>

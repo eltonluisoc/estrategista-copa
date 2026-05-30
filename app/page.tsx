@@ -11,8 +11,9 @@ interface Participante {
   status: string;
   rodada_eliminacao?: number;
   rodada_atual?: number;
-  palpite?: string;
-  palpite_visivel?: boolean;
+  acertos?: { rodada: number; time: string }[];
+  palpite_atual?: string;
+  palpite_atual_visivel?: boolean;
 }
 
 interface Estatisticas {
@@ -225,12 +226,12 @@ export default function Home() {
             </div>
           </div>
           <div className="p-3 sm:p-4">
-            <div className="space-y-1.5 sm:space-y-2">
+            <div className="space-y-2">
               {participantesFiltrados.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">Nenhum participante encontrado</p>
               ) : (
                 participantesFiltrados.map((p, idx) => (
-                  <div key={p.id} className="flex justify-between items-center py-1.5 sm:py-2 border-b border-white/5">
+                  <div key={p.id} className="flex justify-between items-start py-2 border-b border-white/5">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${
                         idx === 0 ? 'text-yellow-400' :
@@ -243,22 +244,33 @@ export default function Home() {
                     <div className="text-right">
                       {p.status === 'ativo' ? (
                         <div className="flex flex-col items-end">
-                          <span className="text-green-400 text-xs flex items-center gap-1">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          <span className="text-green-400 text-[10px] sm:text-xs flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                             Rodada {p.rodada_atual || 1}
                           </span>
-                          {p.palpite_visivel && p.palpite ? (
-                            <span className="text-yellow-500 text-xs font-medium">
-                              🏆 {p.palpite}
-                            </span>
-                          ) : p.palpite && !p.palpite_visivel ? (
-                            <span className="text-gray-500 text-xs flex items-center gap-1">
-                              <EyeOff className="w-3 h-3" /> Palpite oculto
-                            </span>
-                          ) : null}
+                          {/* Acertos anteriores */}
+                          {p.acertos && p.acertos.length > 0 && (
+                            <div className="flex flex-col items-end mt-0.5">
+                              <div className="flex items-center gap-0.5 flex-wrap justify-end">
+                                {p.acertos.map((acerto: any, i: number) => (
+                                  <span key={i} className="text-green-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                    ✅ {acerto.time}{i !== p.acertos.length - 1 ? ' → ' : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Palpite atual (visível apenas após prazo) */}
+                          {p.palpite_atual_visivel && p.palpite_atual && (
+                            <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                              <span className="text-yellow-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                ⏳ {p.palpite_atual}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <span className="text-red-400 text-xs flex items-center gap-1">
+                        <span className="text-red-400 text-[10px] sm:text-xs flex items-center gap-1">
                           <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
                         </span>
                       )}

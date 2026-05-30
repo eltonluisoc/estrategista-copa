@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw, TrendingUp, Award } from 'lucide-react';
+import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -23,6 +23,7 @@ interface Palpite {
   id: string;
   time_id: number;
   rodada: number;
+  data_palpite: string;
 }
 
 interface Jogo {
@@ -33,6 +34,7 @@ interface Jogo {
   grupo: string;
   finalizado: boolean;
   rodada: number;
+  prazo: string;
 }
 
 interface ParticipanteRanking {
@@ -111,6 +113,7 @@ export default function DashboardPage() {
       setJogos(jogosData);
       setRankingParticipantes(rankingData);
       
+      // Determinar rodada atual baseada na data
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
       if (jogosFuturos.length > 0) {
@@ -136,6 +139,24 @@ export default function DashboardPage() {
   const handlePalpite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!timeSelecionado || !session?.user?.id) return;
+
+    // REGRA DE SEGURANÇA: Verificar se o jogo já não foi finalizado
+    const timeSelecionadoNome = times.find(t => t.id === parseInt(timeSelecionado))?.nome;
+    const jogoDoTime = jogos.find(j => 
+      j.rodada === rodadaAtual && 
+      (j.time_casa === timeSelecionadoNome || j.time_fora === timeSelecionadoNome)
+    );
+    
+    if (jogoDoTime && jogoDoTime.finalizado) {
+      setMensagem({ tipo: 'erro', texto: '❌ Este jogo já foi finalizado! Não é mais possível palpitar.' });
+      return;
+    }
+
+    // REGRA DE SEGURANÇA: Verificar prazo
+    if (jogoDoTime && new Date() > new Date(jogoDoTime.prazo)) {
+      setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
+      return;
+    }
 
     setPalpiteEnviando(true);
     setMensagem(null);
@@ -168,6 +189,13 @@ export default function DashboardPage() {
   };
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
+    // REGRA DE SEGURANÇA: Verificar se pode alterar
+    const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
+    if (prazoJogo && new Date() > new Date(prazoJogo)) {
+      setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
+      return;
+    }
+
     if (!confirm(`Deseja alterar seu palpite da Rodada ${rodada}?`)) return;
     
     try {
@@ -260,14 +288,14 @@ export default function DashboardPage() {
                 <RefreshCw className="w-4 h-4 inline" /> Atualizar
               </button>
               <a
-  href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2"
->
-  <span>📱</span>
-  Falar com Administrador
-</a>
+                href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2"
+              >
+                <span>📱</span>
+                Falar com Administrador
+              </a>
               <button
                 onClick={() => signOut()}
                 className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition"
@@ -326,13 +354,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Grid Principal: Palpites | Jogos + Ranking */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        {/* Grid Principal: Esquerda (Palpites + Ranking) | Direita (Jogos) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Coluna Esquerda - Palpites */}
-          <div>
+          {/* COLUNA ESQUERDA - Palpites + Ranking */}
+          <div className="space-y-6">
             {/* Área de palpite */}
-            <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
               
               {!estaAprovado ? (
@@ -431,38 +459,8 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Coluna Direita - Jogos + Ranking */}
-          <div>
-            {/* Jogos da Rodada */}
-            <div className="bg-white/5 rounded-xl p-5 border border-white/10 mb-6">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-yellow-500" />
-                Jogos da Rodada {rodadaAtual}
-              </h3>
-              {jogosRodada.length === 0 ? (
-                <p className="text-gray-400 text-center py-4 text-sm">Nenhum jogo disponível para esta rodada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {jogosRodada.map((jogo) => (
-                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-                        </div>
-                        <span className="text-gray-500 text-xs">
-                          {new Date(jogo.data_hora).toLocaleDateString('pt-BR')} - {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Ranking dos Participantes */}
+            {/* Ranking dos Participantes - AGORA NA COLUNA ESQUERDA (abaixo dos palpites) */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-yellow-500" />
@@ -489,9 +487,13 @@ export default function DashboardPage() {
                           <td className="py-2 px-2 text-white">{p.nome}</td>
                           <td className="py-2 px-2 text-center">
                             {p.status === 'ativo' ? (
-                              <span className="text-green-400 text-xs">✅ Ativo</span>
+                              <span className="text-green-400 text-xs flex items-center justify-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> Ativo
+                              </span>
                             ) : (
-                              <span className="text-red-400 text-xs">❌ Eliminado (Rodada {p.rodada_eliminacao})</span>
+                              <span className="text-red-400 text-xs flex items-center justify-center gap-1">
+                                <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -502,9 +504,38 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* COLUNA DIREITA - Jogos da Rodada */}
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-yellow-500" />
+                Jogos da Rodada {rodadaAtual}
+              </h3>
+              {jogosRodada.length === 0 ? (
+                <p className="text-gray-400 text-center py-4 text-sm">Nenhum jogo disponível para esta rodada.</p>
+              ) : (
+                <div className="space-y-2">
+                  {jogosRodada.map((jogo) => (
+                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                        </div>
+                        <span className="text-gray-500 text-xs">
+                          {new Date(jogo.data_hora).toLocaleDateString('pt-BR')} - {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Times já usados (não pode mais escolher) - com design do site */}
+        {/* Times já usados */}
         <div className="mt-6 bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <XCircle className="w-4 h-4 text-red-400" />
@@ -525,6 +556,14 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Aviso de segurança */}
+        <div className="mt-6 bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">
+          <div className="flex items-center justify-center gap-2 text-yellow-500 text-xs">
+            <Shield className="w-4 h-4" />
+            <span>Prazo para palpitar: até 23h59 do dia anterior ao jogo. Após este horário, o palpite fica bloqueado.</span>
+          </div>
         </div>
       </div>
 

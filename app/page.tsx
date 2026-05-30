@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, EyeOff } from 'lucide-react';
+import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, History, EyeOff, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 interface Participante {
@@ -29,6 +29,8 @@ export default function Home() {
   const [modoTeste, setModoTeste] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
+  const [modalAberto, setModalAberto] = useState(false);
+  const [participanteSelecionado, setParticipanteSelecionado] = useState<Participante | null>(null);
 
   useEffect(() => {
     carregarDados();
@@ -68,6 +70,11 @@ export default function Home() {
     if (mostrar === 'eliminados') return p.status === 'eliminado';
     return true;
   });
+
+  const abrirHistorico = (participante: Participante) => {
+    setParticipanteSelecionado(participante);
+    setModalAberto(true);
+  };
 
   if (loading) {
     return (
@@ -231,7 +238,7 @@ export default function Home() {
                 <p className="text-gray-400 text-center py-8">Nenhum participante encontrado</p>
               ) : (
                 participantesFiltrados.map((p, idx) => (
-                  <div key={p.id} className="flex justify-between items-start py-2 border-b border-white/5">
+                  <div key={p.id} className="flex justify-between items-center py-2 border-b border-white/5">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${
                         idx === 0 ? 'text-yellow-400' :
@@ -240,6 +247,13 @@ export default function Home() {
                         'text-gray-500'
                       }`}>{idx + 1}</span>
                       <span className="text-white text-sm sm:text-base">{p.nome}</span>
+                      <button
+                        onClick={() => abrirHistorico(p)}
+                        className="text-gray-500 hover:text-yellow-500 transition"
+                        title="Ver histórico"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <div className="text-right">
                       {p.status === 'ativo' ? (
@@ -248,23 +262,18 @@ export default function Home() {
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                             Rodada {p.rodada_atual || 1}
                           </span>
-                          {/* Acertos anteriores */}
-                          {p.acertos && p.acertos.length > 0 && (
-                            <div className="flex flex-col items-end mt-0.5">
-                              <div className="flex items-center gap-0.5 flex-wrap justify-end">
-                                {p.acertos.map((acerto: any, i: number) => (
-                                  <span key={i} className="text-green-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                    ✅ {acerto.time}{i !== p.acertos.length - 1 ? ' → ' : ''}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {/* Palpite atual (visível apenas após prazo) */}
+                          {/* Próximo palpite (se visível) */}
                           {p.palpite_atual_visivel && p.palpite_atual && (
                             <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                              <span className="text-yellow-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                ⏳ {p.palpite_atual}
+                              <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                🎯 {p.palpite_atual}
+                              </span>
+                            </div>
+                          )}
+                          {!p.palpite_atual_visivel && p.palpite_atual && (
+                            <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                              <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
                               </span>
                             </div>
                           )}
@@ -299,6 +308,54 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      {/* Modal de Histórico */}
+      {modalAberto && participanteSelecionado && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-yellow-600/30">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Histórico de {participanteSelecionado.nome}
+              </h3>
+              <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {participanteSelecionado.acertos && participanteSelecionado.acertos.length > 0 ? (
+                participanteSelecionado.acertos.map((acerto, idx) => (
+                  <div key={idx} className="bg-black/50 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-300 text-sm">Rodada {acerto.rodada}</span>
+                    <span className="text-green-400 text-sm flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> {acerto.time}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-black/50 rounded-lg p-3 text-center text-gray-400">
+                  Nenhum acerto registrado ainda
+                </div>
+              )}
+              {participanteSelecionado.palpite_atual && (
+                <div className="bg-yellow-500/10 rounded-lg p-3 flex justify-between items-center border border-yellow-500/30">
+                  <span className="text-gray-300 text-sm">Rodada {participanteSelecionado.rodada_atual} (Atual)</span>
+                  <span className="text-yellow-400 text-sm flex items-center gap-1">
+                    <Clock className="w-4 h-4" /> {participanteSelecionado.palpite_atual}
+                  </span>
+                </div>
+              )}
+              {participanteSelecionado.status === 'eliminado' && (
+                <div className="bg-red-500/10 rounded-lg p-3 text-center border border-red-500/30">
+                  <span className="text-red-400 text-sm flex items-center justify-center gap-1">
+                    <XCircle className="w-4 h-4" /> Eliminado na Rodada {participanteSelecionado.rodada_eliminacao}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

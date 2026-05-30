@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield, Settings, Filter } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -289,7 +289,6 @@ export default function AdminPage() {
     return null;
   }
 
-  // Organizar jogos por rodada
   const jogosGrupos = jogos.filter(j => j.rodada === 1 || j.rodada === 2 || j.rodada === 3);
   const jogosRound32 = jogos.filter(j => j.rodada === 4);
   const jogosOitavas = jogos.filter(j => j.rodada === 5);
@@ -298,17 +297,16 @@ export default function AdminPage() {
   const jogosFinal = jogos.filter(j => j.rodada === 8);
 
   const fases = [
-    { id: 'grupos', nome: '🏆 Fase de Grupos (Rodadas 1, 2, 3)', jogos: jogosGrupos, cor: 'blue', expandida: faseExpandida.grupos, totalJogos: 72 },
-    { id: 'round32', nome: '⚔️ Round of 32 (32 avos de final)', jogos: jogosRound32, cor: 'purple', expandida: faseExpandida.round32, totalJogos: 16 },
-    { id: 'oitavas', nome: '🎯 Oitavas de Final', jogos: jogosOitavas, cor: 'indigo', expandida: faseExpandida.oitavas, totalJogos: 8 },
-    { id: 'quartas', nome: '🏅 Quartas de Final', jogos: jogosQuartas, cor: 'pink', expandida: faseExpandida.quartas, totalJogos: 4 },
-    { id: 'semi', nome: '🌟 Semifinal', jogos: jogosSemi, cor: 'orange', expandida: faseExpandida.semi, totalJogos: 2 },
-    { id: 'final', nome: '🏆 Final', jogos: jogosFinal, cor: 'red', expandida: faseExpandida.final, totalJogos: 1 }
+    { id: 'grupos', nome: 'Fase de Grupos (Rodadas 1, 2, 3)', jogos: jogosGrupos, expandida: faseExpandida.grupos, totalJogos: 72 },
+    { id: 'round32', nome: 'Round of 32 (32 avos de final)', jogos: jogosRound32, expandida: faseExpandida.round32, totalJogos: 16 },
+    { id: 'oitavas', nome: 'Oitavas de Final', jogos: jogosOitavas, expandida: faseExpandida.oitavas, totalJogos: 8 },
+    { id: 'quartas', nome: 'Quartas de Final', jogos: jogosQuartas, expandida: faseExpandida.quartas, totalJogos: 4 },
+    { id: 'semi', nome: 'Semifinal', jogos: jogosSemi, expandida: faseExpandida.semi, totalJogos: 2 },
+    { id: 'final', nome: 'Final', jogos: jogosFinal, expandida: faseExpandida.final, totalJogos: 1 }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      {/* Header */}
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -317,41 +315,19 @@ export default function AdminPage() {
               <h1 className="text-lg sm:text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => { setEditando(null); setModalAberto(true); }}
-                className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-              >
+              <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
                 <Plus className="w-4 h-4" /> Novo Jogo
               </button>
-              <button
-                onClick={verificarDisponibilidade}
-                disabled={verificando}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-              >
-                <Shield className="w-4 h-4" />
-                {verificando ? 'Verificando...' : 'Verificar Disponibilidade'}
+              <button onClick={verificarDisponibilidade} disabled={verificando} className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
+                <Shield className="w-4 h-4" /> {verificando ? 'Verificando...' : 'Verificar Disponibilidade'}
               </button>
-              <button
-                onClick={toggleInscricoes}
-                className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${
-                  inscricoesAbertas ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                }`}
-              >
-                {inscricoesAbertas ? '📝 Inscrições Abertas' : '🔒 Inscrições Encerradas'}
+              <button onClick={toggleInscricoes} className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${inscricoesAbertas ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                {inscricoesAbertas ? 'Inscrições Abertas' : 'Inscrições Encerradas'}
               </button>
-              <button
-                onClick={toggleModoTeste}
-                className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${
-                  modoTeste ? 'bg-red-600/30 text-red-400 border border-red-500/50' : 'bg-gray-600/20 text-gray-400'
-                }`}
-              >
-                <span>🔧</span>
-                {modoTeste ? 'Modo Teste ON' : 'Modo Teste OFF'}
+              <button onClick={toggleModoTeste} className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${modoTeste ? 'bg-red-600/30 text-red-400 border border-red-500/50' : 'bg-gray-600/20 text-gray-400'}`}>
+                <span>🔧</span> {modoTeste ? 'Modo Teste ON' : 'Modo Teste OFF'}
               </button>
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-              >
+              <button onClick={() => signOut({ callbackUrl: '/' })} className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
                 <LogOut className="w-4 h-4" /> Sair
               </button>
             </div>
@@ -360,19 +336,13 @@ export default function AdminPage() {
       </header>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Mensagem de feedback */}
         {mensagem && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            mensagem.tipo === 'sucesso' 
-              ? 'bg-green-500/20 border border-green-500 text-green-400' 
-              : 'bg-red-500/20 border border-red-500 text-red-400'
-          }`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${mensagem.tipo === 'sucesso' ? 'bg-green-500/20 border border-green-500 text-green-400' : 'bg-red-500/20 border border-red-500 text-red-400'}`}>
             {mensagem.tipo === 'sucesso' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             <span>{mensagem.texto}</span>
           </div>
         )}
 
-        {/* Cards Financeiros */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-4 border border-green-500/30">
             <div className="flex items-center justify-between mb-1">
@@ -401,7 +371,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Resumo da Competição */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-green-500/10 rounded-xl p-3 text-center border border-green-500/30">
             <div className="text-2xl font-bold text-green-400">{usuariosAtivos.length}</div>
@@ -413,17 +382,15 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Usuários Pendentes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-yellow-400" />
-              Usuários Pendentes ({usuariosPendentes.length})
+              <UserCheck className="w-4 h-4 text-yellow-400" /> Usuários Pendentes ({usuariosPendentes.length})
             </h2>
           </div>
           <div className="p-3">
             {usuariosPendentes.length === 0 ? (
-              <p className="text-gray-400 text-center py-2 text-sm">✅ Nenhum usuário aguardando aprovação</p>
+              <p className="text-gray-400 text-center py-2 text-sm">Nenhum usuário aguardando aprovação</p>
             ) : (
               <div className="space-y-2">
                 {usuariosPendentes.map(usuario => (
@@ -442,17 +409,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Seção de Jogos por Fase */}
         <div className="space-y-6">
           {fases.map((fase) => (
             <div key={fase.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-              {/* Cabeçalho da fase */}
-              <button
-                onClick={() => toggleFase(fase.id)}
-                className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center"
-              >
+              <button onClick={() => toggleFase(fase.id)} className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{fase.nome.split(' ')[0]}</span>
                   <h2 className="text-sm font-bold text-white">{fase.nome}</h2>
                   <span className="text-xs text-gray-400">({fase.totalJogos} jogos)</span>
                 </div>
@@ -463,8 +424,6 @@ export default function AdminPage() {
                   </svg>
                 </div>
               </button>
-
-              {/* Conteúdo da fase */}
               {fase.expandida && (
                 <div className="p-4 border-t border-white/10">
                   {fase.jogos.length === 0 ? (
@@ -487,68 +446,38 @@ export default function AdminPage() {
                                 {new Date(jogo.data_hora).toLocaleString('pt-BR')}
                               </td>
                               <td className="py-2 px-2">
-                                <div className="text-white text-sm">{jogo.time_casa} 🆚 {jogo.time_fora}</div>
+                                <div className="text-white text-sm">{jogo.time_casa} x {jogo.time_fora}</div>
                                 <div className="text-gray-500 text-xs">{jogo.grupo}</div>
                               </td>
                               <td className="py-2 px-2">
                                 <div className="flex items-center justify-center gap-2">
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    id={`gols-casa-${jogo.id}`}
-                                    placeholder="0"
-                                    className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500"
-                                  />
+                                  <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-casa-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
                                   <span className="text-yellow-500 text-sm">x</span>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    id={`gols-fora-${jogo.id}`}
-                                    placeholder="0"
-                                    className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500"
-                                  />
+                                  <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-fora-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
                                 </div>
                               </td>
                               <td className="py-2 px-2">
                                 <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
-                                      const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
-                                      if (golsCasa === '' || golsFora === '') {
-                                        alert('Preencha o placar do jogo');
-                                        return;
-                                      }
-                                      processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
-                                    }}
-                                    disabled={jogo.finalizado}
-                                    className={`px-2 py-1 rounded text-xs flex items-center gap-1 transition ${
-                                      jogo.finalizado 
-                                        ? 'bg-gray-600/50 cursor-not-allowed text-gray-400' 
-                                        : 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                                    }`}
-                                  >
+                                  <button onClick={() => {
+                                    const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
+                                    const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
+                                    if (golsCasa === '' || golsFora === '') {
+                                      alert('Preencha o placar do jogo');
+                                      return;
+                                    }
+                                    processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
+                                  }} disabled={jogo.finalizado} className={`px-2 py-1 rounded text-xs flex items-center gap-1 transition ${jogo.finalizado ? 'bg-gray-600/50 cursor-not-allowed text-gray-400' : 'bg-yellow-600 hover:bg-yellow-500 text-white'}`}>
                                     <Save className="w-3 h-3" /> {jogo.finalizado ? 'Finalizado' : 'Finalizar'}
                                   </button>
-                                  <button
-                                    onClick={() => { setEditando(jogo); setModalAberto(true); }}
-                                    className="text-blue-400 hover:text-blue-300"
-                                    title="Editar"
-                                  >
+                                  <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400 hover:text-blue-300" title="Editar">
                                     <Edit className="w-4 h-4" />
                                   </button>
-                                  <button
-                                    onClick={() => deletarJogo(jogo.id)}
-                                    className="text-red-400 hover:text-red-300"
-                                    title="Deletar"
-                                  >
+                                  <button onClick={() => deletarJogo(jogo.id)} className="text-red-400 hover:text-red-300" title="Deletar">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
                               </td>
-                            </td>
+                            </tr>
                           ))}
                         </tbody>
                       </table>
@@ -560,12 +489,10 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Últimos Eliminados */}
         <div className="mt-6 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
           <div className="bg-red-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-400" />
-              Últimos Eliminados ({eliminados.length})
+              <XCircle className="w-4 h-4 text-red-400" /> Últimos Eliminados ({eliminados.length})
             </h2>
           </div>
           <div className="p-3">
@@ -607,12 +534,11 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Modal de Edição/Criação */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl p-5 w-full max-w-md border border-yellow-600/30">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">{editando ? '✏️ Editar Jogo' : '➕ Novo Jogo'}</h3>
+              <h3 className="text-lg font-bold text-white">{editando ? 'Editar Jogo' : 'Novo Jogo'}</h3>
               <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>

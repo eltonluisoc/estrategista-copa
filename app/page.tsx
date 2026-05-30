@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, History, EyeOff, Clock } from 'lucide-react';
 import Link from 'next/link';
 
+// VERSÃO MANUAL - ATUALIZAR A CADA DEPLOY
+const APP_VERSION = 'v4';
+
 interface Participante {
   id: string;
   nome: string;
@@ -27,26 +30,14 @@ export default function Home() {
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [modoTeste, setModoTeste] = useState(false);
-  const [versao, setVersao] = useState('');
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
   const [modalAberto, setModalAberto] = useState(false);
   const [participanteSelecionado, setParticipanteSelecionado] = useState<Participante | null>(null);
 
   useEffect(() => {
-    carregarVersao();
     carregarDados();
   }, []);
-
-  const carregarVersao = async () => {
-    try {
-      const res = await fetch('/version.json');
-      const data = await res.json();
-      setVersao(data.version);
-    } catch (error) {
-      setVersao('v1');
-    }
-  };
 
   const carregarDados = async () => {
     try {
@@ -101,7 +92,7 @@ export default function Home() {
       
       {/* Versão no topo */}
       <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
-        Versão: {versao}
+        Versão: {APP_VERSION}
       </div>
 
       {/* Header */}
@@ -177,7 +168,7 @@ export default function Home() {
               <Trophy className="w-4 h-4 text-yellow-500" />
               <span className="text-yellow-500 font-bold text-xs">Prêmio</span>
             </div>
-            <p className="text-gray-300 text-xs">Quanto mais participantes, maior o prêmio!</p>
+            <p className="text-gray-300 text-xs">Quanto mais participants, maior o prêmio!</p>
           </div>
         </div>
 

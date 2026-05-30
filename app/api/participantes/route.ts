@@ -47,6 +47,7 @@ export async function GET() {
     let ultimoPalpite = null
     let palpiteAtual = null
     let palpiteAtualVisivel = false
+    let eliminado = false
     
     for (const palpite of palpitesDoUsuario) {
       ultimoPalpite = palpite
@@ -54,7 +55,7 @@ export async function GET() {
       const prazoExpirado = prazo ? agora > prazo : false
       
       if (palpite.finalizado && palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-        // Acertou
+        // Acertou - avança para próxima rodada
         acertos.push({
           rodada: palpite.rodada,
           time: palpite.time_nome
@@ -62,6 +63,7 @@ export async function GET() {
         rodadaAtual = palpite.rodada + 1
       } else if (palpite.finalizado && palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
         // Errou - eliminado
+        eliminado = true
         return { 
           ...p, 
           status: 'eliminado', 
@@ -71,8 +73,14 @@ export async function GET() {
           palpite_atual_visivel: false
         }
       } else {
+        // Palpite não finalizado ainda - continua na MESMA rodada
         rodadaAtual = palpite.rodada
       }
+    }
+    
+    // Se já foi eliminado, não prossegue
+    if (eliminado) {
+      return null
     }
     
     // Determinar se o palpite atual pode ser mostrado
@@ -99,7 +107,7 @@ export async function GET() {
       palpite_atual: palpiteAtual,
       palpite_atual_visivel: palpiteAtualVisivel
     }
-  })
+  }).filter(p => p !== null) // Remove eliminados que retornaram null
   
   // Ordenar: ativos primeiro (por rodada atual decrescente), depois eliminados
   const ordenados = participantesComDados.sort((a: any, b: any) => {

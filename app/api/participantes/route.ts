@@ -47,45 +47,46 @@ export async function GET() {
     let palpiteAtual = null
     let palpiteAtualVisivel = false
     
-    for (const palpite of palpitesDoUsuario) {
+    // CORREÇÃO: Separar palpites finalizados dos não finalizados
+    const palpitesFinalizados = palpitesDoUsuario.filter((pal: any) => pal.finalizado === true)
+    const palpitesNaoFinalizados = palpitesDoUsuario.filter((pal: any) => pal.finalizado === false)
+    
+    // Processar acertos (apenas finalizados)
+    for (const palpite of palpitesFinalizados) {
       ultimoPalpite = palpite
       
-      if (palpite.finalizado) {
-        if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-          // Acertou - avança
-          acertos.push({
-            rodada: palpite.rodada,
-            time: palpite.time_nome
-          })
-          rodadaAtual = palpite.rodada + 1
-        } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
-          // Errou - eliminado
-          return { 
-            ...p, 
-            status: 'eliminado', 
-            rodada_eliminacao: palpite.rodada, 
-            acertos,
-            palpite_atual: null,
-            palpite_atual_visivel: false
-          }
+      if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
+        acertos.push({
+          rodada: palpite.rodada,
+          time: palpite.time_nome
+        })
+        rodadaAtual = palpite.rodada + 1
+      } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
+        return { 
+          ...p, 
+          status: 'eliminado', 
+          rodada_eliminacao: palpite.rodada, 
+          acertos,
+          palpite_atual: null,
+          palpite_atual_visivel: false
         }
-      } else {
-        // Jogo NÃO finalizado - permanece na rodada do palpite (NÃO avança)
-        // Se o palpite é da rodada 1, fica na rodada 1
-        rodadaAtual = palpite.rodada
       }
     }
     
-    // Palpite atual (apenas o último palpite NÃO finalizado)
-    if (ultimoPalpite && !ultimoPalpite.finalizado) {
-      const prazo = ultimoPalpite.prazo ? new Date(ultimoPalpite.prazo) : null
+    // REGRA CRÍTICA: Se houver palpite NÃO finalizado, força rodada = 1
+    if (palpitesNaoFinalizados.length > 0) {
+      rodadaAtual = 1
+      const ultimoNaoFinalizado = palpitesNaoFinalizados[palpitesNaoFinalizados.length - 1]
+      ultimoPalpite = ultimoNaoFinalizado
+      
+      const prazo = ultimoNaoFinalizado.prazo ? new Date(ultimoNaoFinalizado.prazo) : null
       const prazoExpirado = prazo ? agora > prazo : false
       
       if (modoTeste) {
-        palpiteAtual = ultimoPalpite.time_nome
+        palpiteAtual = ultimoNaoFinalizado.time_nome
         palpiteAtualVisivel = true
       } else if (prazoExpirado) {
-        palpiteAtual = ultimoPalpite.time_nome
+        palpiteAtual = ultimoNaoFinalizado.time_nome
         palpiteAtualVisivel = true
       }
     }

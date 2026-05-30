@@ -142,15 +142,10 @@ export default function DashboardPage() {
         );
         
         if (palpitesDoUsuario.length === 0) {
-          // Participante nunca palpitou - ainda está na rodada 1
           return { ...p, rodada_atual: 1 };
         }
         
-        // Última rodada que ele palpitou
         const ultimaRodadaPalpite = Math.max(...palpitesDoUsuario.map((palpite: Palpite) => palpite.rodada));
-        
-        // Verificar se o palpite dele na última rodada foi válido (time venceu)
-        // Por enquanto, se ele não foi eliminado, consideramos que está na próxima rodada
         return { ...p, rodada_atual: ultimaRodadaPalpite + 1 };
       });
       

@@ -37,6 +37,7 @@ export async function GET() {
     
     const palpitesDoUsuario = palpites.filter((pal: any) => pal.usuario_id === p.id)
     
+    // Sem palpites: rodada 1
     if (palpitesDoUsuario.length === 0) {
       return { ...p, rodada_atual: 1, acertos: [], palpite_atual: null, palpite_atual_visivel: false }
     }
@@ -45,14 +46,14 @@ export async function GET() {
     let rodadaAtual = 1
     let palpiteAtual = null
     let palpiteAtualVisivel = false
-    let ultimoPalpiteNaoFinalizado = null
+    let encontrouNaoFinalizado = false
     
-    // Processar cada palpite em ordem
+    // Processar palpites em ordem
     for (const palpite of palpitesDoUsuario) {
       if (palpite.finalizado === true) {
         // Jogo finalizado
         if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-          // Acertou
+          // Acertou - registra acerto
           acertos.push({
             rodada: palpite.rodada,
             time: palpite.time_nome
@@ -71,24 +72,21 @@ export async function GET() {
         }
       } else {
         // Jogo NÃO finalizado - este é o palpite atual
-        ultimoPalpiteNaoFinalizado = palpite
-        // REGRA CRÍTICA: NÃO avança a rodada
-      }
-    }
-    
-    // Se há palpite não finalizado, a rodada atual é a rodada desse palpite
-    if (ultimoPalpiteNaoFinalizado) {
-      rodadaAtual = ultimoPalpiteNaoFinalizado.rodada
-      
-      const prazo = ultimoPalpiteNaoFinalizado.prazo ? new Date(ultimoPalpiteNaoFinalizado.prazo) : null
-      const prazoExpirado = prazo ? agora > prazo : false
-      
-      if (modoTeste) {
-        palpiteAtual = ultimoPalpiteNaoFinalizado.time_nome
-        palpiteAtualVisivel = true
-      } else if (prazoExpirado) {
-        palpiteAtual = ultimoPalpiteNaoFinalizado.time_nome
-        palpiteAtualVisivel = true
+        encontrouNaoFinalizado = true
+        
+        const prazo = palpite.prazo ? new Date(palpite.prazo) : null
+        const prazoExpirado = prazo ? agora > prazo : false
+        
+        if (modoTeste) {
+          palpiteAtual = palpite.time_nome
+          palpiteAtualVisivel = true
+        } else if (prazoExpirado) {
+          palpiteAtual = palpite.time_nome
+          palpiteAtualVisivel = true
+        }
+        
+        // REGRA CRÍTICA: Se há palpite não finalizado, a rodada atual é a rodada desse palpite
+        rodadaAtual = palpite.rodada
       }
     }
     

@@ -58,12 +58,13 @@ export async function GET() {
     if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
     if (a.status !== 'eliminado' && b.status === 'eliminado') return -1
     
-    // Ordenar por rodada atual (maior primeiro)
-    if (a.rodada_atual && b.rodada_atual) {
-      return b.rodada_atual - a.rodada_atual
+    // Ordenar por rodada atual (maior primeiro) - tratar null como 0
+    const rodadaA = a.rodada_atual || 0
+    const rodadaB = b.rodada_atual || 0
+    
+    if (rodadaA !== rodadaB) {
+      return rodadaB - rodadaA
     }
-    if (a.rodada_atual && !b.rodada_atual) return -1
-    if (!a.rodada_atual && b.rodada_atual) return 1
     
     // Ordem alfabética
     return a.nome.localeCompare(b.nome)

@@ -27,14 +27,26 @@ export default function Home() {
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [modoTeste, setModoTeste] = useState(false);
+  const [versao, setVersao] = useState('');
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
   const [modalAberto, setModalAberto] = useState(false);
   const [participanteSelecionado, setParticipanteSelecionado] = useState<Participante | null>(null);
 
   useEffect(() => {
+    carregarVersao();
     carregarDados();
   }, []);
+
+  const carregarVersao = async () => {
+    try {
+      const res = await fetch('/version.json');
+      const data = await res.json();
+      setVersao(data.version);
+    } catch (error) {
+      setVersao('v1');
+    }
+  };
 
   const carregarDados = async () => {
     try {
@@ -87,6 +99,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       
+      {/* Versão no topo */}
+      <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
+        Versão: {versao}
+      </div>
+
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
@@ -256,7 +273,6 @@ export default function Home() {
                             Rodada {p.rodada_atual || 1}
                           </span>
                           
-                          {/* Próximo palpite */}
                           {p.palpite_atual && (
                             <div className="flex items-center justify-end gap-0.5 mt-0.5">
                               {(p.palpite_atual_visivel || modoTeste) ? (

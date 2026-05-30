@@ -17,7 +17,7 @@ export async function GET() {
     WHERE email != 'admin@estrategista.com'
   `
   
-  // Buscar palpites
+  // Buscar palpites com resultados
   const palpites = await sql`
     SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
            j.vencedor_id, j.finalizado, j.prazo
@@ -25,7 +25,7 @@ export async function GET() {
     JOIN times t ON p.time_id = t.id
     LEFT JOIN jogos j ON j.rodada = p.rodada 
       AND (j.time_casa = t.nome OR j.time_fora = t.nome)
-    ORDER BY p.rodada
+    ORDER BY p.rodada, p.data_palpite
   `
   
   const agora = new Date()
@@ -43,50 +43,51 @@ export async function GET() {
     
     const acertos = []
     let rodadaAtual = 1
-    let ultimoPalpite = null
     let palpiteAtual = null
     let palpiteAtualVisivel = false
+    let ultimoPalpiteNaoFinalizado = null
     
-    // CORREÇÃO: Separar palpites finalizados dos não finalizados
-    const palpitesFinalizados = palpitesDoUsuario.filter((pal: any) => pal.finalizado === true)
-    const palpitesNaoFinalizados = palpitesDoUsuario.filter((pal: any) => pal.finalizado === false)
-    
-    // Processar acertos (apenas finalizados)
-    for (const palpite of palpitesFinalizados) {
-      ultimoPalpite = palpite
-      
-      if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
-        acertos.push({
-          rodada: palpite.rodada,
-          time: palpite.time_nome
-        })
-        rodadaAtual = palpite.rodada + 1
-      } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
-        return { 
-          ...p, 
-          status: 'eliminado', 
-          rodada_eliminacao: palpite.rodada, 
-          acertos,
-          palpite_atual: null,
-          palpite_atual_visivel: false
+    // Processar cada palpite em ordem
+    for (const palpite of palpitesDoUsuario) {
+      if (palpite.finalizado === true) {
+        // Jogo finalizado
+        if (palpite.vencedor_id && palpite.time_id === palpite.vencedor_id) {
+          // Acertou
+          acertos.push({
+            rodada: palpite.rodada,
+            time: palpite.time_nome
+          })
+          rodadaAtual = palpite.rodada + 1
+        } else if (palpite.vencedor_id && palpite.time_id !== palpite.vencedor_id) {
+          // Errou - eliminado
+          return { 
+            ...p, 
+            status: 'eliminado', 
+            rodada_eliminacao: palpite.rodada, 
+            acertos,
+            palpite_atual: null,
+            palpite_atual_visivel: false
+          }
         }
+      } else {
+        // Jogo NÃO finalizado - este é o palpite atual
+        ultimoPalpiteNaoFinalizado = palpite
+        // REGRA CRÍTICA: NÃO avança a rodada
       }
     }
     
-    // REGRA CRÍTICA: Se houver palpite NÃO finalizado, força rodada = 1
-    if (palpitesNaoFinalizados.length > 0) {
-      rodadaAtual = 1
-      const ultimoNaoFinalizado = palpitesNaoFinalizados[palpitesNaoFinalizados.length - 1]
-      ultimoPalpite = ultimoNaoFinalizado
+    // Se há palpite não finalizado, a rodada atual é a rodada desse palpite
+    if (ultimoPalpiteNaoFinalizado) {
+      rodadaAtual = ultimoPalpiteNaoFinalizado.rodada
       
-      const prazo = ultimoNaoFinalizado.prazo ? new Date(ultimoNaoFinalizado.prazo) : null
+      const prazo = ultimoPalpiteNaoFinalizado.prazo ? new Date(ultimoPalpiteNaoFinalizado.prazo) : null
       const prazoExpirado = prazo ? agora > prazo : false
       
       if (modoTeste) {
-        palpiteAtual = ultimoNaoFinalizado.time_nome
+        palpiteAtual = ultimoPalpiteNaoFinalizado.time_nome
         palpiteAtualVisivel = true
       } else if (prazoExpirado) {
-        palpiteAtual = ultimoNaoFinalizado.time_nome
+        palpiteAtual = ultimoPalpiteNaoFinalizado.time_nome
         palpiteAtualVisivel = true
       }
     }
@@ -100,7 +101,7 @@ export async function GET() {
     }
   })
   
-  // Ordenar
+  // Ordenar: ativos por rodada (decrescente), depois eliminados
   const ordenados = participantesComDados.sort((a: any, b: any) => {
     if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
     if (a.status !== 'eliminado' && b.status === 'eliminado') return -1

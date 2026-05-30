@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle } from 'lucide-react';
+import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 interface Participante {
@@ -11,6 +11,8 @@ interface Participante {
   status: string;
   rodada_eliminacao?: number;
   rodada_atual?: number;
+  palpite?: string;
+  palpite_visivel?: boolean;
 }
 
 interface Estatisticas {
@@ -23,6 +25,7 @@ export default function Home() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
+  const [modoTeste, setModoTeste] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
 
@@ -32,15 +35,17 @@ export default function Home() {
 
   const carregarDados = async () => {
     try {
-      const [participantesRes, statsRes, configRes] = await Promise.all([
+      const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
         fetch('/api/participantes'),
         fetch('/api/estatisticas-publicas'),
-        fetch('/api/configuracoes/inscricoes')
+        fetch('/api/configuracoes/inscricoes'),
+        fetch('/api/configuracoes?chave=modo_teste')
       ]);
 
       const participantesData = await participantesRes.json();
       const statsData = await statsRes.json();
       const configData = await configRes.json();
+      const modoTesteData = await modoTesteRes.json();
 
       setParticipantes(participantesData);
       setEstatisticas({
@@ -49,6 +54,7 @@ export default function Home() {
         eliminados: statsData.eliminados || 0
       });
       setInscricoesAbertas(configData.inscricoes_abertas);
+      setModoTeste(modoTesteData.valor === 'true');
     } catch (error) {
       console.error('Erro:', error);
     } finally {
@@ -73,6 +79,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       
+      {/* Banner de Modo Teste */}
+      {modoTeste && (
+        <div className="bg-red-600/80 text-white text-center py-2 px-4 text-sm font-semibold">
+          ⚠️ SISTEMA EM MODO TESTE - PRAZOS NÃO ESTÃO SENDO APLICADOS ⚠️
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
@@ -125,7 +138,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Cards de Regras (menores, no topo) */}
+        {/* Cards de Regras */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -169,7 +182,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Ranking dos Participantes - VERSÃO CORRIGIDA */}
+        {/* Ranking dos Participantes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 sm:px-6 py-2 sm:py-3 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -229,12 +242,23 @@ export default function Home() {
                     </div>
                     <div className="text-right">
                       {p.status === 'ativo' ? (
-                        <span className="text-green-400 text-xs sm:text-sm flex items-center gap-1">
-                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                          Rodada {p.rodada_atual || 1}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-green-400 text-xs flex items-center gap-1">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Rodada {p.rodada_atual || 1}
+                          </span>
+                          {p.palpite_visivel && p.palpite ? (
+                            <span className="text-yellow-500 text-xs font-medium">
+                              🏆 {p.palpite}
+                            </span>
+                          ) : p.palpite && !p.palpite_visivel ? (
+                            <span className="text-gray-500 text-xs flex items-center gap-1">
+                              <EyeOff className="w-3 h-3" /> Palpite oculto
+                            </span>
+                          ) : null}
+                        </div>
                       ) : (
-                        <span className="text-red-400 text-xs sm:text-sm flex items-center gap-1">
+                        <span className="text-red-400 text-xs flex items-center gap-1">
                           <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
                         </span>
                       )}

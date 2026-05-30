@@ -32,6 +32,7 @@ export default function AdminPage() {
   const [verificando, setVerificando] = useState(false);
   const [rodadaVerificacao, setRodadaVerificacao] = useState(4);
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
+  const [modoTeste, setModoTeste] = useState(false);
   const [faseExpandida, setFaseExpandida] = useState({
     grupos: true,
     round32: false,
@@ -59,6 +60,7 @@ export default function AdminPage() {
       carregarUsuarios();
       carregarEliminados();
       carregarStatusInscricoes();
+      carregarModoTeste();
     } else if (session?.user?.email && session?.user?.email !== 'admin@estrategista.com') {
       router.push('/dashboard');
     }
@@ -69,6 +71,16 @@ export default function AdminPage() {
       const res = await fetch('/api/configuracoes/inscricoes');
       const data = await res.json();
       setInscricoesAbertas(data.inscricoes_abertas);
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
+  const carregarModoTeste = async () => {
+    try {
+      const res = await fetch('/api/configuracoes?chave=modo_teste');
+      const data = await res.json();
+      setModoTeste(data.valor === 'true');
     } catch (error) {
       console.error('Erro:', error);
     }
@@ -244,6 +256,23 @@ export default function AdminPage() {
     }
   };
 
+  const toggleModoTeste = async () => {
+    const novoValor = !modoTeste;
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chave: 'modo_teste', valor: novoValor ? 'true' : 'false' })
+      });
+      if (res.ok) {
+        setModoTeste(novoValor);
+        setMensagem({ tipo: 'sucesso', texto: `Modo Teste ${novoValor ? 'ATIVADO' : 'DESATIVADO'}!` });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao alterar modo teste' });
+    }
+  };
+
   const toggleFase = (fase) => {
     setFaseExpandida(prev => ({ ...prev, [fase]: !prev[fase] }));
   };
@@ -309,6 +338,15 @@ export default function AdminPage() {
                 }`}
               >
                 {inscricoesAbertas ? '📝 Inscrições Abertas' : '🔒 Inscrições Encerradas'}
+              </button>
+              <button
+                onClick={toggleModoTeste}
+                className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${
+                  modoTeste ? 'bg-red-600/30 text-red-400 border border-red-500/50' : 'bg-gray-600/20 text-gray-400'
+                }`}
+              >
+                <span>🔧</span>
+                {modoTeste ? 'Modo Teste ON' : 'Modo Teste OFF'}
               </button>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
@@ -510,7 +548,7 @@ export default function AdminPage() {
                                   </button>
                                 </div>
                               </td>
-                            </tr>
+                            </td>
                           ))}
                         </tbody>
                       </table>

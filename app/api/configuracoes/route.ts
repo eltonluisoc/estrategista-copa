@@ -4,7 +4,6 @@ import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
-// GET - Buscar configuração
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const chave = searchParams.get('chave')
@@ -20,10 +19,8 @@ export async function GET(request: Request) {
   return NextResponse.json({ valor: config[0]?.valor || null })
 }
 
-// POST - Atualizar configuração (apenas admin)
 export async function POST(request: Request) {
   const session = await auth()
-  
   if (session?.user?.email !== 'admin@estrategista.com') {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
@@ -33,7 +30,7 @@ export async function POST(request: Request) {
   await sql`
     INSERT INTO configuracoes (chave, valor) 
     VALUES (${chave}, ${valor})
-    ON CONFLICT (chave) DO UPDATE SET valor = ${valor}, updated_at = NOW()
+    ON CONFLICT (chave) DO UPDATE SET valor = ${valor}
   `
   
   return NextResponse.json({ success: true })

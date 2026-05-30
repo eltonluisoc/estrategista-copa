@@ -114,7 +114,6 @@ export default function DashboardPage() {
       setPalpites(palpitesData);
       setJogos(jogosData);
       
-      // Calcular a rodada atual de cada participante
       const agora = new Date();
       const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
       let rodadaAtualCalculada = 1;
@@ -132,11 +131,9 @@ export default function DashboardPage() {
         }
       }
       
-      // Para cada participante, calcular em qual rodada ele está
       rankingData = rankingData.map((p: ParticipanteRanking) => {
         if (p.status === 'eliminado') return p;
         
-        // Buscar o último palpite do participante
         const palpitesDoUsuario = palpitesData.filter((palpite: Palpite) => 
           palpite.usuario_id === p.id
         );

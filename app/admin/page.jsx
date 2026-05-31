@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield } from 'lucide-react';
+import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield, Eye, EyeOff } from 'lucide-react';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -15,6 +15,7 @@ const timesLista = [
 ];
 
 const VALOR_INSCRICAO = 20;
+const APP_VERSION = 'v10';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -30,7 +31,6 @@ export default function AdminPage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
   const [verificando, setVerificando] = useState(false);
-  const [rodadaVerificacao, setRodadaVerificacao] = useState(4);
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [modoTeste, setModoTeste] = useState(false);
   const [faseExpandida, setFaseExpandida] = useState({
@@ -48,6 +48,8 @@ export default function AdminPage() {
     rodada: 1,
     grupo: 'Grupos'
   });
+  const [disponibilidadeData, setDisponibilidadeData] = useState(null);
+  const [mostrarDisponibilidade, setMostrarDisponibilidade] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -220,24 +222,80 @@ export default function AdminPage() {
   const verificarDisponibilidade = async () => {
     setVerificando(true);
     setMensagem(null);
+    setMostrarDisponibilidade(true);
     try {
-      const res = await fetch('/api/usuarios/verificar-disponibilidade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rodada: rodadaVerificacao })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: data.message });
-        carregarUsuarios();
-        carregarEliminados();
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
+      const res = await fetch('/api/usuarios?excluirAdmin=true');
+      const usuarios = await res.json();
+      const ativos = usuarios.filter(u => u.status === 'ativo');
+      
+      const palpitesRes = await fetch('/api/palpites/todos');
+      const palpites = await palpitesRes.json();
+      
+      const jogosRes = await fetch('/api/jogos');
+      const todosJogos = await jogosRes.json();
+      
+      const disponibilidade = [];
+      
+      for (const usuario of ativos) {
+        const palpitesUsuario = palpites.filter(p => p.usuario_id === usuario.id);
+        const timesUsados = [];
+        
+        for (const palpite of palpitesUsuario) {
+          const jogo = todosJogos.find(j => j.rodada === palpite.rodada);
+          if (jogo && jogo.finalizado && jogo.vencedor_id === palpite.time_id) {
+            const timeNome = palpite.time_nome || await buscarTimeNome(palpite.time_id);
+            timesUsados.push(timeNome);
+          }
+        }
+        
+        let palpiteAtual = null;
+        const proximoJogo = todosJogos
+          .filter(j => !j.finalizado)
+          .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora))[0];
+        
+        if (proximoJogo) {
+          const palpiteAtualObj = palpitesUsuario.find(p => p.rodada === proximoJogo.rodada);
+          if (palpiteAtualObj) {
+            palpiteAtual = palpiteAtualObj.time_nome || await buscarTimeNome(palpiteAtualObj.time_id);
+          }
+        }
+        
+        const timesDisponiveis = timesLista.filter(t => !timesUsados.includes(t));
+        
+        disponibilidade.push({
+          nome: usuario.nome,
+          email: usuario.email,
+          rodada_atual: usuario.rodada_atual || 1,
+          times_usados: timesUsados,
+          total_usados: timesUsados.length,
+          times_disponiveis: timesDisponiveis.length,
+          palpite_atual: palpiteAtual,
+          pode_continuar: timesDisponiveis.length > 0
+        });
       }
+      
+      setDisponibilidadeData({
+        participantes: disponibilidade,
+        total_ativos: ativos.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      setMensagem({ tipo: 'sucesso', texto: `Verificação concluída! ${disponibilidade.length} participantes analisados.` });
     } catch (error) {
+      console.error('Erro ao verificar disponibilidade:', error);
       setMensagem({ tipo: 'erro', texto: 'Erro ao verificar disponibilidade' });
     }
     setVerificando(false);
+  };
+  
+  const buscarTimeNome = async (timeId) => {
+    try {
+      const res = await fetch(`/api/times/${timeId}`);
+      const data = await res.json();
+      return data.nome;
+    } catch (error) {
+      return `Time ${timeId}`;
+    }
   };
 
   const toggleInscricoes = async () => {
@@ -307,6 +365,11 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+      {/* Versão no topo */}
+      <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
+        Versão: {APP_VERSION}
+      </div>
+
       <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -343,6 +406,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Cards de Financeiro */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-4 border border-green-500/30">
             <div className="flex items-center justify-between mb-1">
@@ -382,6 +446,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Usuários Pendentes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -409,6 +474,80 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Disponibilidade */}
+        {mostrarDisponibilidade && disponibilidadeData && (
+          <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
+            <div className="bg-blue-600/20 px-4 py-3 border-b border-white/10 flex justify-between items-center">
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <Eye className="w-4 h-4 text-blue-400" /> 
+                Disponibilidade de Times por Participante
+              </h2>
+              <button onClick={() => setMostrarDisponibilidade(false)} className="text-gray-400 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="text-gray-400 text-xs mb-4">
+                Total de participantes ativos: {disponibilidadeData.total_ativos}
+                <br />
+                Última verificação: {new Date(disponibilidadeData.timestamp).toLocaleString('pt-BR')}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-400 border-b border-white/10">
+                    <tr>
+                      <th className="text-left py-2 px-2">Participante</th>
+                      <th className="text-left py-2 px-2">Rodada</th>
+                      <th className="text-left py-2 px-2">Times Usados</th>
+                      <th className="text-center py-2 px-2">Disp.</th>
+                      <th className="text-left py-2 px-2">Palpite Atual</th>
+                      <th className="text-center py-2 px-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {disponibilidadeData.participantes.map((p, idx) => (
+                      <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-2 px-2">
+                          <div className="text-white text-sm">{p.nome}</div>
+                          <div className="text-gray-500 text-xs">{p.email}</div>
+                        </td>
+                        <td className="py-2 px-2 text-yellow-400 text-sm">{p.rodada_atual}</td>
+                        <td className="py-2 px-2">
+                          <div className="text-gray-300 text-xs max-w-xs">
+                            {p.times_usados.length > 0 ? p.times_usados.join(', ') : 'Nenhum'}
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <span className="text-gray-400 text-sm">{p.times_disponiveis}</span>
+                        </td>
+                        <td className="py-2 px-2">
+                          {p.palpite_atual ? (
+                            <span className="text-yellow-400 text-xs">{p.palpite_atual}</span>
+                          ) : (
+                            <span className="text-gray-500 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {p.pode_continuar ? (
+                            <span className="text-green-400 text-xs flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> OK
+                            </span>
+                          ) : (
+                            <span className="text-red-400 text-xs flex items-center gap-1">
+                              <XCircle className="w-3 h-3" /> Sem times
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Jogos por Fase */}
         <div className="space-y-6">
           {fases.map((fase) => (
             <div key={fase.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
@@ -477,7 +616,7 @@ export default function AdminPage() {
                                   </button>
                                 </div>
                               </td>
-                            </td>
+                            </tr>
                           ))}
                         </tbody>
                       </table>
@@ -489,6 +628,7 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* Últimos Eliminados */}
         <div className="mt-6 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
           <div className="bg-red-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -534,6 +674,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* Modal Novo/Editar Jogo */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl p-5 w-full max-w-md border border-yellow-600/30">

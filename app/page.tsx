@@ -5,7 +5,7 @@ import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircl
 import Link from 'next/link';
 
 // VERSÃO MANUAL - ATUALIZAR A CADA DEPLOY
-const APP_VERSION = 'v5';
+const APP_VERSION = 'v10';
 
 interface Participante {
   id: string;
@@ -29,7 +29,6 @@ export default function Home() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
-  const [modoTeste, setModoTeste] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
   const [modalAberto, setModalAberto] = useState(false);
@@ -41,17 +40,15 @@ export default function Home() {
 
   const carregarDados = async () => {
     try {
-      const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
+      const [participantesRes, statsRes, configRes] = await Promise.all([
         fetch('/api/participantes'),
         fetch('/api/estatisticas-publicas'),
-        fetch('/api/configuracoes/inscricoes'),
-        fetch('/api/configuracoes?chave=modo_teste')
+        fetch('/api/configuracoes/inscricoes')
       ]);
 
       const participantesData = await participantesRes.json();
       const statsData = await statsRes.json();
       const configData = await configRes.json();
-      const modoTesteData = await modoTesteRes.json();
 
       setParticipantes(participantesData);
       setEstatisticas({
@@ -60,7 +57,6 @@ export default function Home() {
         eliminados: statsData.eliminados || 0
       });
       setInscricoesAbertas(configData.inscricoes_abertas);
-      setModoTeste(modoTesteData.valor === 'true');
     } catch (error) {
       console.error('Erro:', error);
     } finally {
@@ -266,7 +262,7 @@ export default function Home() {
                           
                           {p.palpite_atual && (
                             <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                              {(p.palpite_atual_visivel || modoTeste) ? (
+                              {p.palpite_atual_visivel ? (
                                 <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
                                   🎯 {p.palpite_atual}
                                 </span>

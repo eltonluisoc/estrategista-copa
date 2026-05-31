@@ -477,7 +477,7 @@ export default function AdminPage() {
                                   </button>
                                 </div>
                               </td>
-                            </tr>
+                            </td>
                           ))}
                         </tbody>
                       </table>

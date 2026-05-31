@@ -36,10 +36,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center p-4">
       <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 w-full max-w-md border border-white/10">
         
-        <Link href="/" className="inline-flex items-center gap-1 text-gray-400 hover:text-white mb-6 transition text-sm">
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
-        </Link>
+        <div className="flex justify-between items-center mb-6">
+          <Link href="/" className="inline-flex items-center gap-1 text-gray-400 hover:text-white transition text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Voltar
+          </Link>
+          <Link href="/" className="text-gray-500 hover:text-yellow-500 transition text-xs">
+            Classificação Geral
+          </Link>
+        </div>
 
         <div className="flex justify-center mb-6">
           <Trophy className="w-12 h-12 text-yellow-500" />

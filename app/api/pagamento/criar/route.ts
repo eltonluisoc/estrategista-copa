@@ -9,7 +9,7 @@ export async function POST(request: Request) {
         const { usuarioId, nome, email } = await request.json()
 
         // order_nsu único
-        const orderNsu = estrategista_\_\
+        const orderNsu = `estrategista_${usuarioId}_${Date.now()}`
 
         // Criar link no InfinitePay
         const result = await createPaymentLink(orderNsu, { name: nome, email }, 20)
@@ -19,10 +19,10 @@ export async function POST(request: Request) {
         }
 
         // Salvar no banco
-        await sql
+        await sql`
             INSERT INTO pagamentos (usuario_id, transaction_id, status, link_pagamento, valor)
-            VALUES (\, \, 'pendente', \, 20)
-        
+            VALUES (${usuarioId}, ${orderNsu}, 'pendente', ${result.link}, 20)
+        `
 
         return NextResponse.json({
             success: true,

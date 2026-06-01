@@ -4,85 +4,76 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Trophy, LogOut, LogIn, Home, Users, Shield } from 'lucide-react';
 
-const APP_VERSION = 'v11';
-
 export function GlobalHeader() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.email === 'admin@estrategista.com';
 
   return (
-    <>
-      {/* Versão no topo */}
-      <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
-        Versão: {APP_VERSION}
-      </div>
-      
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-wrap justify-between items-center gap-3">
-            {/* Logo - sempre leva para página inicial */}
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
-              <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />
-              <h1 className="text-base sm:text-xl font-bold text-white tracking-tighter">
-                Estrategista<span className="text-yellow-500"> da Copa</span>
-              </h1>
+    <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          {/* Logo - sempre leva para página inicial */}
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
+            <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />
+            <h1 className="text-base sm:text-xl font-bold text-white tracking-tighter">
+              Estrategista<span className="text-yellow-500"> da Copa</span>
+            </h1>
+          </Link>
+
+          {/* Links principais */}
+          <div className="flex flex-wrap gap-2">
+            <Link 
+              href="/" 
+              className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-300 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+            >
+              <Home className="w-4 h-4" /> Início
+            </Link>
+            
+            <Link 
+              href="/" 
+              className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+            >
+              <Users className="w-4 h-4" /> Ranking
             </Link>
 
-            {/* Links principais */}
-            <div className="flex flex-wrap gap-2">
-              <Link 
-                href="/" 
-                className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-300 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-              >
-                <Home className="w-4 h-4" /> Início
-              </Link>
-              
-              <Link 
-                href="/" 
-                className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-              >
-                <Users className="w-4 h-4" /> Ranking
-              </Link>
-
-              {session ? (
-                <>
-                  {!isAdmin && (
-                    <Link 
-                      href="/dashboard" 
-                      className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-                    >
-                      <Trophy className="w-4 h-4" /> Meus Palpites
-                    </Link>
-                  )}
-                  
-                  {isAdmin && (
-                    <Link 
-                      href="/admin" 
-                      className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
-                    >
-                      <Shield className="w-4 h-4" /> Admin
-                    </Link>
-                  )}
-                  
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+            {session ? (
+              <>
+                {!isAdmin && (
+                  <Link 
+                    href="/dashboard" 
+                    className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+                  >
+                    <Trophy className="w-4 h-4" /> Meus Palpites
+                  </Link>
+                )}
+                
+                {isAdmin && (
+                  <Link 
+                    href="/admin" 
                     className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
                   >
-                    <LogOut className="w-4 h-4" /> Sair
-                  </button>
-                </>
-              ) : (
-                <Link 
-                  href="/login" 
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+                    <Shield className="w-4 h-4" /> Admin
+                  </Link>
+                )}
+                
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
                 >
-                  <LogIn className="w-4 h-4" /> Login
-                </Link>
-              )}
-            </div>
+                  <LogOut className="w-4 h-4" /> Sair
+                </button>
+              </>
+            ) : (
+              <Link 
+                href="/login" 
+                className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+              >
+                <LogIn className="w-4 h-4" /> Login
+              </Link>
+            )}
           </div>
         </div>
-      </header>
-    </>
+      </div>
+    </header>
   );
 }

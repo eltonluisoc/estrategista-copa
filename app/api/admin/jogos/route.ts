@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { calcularPrazoBrasilia } from '@/lib/dates'
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -125,17 +126,27 @@ export async function PUT(request: Request) {
   try {
     const { id, time_casa, time_fora, data_hora, rodada, grupo } = await request.json()
 
+    // Calcular prazo (23:59 do dia anterior no horário de Brasília)
+    const dataHoraObj = new Date(data_hora)
+    const prazo = calcularPrazoBrasilia(dataHoraObj)
+
     if (id) {
+      // Atualizar jogo existente
       await sql`
         UPDATE jogos 
-        SET time_casa = ${time_casa}, time_fora = ${time_fora}, 
-            data_hora = ${data_hora}, rodada = ${rodada}, grupo = ${grupo} 
+        SET time_casa = ${time_casa}, 
+            time_fora = ${time_fora}, 
+            data_hora = ${data_hora}, 
+            prazo = ${prazo.toISOString()},
+            rodada = ${rodada}, 
+            grupo = ${grupo} 
         WHERE id = ${id}
       `
     } else {
+      // Criar novo jogo
       await sql`
-        INSERT INTO jogos (time_casa, time_fora, data_hora, rodada, grupo) 
-        VALUES (${time_casa}, ${time_fora}, ${data_hora}, ${rodada}, ${grupo})
+        INSERT INTO jogos (time_casa, time_fora, data_hora, prazo, rodada, grupo) 
+        VALUES (${time_casa}, ${time_fora}, ${data_hora}, ${prazo.toISOString()}, ${rodada}, ${grupo})
       `
     }
 
@@ -148,5 +159,31 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Erro ao salvar jogo:', error)
     return NextResponse.json({ error: 'Erro ao salvar' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await auth()
+  if (session?.user?.email !== 'admin@estrategista.com') {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
+  try {
+    const url = new URL(request.url)
+    const id = url.pathname.split('/').pop()
+    
+    await sql`
+      DELETE FROM jogos WHERE id = ${id}
+    `
+    
+    const jogosAtualizados = await sql`
+      SELECT * FROM jogos 
+      ORDER BY rodada, data_hora
+    `
+    
+    return NextResponse.json({ success: true, jogos: jogosAtualizados })
+  } catch (error) {
+    console.error('Erro ao deletar jogo:', error)
+    return NextResponse.json({ error: 'Erro ao deletar' }, { status: 500 })
   }
 }

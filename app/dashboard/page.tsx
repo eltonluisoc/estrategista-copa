@@ -50,6 +50,25 @@ interface ParticipanteRanking {
   rodada_atual?: number;
 }
 
+// Funções auxiliares para fuso horário
+function formatarDataBrasilia(data: Date): string {
+  return data.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function prazoExpirado(prazo: Date): boolean {
+  const agora = new Date();
+  const agoraBrasilia = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  return agoraBrasilia > prazoBrasilia;
+}
+
 export default function DashboardPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -160,10 +179,11 @@ export default function DashboardPage() {
       }
       
       // Determinar rodada atual baseada nos jogos disponíveis com prazo válido
-      const agora = new Date();
+      const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
       const jogosComPrazoValido = jogosData.filter((j: Jogo) => {
         const prazo = new Date(j.prazo);
-        return !j.finalizado && prazo >= agora;
+        const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        return !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
       });
       
       let rodadaDoSistema = rodadaUsuario;
@@ -174,8 +194,7 @@ export default function DashboardPage() {
         )[0];
         rodadaDoSistema = proximoJogoValido.rodada;
       } else {
-        // Se não há jogos com prazo válido, mostrar a próxima rodada mesmo sem prazo
-        const todosJogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
+        const todosJogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > new Date() && !j.finalizado);
         if (todosJogosFuturos.length > 0) {
           rodadaDoSistema = todosJogosFuturos[0].rodada;
         }
@@ -205,7 +224,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (jogoDoTime && new Date() > new Date(jogoDoTime.prazo) && !modoTeste) {
+    if (jogoDoTime && prazoExpirado(new Date(jogoDoTime.prazo)) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
       return;
     }
@@ -242,7 +261,7 @@ export default function DashboardPage() {
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    if (prazoJogo && new Date() > new Date(prazoJogo) && !modoTeste) {
+    if (prazoJogo && prazoExpirado(new Date(prazoJogo)) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }
@@ -321,11 +340,12 @@ export default function DashboardPage() {
   const timesDisponiveis = times.filter((t) => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some((p) => p.rodada === rodadaAtual);
   
-  // CORREÇÃO: Filtrar jogos da rodada que ainda estão dentro do prazo
-  const agora = new Date();
+  // Filtrar jogos da rodada que ainda estão dentro do prazo (horário Brasília)
+  const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   const jogosRodada = jogos.filter((j) => {
     const prazo = new Date(j.prazo);
-    return j.rodada === rodadaAtual && !j.finalizado && (modoTeste || prazo >= agora);
+    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    return j.rodada === rodadaAtual && !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
   });
   
   const participantesAtivos = rankingParticipantes.filter((p) => p.status === 'ativo').length;
@@ -533,7 +553,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA - Apenas Jogos da Rodada */}
+          {/* COLUNA DIREITA - Jogos da Rodada */}
           <div className="space-y-6">
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
@@ -551,7 +571,10 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   {jogosRodada.map((jogo) => {
                     const prazo = new Date(jogo.prazo);
-                    const prazoFormatado = prazo.toLocaleDateString('pt-BR') + ' ' + prazo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+                    const prazoFormatado = formatarDataBrasilia(prazoBrasilia);
+                    const dataJogo = new Date(jogo.data_hora);
+                    const dataJogoFormatada = formatarDataBrasilia(dataJogo);
                     return (
                       <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -561,7 +584,7 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex flex-col items-end">
                             <span className="text-gray-500 text-xs">
-                              {new Date(jogo.data_hora).toLocaleDateString('pt-BR')} - {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              {dataJogoFormatada}
                             </span>
                             <span className="text-yellow-600/70 text-[10px]">
                               ⏰ Prazo: {prazoFormatado}

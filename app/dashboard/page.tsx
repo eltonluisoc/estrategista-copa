@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, UserCheck, UserX, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
+import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
+import { GlobalHeader } from '@/components/GlobalHeader';
 
 interface Usuario {
   id: string;
@@ -36,6 +37,9 @@ interface Jogo {
   finalizado: boolean;
   rodada: number;
   prazo: string;
+  vencedor_id?: number;
+  gols_casa?: number;
+  gols_fora?: number;
 }
 
 interface ParticipanteRanking {
@@ -59,6 +63,7 @@ export default function DashboardPage() {
   const [timeSelecionado, setTimeSelecionado] = useState('');
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [modoTeste, setModoTeste] = useState(false);
 
   const estaAprovado = session?.user?.aprovado === true;
 
@@ -73,6 +78,7 @@ export default function DashboardPage() {
     }
     if (status === 'authenticated' && session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
       carregarDados();
+      carregarModoTeste();
     }
   }, [status, session]);
 
@@ -95,6 +101,16 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [session, estaAprovado, update]);
 
+  const carregarModoTeste = async () => {
+    try {
+      const res = await fetch('/api/configuracoes?chave=modo_teste');
+      const data = await res.json();
+      setModoTeste(data.valor === 'true');
+    } catch (error) {
+      console.error('Erro ao carregar modo teste:', error);
+    }
+  };
+
   const carregarDados = async () => {
     setLoading(true);
     try {
@@ -115,36 +131,58 @@ export default function DashboardPage() {
       setJogos(jogosData);
       setRankingParticipantes(rankingData);
       
-      // Calcular rodada atual do usuário baseado nos palpites
-      let rodadaUsuario = 1;
-      let usuarioAtual: Usuario = { id: session?.user?.id || '', email: '', nome: '', status: 'ativo' };
+      const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
+      const userData = await userRes.json();
       
-      for (const palpite of palpitesData) {
+      // Calcular rodada atual do usuário
+      let rodadaUsuario = 1;
+      const palpitesOrdenados = [...palpitesData].sort((a, b) => a.rodada - b.rodada);
+      
+      for (const palpite of palpitesOrdenados) {
         const jogo = jogosData.find((j: Jogo) => j.rodada === palpite.rodada);
+        
         if (jogo && jogo.finalizado) {
           if (jogo.vencedor_id === palpite.time_id) {
             rodadaUsuario = palpite.rodada + 1;
           } else if (jogo.vencedor_id !== palpite.time_id) {
-            usuarioAtual = { ...usuarioAtual, status: 'eliminado', rodada_eliminacao: palpite.rodada };
+            setUsuario({ ...userData, status: 'eliminado', rodada_eliminacao: palpite.rodada, rodada_atual: palpite.rodada });
+            setLoading(false);
+            return;
           }
         } else {
           rodadaUsuario = palpite.rodada;
+          break;
         }
       }
       
-      // Determinar rodada atual baseada na data
-      const agora = new Date();
-      const jogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
-      if (jogosFuturos.length > 0) {
-        const proximoJogo = jogosFuturos.sort((a: Jogo, b: Jogo) => 
-          new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
-        )[0];
-        setRodadaAtual(proximoJogo.rodada);
+      if (palpitesData.length === 0) {
+        rodadaUsuario = 1;
       }
       
-      const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
-      const userData = await userRes.json();
-      setUsuario({ ...userData, rodada_atual: rodadaUsuario });
+      // Determinar rodada atual baseada nos jogos disponíveis com prazo válido
+      const agora = new Date();
+      const jogosComPrazoValido = jogosData.filter((j: Jogo) => {
+        const prazo = new Date(j.prazo);
+        return !j.finalizado && prazo >= agora;
+      });
+      
+      let rodadaDoSistema = rodadaUsuario;
+      
+      if (jogosComPrazoValido.length > 0) {
+        const proximoJogoValido = jogosComPrazoValido.sort((a: Jogo, b: Jogo) => 
+          new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
+        )[0];
+        rodadaDoSistema = proximoJogoValido.rodada;
+      } else {
+        // Se não há jogos com prazo válido, mostrar a próxima rodada mesmo sem prazo
+        const todosJogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > agora && !j.finalizado);
+        if (todosJogosFuturos.length > 0) {
+          rodadaDoSistema = todosJogosFuturos[0].rodada;
+        }
+      }
+      
+      setRodadaAtual(rodadaDoSistema);
+      setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -167,7 +205,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (jogoDoTime && new Date() > new Date(jogoDoTime.prazo)) {
+    if (jogoDoTime && new Date() > new Date(jogoDoTime.prazo) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
       return;
     }
@@ -204,7 +242,7 @@ export default function DashboardPage() {
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    if (prazoJogo && new Date() > new Date(prazoJogo)) {
+    if (prazoJogo && new Date() > new Date(prazoJogo) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }
@@ -254,8 +292,11 @@ export default function DashboardPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-yellow-500 text-xl">Verificando acesso...</div>
+        </div>
       </div>
     );
   }
@@ -266,8 +307,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando dados...</div>
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-yellow-500 text-xl">Carregando dados...</div>
+        </div>
       </div>
     );
   }
@@ -276,62 +320,24 @@ export default function DashboardPage() {
   const timesUsadosList = times.filter((t) => timesJaUsados.includes(t.id));
   const timesDisponiveis = times.filter((t) => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some((p) => p.rodada === rodadaAtual);
-  const jogosRodada = jogos.filter((j) => j.rodada === rodadaAtual && !j.finalizado);
+  
+  // CORREÇÃO: Filtrar jogos da rodada que ainda estão dentro do prazo
+  const agora = new Date();
+  const jogosRodada = jogos.filter((j) => {
+    const prazo = new Date(j.prazo);
+    return j.rodada === rodadaAtual && !j.finalizado && (modoTeste || prazo >= agora);
+  });
   
   const participantesAtivos = rankingParticipantes.filter((p) => p.status === 'ativo').length;
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
 
-  const statusRodada = usuario?.status === 'ativo' 
+  const rodadaExibicao = usuario?.status === 'ativo' 
     ? (usuario?.rodada_atual || rodadaAtual)
     : (usuario?.rodada_eliminacao || '?');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      {/* Header */}
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-8 h-8 text-yellow-500" />
-              <h1 className="text-lg sm:text-xl font-bold text-white tracking-tighter">
-                Estrategista<span className="text-yellow-500"> da Copa</span>
-              </h1>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <button
-                onClick={() => router.push('/classificacao')}
-                className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded-lg text-sm transition"
-              >
-                <Trophy className="w-4 h-4 inline" /> Classificação Geral
-              </button>
-              <button
-                onClick={forcarRecarregamento}
-                className="bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-1.5 rounded-lg text-sm transition"
-              >
-                <RefreshCw className="w-4 h-4 inline" /> Atualizar
-              </button>
-              <a
-                href="https://wa.me/5561998507770?text=Olá!%20Preciso%20de%20ajuda%20com%20o%20bolão%20Estrategista%20da%20Copa"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2"
-              >
-                <span>📱</span>
-                Falar com Administrador
-              </a>
-              <button
-                onClick={() => signOut()}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition"
-              >
-                <LogOut className="w-4 h-4 inline" /> Sair
-              </button>
-            </div>
-          </div>
-          <div className="text-center sm:text-right text-gray-300 text-sm mt-2">
-            Olá, <span className="text-yellow-500 font-semibold">{usuario?.nome || session?.user?.name}</span>
-          </div>
-        </div>
-      </header>
+      <GlobalHeader />
 
       <div className="container mx-auto px-4 py-6">
         
@@ -365,12 +371,12 @@ export default function DashboardPage() {
               {usuario?.status === 'ativo' ? (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 font-semibold text-sm">Rodada {statusRodada}</span>
+                  <span className="text-green-400 font-semibold text-sm">Rodada {rodadaExibicao}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-red-400 font-semibold text-sm">Eliminado na Rodada {statusRodada}</span>
+                  <span className="text-red-400 font-semibold text-sm">Eliminado na Rodada {rodadaExibicao}</span>
                 </div>
               )}
             </div>
@@ -410,6 +416,12 @@ export default function DashboardPage() {
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                   <p className="text-gray-300 text-sm">Palpite já registrado para esta rodada!</p>
                   <p className="text-gray-500 text-xs mt-1">Você pode alterá-lo até o prazo final.</p>
+                </div>
+              ) : jogosRodada.length === 0 ? (
+                <div className="text-center py-6">
+                  <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-gray-300 text-sm">Nenhum jogo disponível para palpitar no momento.</p>
+                  <p className="text-gray-500 text-xs mt-1">Os jogos ficam disponíveis até 23h59 do dia anterior à partida.</p>
                 </div>
               ) : (
                 <form onSubmit={handlePalpite} className="space-y-3">
@@ -496,9 +508,32 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* Times já usados */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-red-400" />
+                Times que você já usou ({timesUsadosList.length})
+              </h3>
+              {timesUsadosList.length === 0 ? (
+                <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                  {timesUsadosList.map((time) => (
+                    <div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center hover:border-red-500/30 transition-all">
+                      <div className="text-white text-sm font-medium">{time.nome}</div>
+                      <div className="text-gray-500 text-xs">Grupo {time.grupo}</div>
+                      <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
+                        <XCircle className="w-3 h-3" /> Usado
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* COLUNA DIREITA - Jogos da Rodada */}
+          {/* COLUNA DIREITA - Apenas Jogos da Rodada */}
           <div className="space-y-6">
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
@@ -506,87 +541,47 @@ export default function DashboardPage() {
                 Jogos da Rodada {rodadaAtual}
               </h3>
               {jogosRodada.length === 0 ? (
-                <p className="text-gray-400 text-center py-4 text-sm">Nenhum jogo disponível para esta rodada.</p>
+                <div className="text-center py-6">
+                  <p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {jogosRodada.map((jogo) => (
-                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                  {jogosRodada.map((jogo) => {
+                    const prazo = new Date(jogo.prazo);
+                    const prazoFormatado = prazo.toLocaleDateString('pt-BR') + ' ' + prazo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <div>
+                            <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                            <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-gray-500 text-xs">
+                              {new Date(jogo.data_hora).toLocaleDateString('pt-BR')} - {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-yellow-600/70 text-[10px]">
+                              ⏰ Prazo: {prazoFormatado}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-gray-500 text-xs">
-                          {new Date(jogo.data_hora).toLocaleDateString('pt-BR')} - {new Date(jogo.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* Ranking dos Participantes (resumido) */}
-            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-yellow-500" />
-                Ranking (Top 5)
-              </h3>
-              <div className="space-y-2">
-                {rankingParticipantes.slice(0, 5).map((p, idx) => (
-                  <div key={p.id} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 text-xs w-5">{idx + 1}</span>
-                      <span className="text-white text-sm">{p.nome}</span>
-                    </div>
-                    <div>
-                      {p.status === 'ativo' ? (
-                        <span className="text-green-400 text-xs">Rodada {p.rodada_atual || 1}</span>
-                      ) : (
-                        <span className="text-red-400 text-xs">Eliminado</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* Aviso de segurança */}
+            <div className="bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">
+              <div className="flex items-center justify-center gap-2 text-yellow-500 text-xs">
+                <Shield className="w-4 h-4" />
+                <span>Prazo para palpitar: até 23h59 do dia anterior ao jogo. Após este horário, o palpite fica bloqueado.</span>
               </div>
-              <button
-                onClick={() => router.push('/classificacao')}
-                className="w-full mt-3 text-center text-yellow-500 text-xs hover:underline"
-              >
-                Ver classificação completa →
-              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Times já usados */}
-        <div className="mt-6 bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
-          <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-red-400" />
-            Times que você já usou ({timesUsadosList.length})
-          </h3>
-          {timesUsadosList.length === 0 ? (
-            <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {timesUsadosList.map((time) => (
-                <div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center hover:border-red-500/30 transition-all">
-                  <div className="text-white text-sm font-medium">{time.nome}</div>
-                  <div className="text-gray-500 text-xs">Grupo {time.grupo}</div>
-                  <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
-                    <XCircle className="w-3 h-3" /> Usado
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Aviso de segurança */}
-        <div className="mt-6 bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">
-          <div className="flex items-center justify-center gap-2 text-yellow-500 text-xs">
-            <Shield className="w-4 h-4" />
-            <span>Prazo para palpitar: até 23h59 do dia anterior ao jogo. Após este horário, o palpite fica bloqueado.</span>
           </div>
         </div>
       </div>

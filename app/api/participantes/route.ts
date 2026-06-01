@@ -20,7 +20,7 @@ export async function GET() {
   // Buscar palpites com resultados
   const palpites = await sql`
     SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
-           j.vencedor_id, j.finalizado, j.prazo
+           j.vencedor_id, j.finalizado, j.prazo, j.gols_casa, j.gols_fora
     FROM palpites p
     JOIN times t ON p.time_id = t.id
     LEFT JOIN jogos j ON j.rodada = p.rodada 
@@ -31,7 +31,6 @@ export async function GET() {
   const agora = new Date()
   
   const participantesComDados = participantes.map((p: any) => {
-    // Se já está eliminado
     if (p.status === 'eliminado') {
       return { 
         ...p, 
@@ -43,11 +42,8 @@ export async function GET() {
     }
     
     const palpitesDoUsuario = palpites.filter((pal: any) => pal.usuario_id === p.id)
-    
-    // Ordenar palpites por rodada
     const palpitesOrdenados = [...palpitesDoUsuario].sort((a, b) => a.rodada - b.rodada)
     
-    // Sem palpites: rodada 1
     if (palpitesOrdenados.length === 0) {
       return { 
         ...p, 
@@ -65,46 +61,41 @@ export async function GET() {
     let eliminado = false
     let rodadaEliminacao = null
     
-    // Processar palpites em ordem
     for (const palpite of palpitesOrdenados) {
       if (palpite.finalizado === true && palpite.vencedor_id) {
-        // Jogo finalizado - verificar se acertou ou errou
         if (palpite.time_id === palpite.vencedor_id) {
-          // Acertou - avança para próxima rodada
           acertos.push({
             rodada: palpite.rodada,
             time: palpite.time_nome
           })
           rodadaAtual = palpite.rodada + 1
         } else {
-          // Errou - eliminado
           eliminado = true
           rodadaEliminacao = palpite.rodada
           break
         }
       } else {
-        // Jogo NÃO finalizado - este é o palpite atual
-        // CORREÇÃO: A rodada atual é a rodada deste palpite
         rodadaAtual = palpite.rodada
         
         const prazo = palpite.prazo ? new Date(palpite.prazo) : null
         const prazoExpirado = prazo ? agora > prazo : false
         
-        // Mostrar palpite se modo teste ou prazo expirado
+        // CORREÇÃO: No modo teste, SEMPRE mostrar o palpite
         if (modoTeste) {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
         } else if (prazoExpirado) {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
+        } else {
+          // Prazo não expirado e não modo teste - NÃO mostrar
+          palpiteAtual = null
+          palpiteAtualVisivel = false
         }
-        
-        // Não processa mais palpites (próximas rodadas ainda não começaram)
         break
       }
     }
     
-    // Se foi eliminado
     if (eliminado) {
       return { 
         ...p, 
@@ -127,7 +118,6 @@ export async function GET() {
     }
   })
   
-  // Ordenar: ativos por rodada (decrescente), depois eliminados
   const ordenados = participantesComDados.sort((a: any, b: any) => {
     if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
     if (a.status !== 'eliminado' && b.status === 'eliminado') return -1

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, UserCheck, DollarSign, Users, XCircle, Calendar, Shield, Eye, EyeOff } from 'lucide-react';
+import { GlobalHeader } from '@/components/GlobalHeader';
 
 const timesLista = [
   'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
@@ -15,7 +16,6 @@ const timesLista = [
 ];
 
 const VALOR_INSCRICAO = 20;
-const APP_VERSION = 'v10';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -224,78 +224,20 @@ export default function AdminPage() {
     setMensagem(null);
     setMostrarDisponibilidade(true);
     try {
-      const res = await fetch('/api/usuarios?excluirAdmin=true');
-      const usuarios = await res.json();
-      const ativos = usuarios.filter(u => u.status === 'ativo');
+      const res = await fetch('/api/admin/verificar-disponibilidade');
+      const data = await res.json();
       
-      const palpitesRes = await fetch('/api/palpites/todos');
-      const palpites = await palpitesRes.json();
-      
-      const jogosRes = await fetch('/api/jogos');
-      const todosJogos = await jogosRes.json();
-      
-      const disponibilidade = [];
-      
-      for (const usuario of ativos) {
-        const palpitesUsuario = palpites.filter(p => p.usuario_id === usuario.id);
-        const timesUsados = [];
-        
-        for (const palpite of palpitesUsuario) {
-          const jogo = todosJogos.find(j => j.rodada === palpite.rodada);
-          if (jogo && jogo.finalizado && jogo.vencedor_id === palpite.time_id) {
-            const timeNome = palpite.time_nome || await buscarTimeNome(palpite.time_id);
-            timesUsados.push(timeNome);
-          }
-        }
-        
-        let palpiteAtual = null;
-        const proximoJogo = todosJogos
-          .filter(j => !j.finalizado)
-          .sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora))[0];
-        
-        if (proximoJogo) {
-          const palpiteAtualObj = palpitesUsuario.find(p => p.rodada === proximoJogo.rodada);
-          if (palpiteAtualObj) {
-            palpiteAtual = palpiteAtualObj.time_nome || await buscarTimeNome(palpiteAtualObj.time_id);
-          }
-        }
-        
-        const timesDisponiveis = timesLista.filter(t => !timesUsados.includes(t));
-        
-        disponibilidade.push({
-          nome: usuario.nome,
-          email: usuario.email,
-          rodada_atual: usuario.rodada_atual || 1,
-          times_usados: timesUsados,
-          total_usados: timesUsados.length,
-          times_disponiveis: timesDisponiveis.length,
-          palpite_atual: palpiteAtual,
-          pode_continuar: timesDisponiveis.length > 0
-        });
+      if (res.ok) {
+        setDisponibilidadeData(data);
+        setMensagem({ tipo: 'sucesso', texto: data.message });
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error });
       }
-      
-      setDisponibilidadeData({
-        participantes: disponibilidade,
-        total_ativos: ativos.length,
-        timestamp: new Date().toISOString()
-      });
-      
-      setMensagem({ tipo: 'sucesso', texto: `Verificação concluída! ${disponibilidade.length} participantes analisados.` });
     } catch (error) {
-      console.error('Erro ao verificar disponibilidade:', error);
+      console.error('Erro:', error);
       setMensagem({ tipo: 'erro', texto: 'Erro ao verificar disponibilidade' });
     }
     setVerificando(false);
-  };
-  
-  const buscarTimeNome = async (timeId) => {
-    try {
-      const res = await fetch(`/api/times/${timeId}`);
-      const data = await res.json();
-      return data.nome;
-    } catch (error) {
-      return `Time ${timeId}`;
-    }
   };
 
   const toggleInscricoes = async () => {
@@ -337,8 +279,11 @@ export default function AdminPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando...</div>
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-yellow-500 text-xl">Carregando...</div>
+        </div>
       </div>
     );
   }
@@ -365,38 +310,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      {/* Versão no topo */}
-      <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
-        Versão: {APP_VERSION}
-      </div>
-
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
-              <h1 className="text-lg sm:text-xl font-bold text-white">Admin - Estrategista da Copa</h1>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => { setEditando(null); setModalAberto(true); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
-                <Plus className="w-4 h-4" /> Novo Jogo
-              </button>
-              <button onClick={verificarDisponibilidade} disabled={verificando} className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
-                <Shield className="w-4 h-4" /> {verificando ? 'Verificando...' : 'Verificar Disponibilidade'}
-              </button>
-              <button onClick={toggleInscricoes} className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${inscricoesAbertas ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
-                {inscricoesAbertas ? 'Inscrições Abertas' : 'Inscrições Encerradas'}
-              </button>
-              <button onClick={toggleModoTeste} className={`px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1 ${modoTeste ? 'bg-red-600/30 text-red-400 border border-red-500/50' : 'bg-gray-600/20 text-gray-400'}`}>
-                <span>🔧</span> {modoTeste ? 'Modo Teste ON' : 'Modo Teste OFF'}
-              </button>
-              <button onClick={() => signOut({ callbackUrl: '/' })} className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
-                <LogOut className="w-4 h-4" /> Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <GlobalHeader />
 
       <div className="container mx-auto px-4 py-6">
         {mensagem && (
@@ -490,6 +404,8 @@ export default function AdminPage() {
               <div className="text-gray-400 text-xs mb-4">
                 Total de participantes ativos: {disponibilidadeData.total_ativos}
                 <br />
+                Eliminados automaticamente: {disponibilidadeData.eliminados_automaticos}
+                <br />
                 Última verificação: {new Date(disponibilidadeData.timestamp).toLocaleString('pt-BR')}
               </div>
               <div className="overflow-x-auto">
@@ -497,10 +413,8 @@ export default function AdminPage() {
                   <thead className="text-gray-400 border-b border-white/10">
                     <tr>
                       <th className="text-left py-2 px-2">Participante</th>
-                      <th className="text-left py-2 px-2">Rodada</th>
                       <th className="text-left py-2 px-2">Times Usados</th>
                       <th className="text-center py-2 px-2">Disp.</th>
-                      <th className="text-left py-2 px-2">Palpite Atual</th>
                       <th className="text-center py-2 px-2">Status</th>
                     </tr>
                   </thead>
@@ -511,7 +425,6 @@ export default function AdminPage() {
                           <div className="text-white text-sm">{p.nome}</div>
                           <div className="text-gray-500 text-xs">{p.email}</div>
                         </td>
-                        <td className="py-2 px-2 text-yellow-400 text-sm">{p.rodada_atual}</td>
                         <td className="py-2 px-2">
                           <div className="text-gray-300 text-xs max-w-xs">
                             {p.times_usados.length > 0 ? p.times_usados.join(', ') : 'Nenhum'}
@@ -519,13 +432,6 @@ export default function AdminPage() {
                         </td>
                         <td className="py-2 px-2 text-center">
                           <span className="text-gray-400 text-sm">{p.times_disponiveis}</span>
-                        </td>
-                        <td className="py-2 px-2">
-                          {p.palpite_atual ? (
-                            <span className="text-yellow-400 text-xs">{p.palpite_atual}</span>
-                          ) : (
-                            <span className="text-gray-500 text-xs">-</span>
-                          )}
                         </td>
                         <td className="py-2 px-2 text-center">
                           {p.pode_continuar ? (
@@ -587,27 +493,40 @@ export default function AdminPage() {
                               <td className="py-2 px-2">
                                 <div className="text-white text-sm">{jogo.time_casa} x {jogo.time_fora}</div>
                                 <div className="text-gray-500 text-xs">{jogo.grupo}</div>
+                                {jogo.finalizado && (
+                                  <div className="text-yellow-500 text-xs mt-1">
+                                    Placar final: {jogo.gols_casa} - {jogo.gols_fora}
+                                  </div>
+                                )}
                               </td>
                               <td className="py-2 px-2">
-                                <div className="flex items-center justify-center gap-2">
-                                  <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-casa-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
-                                  <span className="text-yellow-500 text-sm">x</span>
-                                  <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-fora-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
-                                </div>
+                                {!jogo.finalizado ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-casa-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
+                                    <span className="text-yellow-500 text-sm">x</span>
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" id={`gols-fora-${jogo.id}`} placeholder="0" className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-center focus:outline-none focus:border-yellow-500" />
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-gray-400 text-sm">
+                                    {jogo.gols_casa} - {jogo.gols_fora}
+                                  </div>
+                                )}
                               </td>
                               <td className="py-2 px-2">
                                 <div className="flex justify-center gap-2">
-                                  <button onClick={() => {
-                                    const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
-                                    const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
-                                    if (golsCasa === '' || golsFora === '') {
-                                      alert('Preencha o placar do jogo');
-                                      return;
-                                    }
-                                    processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
-                                  }} disabled={jogo.finalizado} className={`px-2 py-1 rounded text-xs flex items-center gap-1 transition ${jogo.finalizado ? 'bg-gray-600/50 cursor-not-allowed text-gray-400' : 'bg-yellow-600 hover:bg-yellow-500 text-white'}`}>
-                                    <Save className="w-3 h-3" /> {jogo.finalizado ? 'Finalizado' : 'Finalizar'}
-                                  </button>
+                                  {!jogo.finalizado && (
+                                    <button onClick={() => {
+                                      const golsCasa = document.getElementById(`gols-casa-${jogo.id}`).value;
+                                      const golsFora = document.getElementById(`gols-fora-${jogo.id}`).value;
+                                      if (golsCasa === '' || golsFora === '') {
+                                        alert('Preencha o placar do jogo');
+                                        return;
+                                      }
+                                      processarResultado(jogo.id, parseInt(golsCasa), parseInt(golsFora), jogo.rodada);
+                                    }} className="px-2 py-1 rounded text-xs flex items-center gap-1 transition bg-yellow-600 hover:bg-yellow-500 text-white">
+                                      <Save className="w-3 h-3" /> Finalizar
+                                    </button>
+                                  )}
                                   <button onClick={() => { setEditando(jogo); setModalAberto(true); }} className="text-blue-400 hover:text-blue-300" title="Editar">
                                     <Edit className="w-4 h-4" />
                                   </button>
@@ -640,7 +559,7 @@ export default function AdminPage() {
               <p className="text-gray-400 text-center py-4 text-sm">Nenhum eliminado ainda</p>
             ) : (
               <div className="space-y-2">
-                {eliminados.slice(0, 5).map((elim, idx) => (
+                {eliminados.slice(0, 10).map((elim, idx) => (
                   <div key={idx} className="bg-black/30 rounded-lg p-2">
                     <div className="flex justify-between items-start gap-2">
                       <div>

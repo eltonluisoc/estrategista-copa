@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Trophy, Target, Calendar, Users, TrendingUp, Award, CheckCircle, XCircle, History, EyeOff, Clock } from 'lucide-react';
 import Link from 'next/link';
-
-// VERSÃO MANUAL - ATUALIZAR A CADA DEPLOY
-const APP_VERSION = 'v10';
+import { GlobalHeader } from '@/components/GlobalHeader';
 
 interface Participante {
   id: string;
@@ -33,6 +31,7 @@ export default function Home() {
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
   const [modalAberto, setModalAberto] = useState(false);
   const [participanteSelecionado, setParticipanteSelecionado] = useState<Participante | null>(null);
+  const [modoTeste, setModoTeste] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -40,15 +39,17 @@ export default function Home() {
 
   const carregarDados = async () => {
     try {
-      const [participantesRes, statsRes, configRes] = await Promise.all([
+      const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
         fetch('/api/participantes'),
         fetch('/api/estatisticas-publicas'),
-        fetch('/api/configuracoes/inscricoes')
+        fetch('/api/configuracoes/inscricoes'),
+        fetch('/api/configuracoes?chave=modo_teste')
       ]);
 
       const participantesData = await participantesRes.json();
       const statsData = await statsRes.json();
       const configData = await configRes.json();
+      const modoTesteData = await modoTesteRes.json();
 
       setParticipantes(participantesData);
       setEstatisticas({
@@ -57,6 +58,7 @@ export default function Home() {
         eliminados: statsData.eliminados || 0
       });
       setInscricoesAbertas(configData.inscricoes_abertas);
+      setModoTeste(modoTesteData.valor === 'true');
     } catch (error) {
       console.error('Erro:', error);
     } finally {
@@ -77,56 +79,18 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
-        <div className="text-yellow-500 text-xl">Carregando...</div>
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-yellow-500 text-xl">Carregando...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
-      
-      {/* Versão no topo */}
-      <div className="bg-black/30 text-center py-1 text-[10px] text-gray-500">
-        Versão: {APP_VERSION}
-      </div>
-
-      {/* Header */}
-      <header className="bg-black/40 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
-              <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tighter">
-                Estrategista<span className="text-yellow-500"> da Copa</span>
-              </h1>
-            </div>
-            <div className="flex gap-3">
-              {inscricoesAbertas ? (
-                <Link 
-                  href="/cadastro" 
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-4 sm:px-6 rounded-lg transition shadow-md hover:shadow-lg text-sm sm:text-base"
-                >
-                  📝 Inscrever-se
-                </Link>
-              ) : (
-                <button 
-                  disabled 
-                  className="bg-gray-600 cursor-not-allowed text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base"
-                >
-                  🔒 Inscrições Encerradas
-                </button>
-              )}
-              <Link 
-                href="/login" 
-                className="border-2 border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-2 px-4 sm:px-6 rounded-lg transition text-sm sm:text-base"
-              >
-                🔑 Entrar
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <GlobalHeader />
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
@@ -260,18 +224,15 @@ export default function Home() {
                             Rodada {p.rodada_atual || 1}
                           </span>
                           
-                          {p.palpite_atual && (
-                            <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                              {p.palpite_atual_visivel ? (
-                                <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                  🎯 {p.palpite_atual}
-                                </span>
-                              ) : (
-                                <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                                  <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
-                                </span>
-                              )}
-                            </div>
+                          {p.palpite_atual && (modoTeste || p.palpite_atual_visivel) && (
+                            <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                              🎯 {p.palpite_atual}
+                            </span>
+                          )}
+                          {p.palpite_atual && !modoTeste && !p.palpite_atual_visivel && (
+                            <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                              <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
+                            </span>
                           )}
                         </div>
                       ) : (
@@ -286,23 +247,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="text-center py-4 sm:py-6 text-gray-500 text-[10px] sm:text-xs border-t border-white/10">
-          <p>Estrategista da Copa 2026</p>
-          <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mt-1">
-            <a href="https://wa.me/5561998507770" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-500 transition">
-              📱 Falar com Administrador
-            </a>
-            <Link href="/como-funciona" className="hover:text-yellow-500 transition">
-              Como funciona
-            </Link>
-          </div>
-          <div className="mt-2 sm:mt-3 pt-2 border-t border-white/5">
-            <p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p>
-            <p className="mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p>
-          </div>
-        </footer>
       </div>
 
       {/* Modal de Histórico */}
@@ -333,7 +277,7 @@ export default function Home() {
                   Nenhum acerto registrado ainda
                 </div>
               )}
-              {participanteSelecionado.palpite_atual && (
+              {participanteSelecionado.palpite_atual && (modoTeste || participanteSelecionado.palpite_atual_visivel) && (
                 <div className="bg-yellow-500/10 rounded-lg p-3 flex justify-between items-center border border-yellow-500/30">
                   <span className="text-gray-300 text-sm">Rodada {participanteSelecionado.rodada_atual} (Atual)</span>
                   <span className="text-yellow-400 text-sm flex items-center gap-1">

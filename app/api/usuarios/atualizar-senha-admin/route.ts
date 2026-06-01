@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -18,11 +17,10 @@ export async function POST() {
     }
     
     const novaSenha = '172163172163'
-    const senhaHash = await bcrypt.hash(novaSenha, 10)
     
     const result = await sql`
       UPDATE usuarios 
-      SET senha = ${senhaHash}
+      SET senha = ${novaSenha}
       WHERE email = 'admin@estrategista.com'
       RETURNING id, email
     `
@@ -36,8 +34,7 @@ export async function POST() {
     return NextResponse.json({ 
       success: true, 
       message: 'Senha do admin atualizada com sucesso!',
-      novaSenha: novaSenha,
-      usuario: result[0].email
+      novaSenha: novaSenha
     })
     
   } catch (error) {

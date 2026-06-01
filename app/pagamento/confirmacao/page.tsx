@@ -1,7 +1,6 @@
 ﻿"use client";
 
-import { Suspense } from "react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Loader2 } from "lucide-react";
@@ -10,8 +9,15 @@ function ConfirmacaoContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [status, setStatus] = useState("verificando");
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+
         const orderNsu = searchParams.get("order_nsu");
         const transactionNsu = searchParams.get("transaction_nsu");
         const slug = searchParams.get("slug");
@@ -26,7 +32,18 @@ function ConfirmacaoContent() {
             setStatus("pendente");
             setTimeout(() => router.push("/login"), 5000);
         }
-    }, [searchParams, router]);
+    }, [searchParams, router, isClient]);
+
+    if (!isClient) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">
+                <div className="bg-white/10 rounded-2xl p-8 text-center">
+                    <Loader2 className="w-16 h-16 text-yellow-500 mx-auto animate-spin mb-4" />
+                    <p className="text-white">Carregando...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-950 to-black flex items-center justify-center">

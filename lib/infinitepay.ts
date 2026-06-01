@@ -1,5 +1,8 @@
 ﻿// lib/infinitepay.ts
 const INFINITEPAY_API = 'https://api.checkout.infinitepay.io';
+@"
+// lib/infinitepay.ts
+const INFINITEPAY_API = 'https://api.checkout.infinitepay.io';
 
 export async function createPaymentLink(
     orderNsu: string,
@@ -35,11 +38,12 @@ export async function createPaymentLink(
         });
 
         const data = await response.json();
+        console.log('Resposta InfinitePay:', data);
 
-        if (response.ok && data.link) {
+        if (response.ok && data.url) {
             return {
                 success: true,
-                link: data.link,
+                link: data.url,
                 order_nsu: data.order_nsu,
                 slug: data.slug
             };
@@ -49,5 +53,23 @@ export async function createPaymentLink(
     } catch (error) {
         console.error('Erro:', error);
         return { success: false, error: 'Erro de conexão' };
+    }
+}
+
+export async function checkPaymentStatus(orderNsu: string) {
+    try {
+        const response = await fetch(${INFINITEPAY_API}/payment_check, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                handle: process.env.INFINITEPAY_HANDLE,
+                order_nsu: orderNsu
+            })
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error('Erro:', error);
+        return { success: false, paid: false };
     }
 }

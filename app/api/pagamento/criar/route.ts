@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless'
+﻿import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 import { createPaymentLink } from '@/lib/infinitepay'
 
@@ -8,18 +8,21 @@ export async function POST(request: Request) {
     try {
         const { usuarioId, nome, email } = await request.json()
 
-        const orderNsu = `estrategista_${usuarioId}_${Date.now()}`
+        // order_nsu único
+        const orderNsu = estrategista_\_\
 
+        // Criar link no InfinitePay
         const result = await createPaymentLink(orderNsu, { name: nome, email }, 20)
 
         if (!result.success) {
             return NextResponse.json({ error: result.error }, { status: 500 })
         }
 
-        await sql`
+        // Salvar no banco
+        await sql
             INSERT INTO pagamentos (usuario_id, transaction_id, status, link_pagamento, valor)
-            VALUES (${usuarioId}, ${orderNsu}, 'pendente', ${result.link}, 20)
-        `
+            VALUES (\, \, 'pendente', \, 20)
+        
 
         return NextResponse.json({
             success: true,

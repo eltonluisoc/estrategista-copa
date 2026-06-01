@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 
 export default function ConfirmacaoPage() {
     const searchParams = useSearchParams();
@@ -12,9 +12,13 @@ export default function ConfirmacaoPage() {
 
     useEffect(() => {
         const orderNsu = searchParams.get('order_nsu');
-        const paid = searchParams.get('paid');
+        const transactionNsu = searchParams.get('transaction_nsu');
+        const slug = searchParams.get('slug');
+        const captureMethod = searchParams.get('capture_method');
 
-        if (paid === 'true' || orderNsu) {
+        console.log('Parâmetros recebidos:', { orderNsu, transactionNsu, slug, captureMethod });
+
+        if (orderNsu) {
             setStatus('sucesso');
             setTimeout(() => router.push('/login'), 3000);
         } else {
@@ -30,6 +34,7 @@ export default function ConfirmacaoPage() {
                     <>
                         <Loader2 className="w-16 h-16 text-yellow-500 mx-auto animate-spin mb-4" />
                         <h2 className="text-xl font-bold text-white">Verificando pagamento...</h2>
+                        <p className="text-gray-400 mt-2">Aguarde um momento</p>
                     </>
                 )}
                 {status === 'sucesso' && (

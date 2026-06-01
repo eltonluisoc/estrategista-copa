@@ -11,14 +11,12 @@ export async function POST(request: Request) {
         console.log('📦 Webhook recebido:', { order_nsu, paid, capture_method })
 
         if (paid === true && order_nsu) {
-            // Buscar pagamento
             const pagamento = await sql
                 SELECT usuario_id FROM pagamentos 
                 WHERE transaction_id = \
             
 
             if (pagamento.length > 0) {
-                // Atualizar status
                 await sql
                     UPDATE pagamentos 
                     SET status = 'pago', 
@@ -27,7 +25,6 @@ export async function POST(request: Request) {
                     WHERE transaction_id = \
                 
 
-                // Aprovar usuário
                 await sql
                     UPDATE usuarios 
                     SET aprovado = true, pagamento_confirmado = true

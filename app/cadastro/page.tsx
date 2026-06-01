@@ -1,11 +1,9 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { GlobalHeader } from "@/components/GlobalHeader";
 
 export default function CadastroPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         nome: "",

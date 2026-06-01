@@ -1,9 +1,19 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { calcularPrazoBrasilia } from '@/lib/dates'
 
 const sql = neon(process.env.DATABASE_URL!)
+
+// Função interna para calcular prazo (23:59 do dia anterior no horário de Brasília)
+function calcularPrazoBrasilia(dataHora: Date): Date {
+  const ano = dataHora.getFullYear();
+  const mes = dataHora.getMonth() + 1;
+  const dia = dataHora.getDate() - 1; // dia anterior
+  
+  // Criar data no formato ISO com fuso -03:00 (Brasília)
+  const dataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}T23:59:00-03:00`;
+  return new Date(dataStr);
+}
 
 export async function GET() {
   const session = await auth()

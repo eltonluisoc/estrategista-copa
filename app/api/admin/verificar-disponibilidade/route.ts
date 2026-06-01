@@ -21,39 +21,63 @@ export async function GET() {
       WHERE email != 'admin@estrategista.com' AND status = 'ativo'
     `
     
-    // Buscar palpites com jogos finalizados
-    const palpites = await sql`
-      SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
-             j.vencedor_id, j.finalizado
+    if (ativos.length === 0) {
+      return NextResponse.json({
+        participantes: [],
+        total_ativos: 0,
+        eliminados_automaticos: 0,
+        message: 'Nenhum participante ativo encontrado',
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    // Buscar todos os jogos finalizados
+    const jogosFinalizados = await sql`
+      SELECT id, rodada, time_casa, time_fora, vencedor_id, gols_casa, gols_fora
+      FROM jogos 
+      WHERE finalizado = true AND vencedor_id IS NOT NULL
+    `
+    
+    // Buscar todos os palpites
+    const todosPalpites = await sql`
+      SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome
       FROM palpites p
       JOIN times t ON p.time_id = t.id
-      LEFT JOIN jogos j ON j.rodada = p.rodada 
-        AND (j.time_casa = t.nome OR j.time_fora = t.nome)
-      WHERE j.finalizado = true AND j.vencedor_id IS NOT NULL
     `
     
     const disponibilidade = []
+    let eliminadosAuto = 0
     
     for (const usuario of ativos) {
-      const palpitesUsuario = palpites.filter(p => p.usuario_id === usuario.id)
-      const timesUsados = []
+      // Filtrar palpites do usuário
+      const palpitesUsuario = todosPalpites.filter(p => p.usuario_id === usuario.id)
+      
+      // Buscar jogos finalizados que o usuário ACERTOU
+      const timesUsados: string[] = []
       
       for (const palpite of palpitesUsuario) {
-        if (palpite.vencedor_id === palpite.time_id) {
+        // Verificar se o jogo correspondente foi finalizado e o usuário acertou
+        const jogo = jogosFinalizados.find(j => j.rodada === palpite.rodada)
+        if (jogo && jogo.vencedor_id === palpite.time_id) {
           timesUsados.push(palpite.time_nome)
         }
       }
       
-      const timesDisponiveis = timesLista.filter(t => !timesUsados.includes(t))
+      // Calcular times disponíveis
+      const timesUsadosSet = new Set(timesUsados)
+      const timesDisponiveis = timesLista.filter(t => !timesUsadosSet.has(t))
       const podeContinuar = timesDisponiveis.length > 0
       
-      // Se não tem mais times disponíveis, eliminar automaticamente
-      if (!podeContinuar && timesUsados.length > 0) {
+      // Se não tem mais times disponíveis E já usou pelo menos um time, eliminar
+      if (!podeContinuar && timesUsados.length > 0 && palpitesUsuario.length > 0) {
+        const rodadaEliminacao = palpitesUsuario.length + 1
         await sql`
           UPDATE usuarios 
-          SET status = 'eliminado', rodada_eliminacao = ${palpitesUsuario.length + 1}
+          SET status = 'eliminado', rodada_eliminacao = ${rodadaEliminacao}
           WHERE id = ${usuario.id}
         `
+        eliminadosAuto++
+        console.log(`Eliminado automaticamente: ${usuario.nome} (sem times disponíveis)`)
       }
       
       disponibilidade.push({
@@ -63,21 +87,24 @@ export async function GET() {
         total_usados: timesUsados.length,
         times_disponiveis: timesDisponiveis.length,
         pode_continuar: podeContinuar,
-        eliminado_automatico: !podeContinuar
+        eliminado_automatico: !podeContinuar && timesUsados.length > 0
       })
     }
-    
-    const eliminadosAuto = disponibilidade.filter(d => d.eliminado_automatico).length
     
     return NextResponse.json({
       participantes: disponibilidade,
       total_ativos: ativos.length,
       eliminados_automaticos: eliminadosAuto,
-      message: `${eliminadosAuto} participantes eliminados automaticamente por falta de times disponíveis`,
+      message: eliminadosAuto > 0 
+        ? `${eliminadosAuto} participante(s) eliminado(s) automaticamente por falta de times disponíveis`
+        : 'Nenhum participante foi eliminado automaticamente',
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Erro:', error)
-    return NextResponse.json({ error: 'Erro ao verificar disponibilidade' }, { status: 500 })
+    console.error('Erro detalhado:', error)
+    return NextResponse.json({ 
+      error: 'Erro ao verificar disponibilidade',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
 }

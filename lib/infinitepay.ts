@@ -1,4 +1,4 @@
-// lib/infinitepay.ts - VERSÃO REAL
+// lib/infinitepay.ts - VERSÃO CORRIGIDA
 const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
 
 export async function createPaymentLink(
@@ -11,7 +11,7 @@ export async function createPaymentLink(
     const payload = {
         handle: process.env.INFINITEPAY_HANDLE,
         order_nsu: orderNsu,
-        itens: [
+        items: [  // ← CORRETO: "items" (plural), não "itens"
             {
                 quantity: 1,
                 price: amountInCents,
@@ -28,7 +28,7 @@ export async function createPaymentLink(
     };
 
     try {
-        console.log("🔧 Enviando para InfinitePay:", JSON.stringify(payload, null, 2));
+        console.log("🔧 Payload enviado:", JSON.stringify(payload, null, 2));
         
         const response = await fetch(`${INFINITEPAY_API}/links`, {
             method: "POST",
@@ -48,7 +48,7 @@ export async function createPaymentLink(
             };
         } else {
             console.error("❌ Erro na resposta:", data);
-            return { success: false, error: data.error || "Erro ao criar link" };
+            return { success: false, error: data.message || data.error || "Erro ao criar link" };
         }
     } catch (error) {
         console.error("❌ Erro de conexão:", error);

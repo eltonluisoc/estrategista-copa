@@ -4,15 +4,14 @@ import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
-// Função interna para calcular prazo (23:59 do dia anterior no horário de Brasília)
+// CORREÇÃO DEFINITIVA - Prazo sempre 23:59 do dia anterior
 function calcularPrazoBrasilia(dataHora: Date): Date {
-  const ano = dataHora.getFullYear();
-  const mes = dataHora.getMonth() + 1;
-  const dia = dataHora.getDate() - 1; // dia anterior
-  
-  // Criar data no formato ISO com fuso -03:00 (Brasília)
-  const dataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}T23:59:00-03:00`;
-  return new Date(dataStr);
+    // Criar uma nova data com o dia anterior
+    const prazo = new Date(dataHora);
+    prazo.setDate(dataHora.getDate() - 1);
+    // Forçar 23:59:00
+    prazo.setHours(23, 59, 0, 0);
+    return prazo;
 }
 
 export async function GET() {
@@ -136,12 +135,13 @@ export async function PUT(request: Request) {
   try {
     const { id, time_casa, time_fora, data_hora, rodada, grupo } = await request.json()
 
-    // Calcular prazo (23:59 do dia anterior no horário de Brasília)
+    // CORREÇÃO DEFINITIVA DO PRAZO
     const dataHoraObj = new Date(data_hora)
-    const prazo = calcularPrazoBrasilia(dataHoraObj)
+    const prazo = new Date(dataHoraObj)
+    prazo.setDate(dataHoraObj.getDate() - 1)
+    prazo.setHours(23, 59, 0, 0)
 
     if (id) {
-      // Atualizar jogo existente
       await sql`
         UPDATE jogos 
         SET time_casa = ${time_casa}, 
@@ -153,7 +153,6 @@ export async function PUT(request: Request) {
         WHERE id = ${id}
       `
     } else {
-      // Criar novo jogo
       await sql`
         INSERT INTO jogos (time_casa, time_fora, data_hora, prazo, rodada, grupo) 
         VALUES (${time_casa}, ${time_fora}, ${data_hora}, ${prazo.toISOString()}, ${rodada}, ${grupo})

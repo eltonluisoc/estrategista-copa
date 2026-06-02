@@ -117,12 +117,14 @@ export default function AdminPage() {
       const data = await res.json();
       const ativos = data.filter(u => u.status === 'ativo');
       const eliminados = data.filter(u => u.status === 'eliminado');
+      const pendentes = data.filter(u => u.status === 'pendente');  // ← LINHA ADICIONADA
       setUsuariosAtivos(ativos);
       setUsuariosEliminados(eliminados);
+      setUsuariosPendentes(pendentes);  // ← LINHA ADICIONADA
     } catch (error) {
       console.error('Erro:', error);
     }
-  };
+};
 
   const carregarFinanceiro = async () => {
     try {
@@ -461,7 +463,9 @@ export default function AdminPage() {
     className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center"
   >
     <div className="flex items-center gap-2">
-      <Users className="w-4 h-4 text-green-400" />
+      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
       <h2 className="text-sm font-bold text-white">Todos os Participantes ({usuariosAtivos.length + usuariosEliminados.length + usuariosPendentes.length})</h2>
     </div>
     <div className="flex items-center gap-2">
@@ -488,7 +492,7 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {[...usuariosAtivos, ...usuariosPendentes, ...usuariosEliminados].map((usuario) => (
+            {[...new Map([...usuariosAtivos, ...usuariosPendentes, ...usuariosEliminados].map(u => [u.id, u])).values()].map((usuario) => (
               <tr key={usuario.id} className="border-b border-white/5 hover:bg-white/5">
                 <td className="py-2 px-2 text-white text-sm">{usuario.nome}</td>
                 <td className="py-2 px-2 text-gray-400 text-xs">{usuario.email}</td>

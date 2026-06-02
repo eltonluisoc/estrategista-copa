@@ -1,53 +1,41 @@
-﻿const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
+﻿import { neon } from '@neondatabase/serverless'
+import { NextResponse } from 'next/server'
+import { createPaymentLink } from '@/lib/infinitepay'
 
-export async function createPaymentLink(
-    orderNsu: string,
-    customer: { name: string; email: string; phone_number?: string },
-    value: number = 20
-) {
-    const amountInCents = value * 100;
-    
-    const payload = {
-        handle: process.env.INFINITEPAY_HANDLE,
-        order_nsu: orderNsu,
-        itens: [
-            {
-                quantity: 1,
-                price: amountInCents,
-                description: "Inscrição Estrategista da Copa 2026"
-            }
-        ],
-        customer: {
-            name: customer.name,
-            email: customer.email,
-            phone_number: customer.phone_number || ""
-        },
-        redirect_url: `${process.env.NEXTAUTH_URL}/pagamento/confirmacao`,
-        webhook_url: `${process.env.NEXTAUTH_URL}/api/webhook/infinitepay`
-    };
+const sql = neon(process.env.DATABASE_URL!)
 
+export async function POST(request: Request) {
     try {
-        const response = await fetch(`${INFINITEPAY_API}/links`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+        const { usuarioId, nome, email } = await request.json()
 
-        const data = await response.json();
-        console.log("Resposta InfinitePay:", data);
+        console.log("🔧 Criando pagamento para:", { usuarioId, nome, email })
 
-        if (response.ok && data.url) {
-            return {
-                success: true,
-                link: data.url,
-                order_nsu: data.order_nsu,
-                slug: data.slug
-            };
-        } else {
-            return { success: false, error: data.error || "Erro ao criar link" };
+        // order_nsu único
+        const orderNsu = `estrategista_${usuarioId}_${Date.now()}`
+
+        // Criar link no InfinitePay
+        const result = await createPaymentLink(orderNsu, { name: nome, email }, 20)
+
+        if (!result.success) {
+            console.error("❌ Erro ao criar link:", result.error)
+            return NextResponse.json({ error: result.error }, { status: 500 })
         }
+
+        // Salvar no banco
+        await sql`
+            INSERT INTO pagamentos (usuario_id, transaction_id, status, link_pagamento, valor)
+            VALUES (${usuarioId}, ${orderNsu}, 'pendente', ${result.link}, 20)
+        `
+
+        console.log("✅ Link criado com sucesso:", result.link)
+
+        return NextResponse.json({
+            success: true,
+            link: result.link,
+            orderNsu: orderNsu
+        })
     } catch (error) {
-        console.error("Erro:", error);
-        return { success: false, error: "Erro de conexão" };
+        console.error("❌ Erro:", error)
+        return NextResponse.json({ error: "Erro ao criar pagamento" }, { status: 500 })
     }
 }

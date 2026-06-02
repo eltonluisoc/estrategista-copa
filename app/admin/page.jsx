@@ -30,7 +30,6 @@ export default function AdminPage() {
   const [mensagem, setMensagem] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [verificando, setVerificando] = useState(false);
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [modoTeste, setModoTeste] = useState(false);
   const [faseExpandida, setFaseExpandida] = useState({
@@ -48,8 +47,6 @@ export default function AdminPage() {
     rodada: 1,
     grupo: 'Grupos'
   });
-  const [disponibilidadeData, setDisponibilidadeData] = useState(null);
-  const [mostrarDisponibilidade, setMostrarDisponibilidade] = useState(false);
   const [mostrarParticipantes, setMostrarParticipantes] = useState(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
 
@@ -238,27 +235,6 @@ export default function AdminPage() {
     }
   };
 
-  const verificarDisponibilidade = async () => {
-    setVerificando(true);
-    setMensagem(null);
-    setMostrarDisponibilidade(true);
-    try {
-      const res = await fetch('/api/admin/verificar-disponibilidade');
-      const data = await res.json();
-      
-      if (res.ok) {
-        setDisponibilidadeData(data);
-        setMensagem({ tipo: 'sucesso', texto: data.message });
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      setMensagem({ tipo: 'erro', texto: 'Erro ao verificar disponibilidade' });
-    }
-    setVerificando(false);
-  };
-
   const toggleInscricoes = async () => {
     try {
       const res = await fetch('/api/configuracoes/inscricoes', {
@@ -406,69 +382,6 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-
-        {mostrarDisponibilidade && disponibilidadeData && (
-          <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
-            <div className="bg-blue-600/20 px-4 py-3 border-b border-white/10 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Eye className="w-4 h-4 text-blue-400" /> Disponibilidade de Times
-              </h2>
-              <button onClick={() => setMostrarDisponibilidade(false)} className="text-gray-400 hover:text-white">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="text-gray-400 text-xs mb-4">
-                Total de participantes ativos: {disponibilidadeData.total_ativos}
-                <br />
-                Eliminados automaticamente: {disponibilidadeData.eliminados_automaticos}
-                <br />
-                Última verificação: {new Date(disponibilidadeData.timestamp).toLocaleString('pt-BR')}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-gray-400 border-b border-white/10">
-                    <tr>
-                      <th className="text-left py-2 px-2">Participante</th>
-                      <th className="text-left py-2 px-2">Times Usados</th>
-                      <th className="text-center py-2 px-2">Disp.</th>
-                      <th className="text-center py-2 px-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {disponibilidadeData.participantes.map((p, idx) => (
-                      <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="py-2 px-2">
-                          <div className="text-white text-sm">{p.nome}</div>
-                          <div className="text-gray-500 text-xs">{p.email}</div>
-                        </td>
-                        <td className="py-2 px-2">
-                          <div className="text-gray-300 text-xs max-w-xs">
-                            {p.times_usados.length > 0 ? p.times_usados.join(', ') : 'Nenhum'}
-                          </div>
-                        </td>
-                        <td className="py-2 px-2 text-center">
-                          <span className="text-gray-400 text-sm">{p.times_disponiveis}</span>
-                        </td>
-                        <td className="py-2 px-2 text-center">
-                          {p.pode_continuar ? (
-                            <span className="text-green-400 text-xs flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" /> OK
-                            </span>
-                          ) : (
-                            <span className="text-red-400 text-xs flex items-center gap-1">
-                              <XCircle className="w-3 h-3" /> Sem times
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
           <button onClick={() => setMostrarParticipantes(!mostrarParticipantes)} className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center">

@@ -1,38 +1,62 @@
-// lib/infinitepay.ts - VERSÃO CORRIGIDA
+// lib/infinitepay.ts - VERSÃO CORRIGIDA COM TIPAGEM
 const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
+
+interface InfinitePayPayload {
+    handle: string | undefined;
+    redirect_url: string;
+    webhook_url: string;
+    order_nsu: string;
+    items: Array<{
+        quantity: number;
+        price: number;
+        description: string;
+    }>;
+    customer?: {
+        name: string;
+        email: string;
+        phone_number: string;
+    };
+}
 
 export async function createPaymentLink(
     orderNsu: string,
     customer: { name: string; email: string; phone_number?: string },
     value: number = 20
 ) {
+    // Valor em centavos (R$ 20,00 = 2000 centavos)
     const amountInCents = value * 100;
     
-    const payload = {
+    const payload: InfinitePayPayload = {
         handle: process.env.INFINITEPAY_HANDLE,
+        redirect_url: `${process.env.NEXTAUTH_URL}/pagamento/confirmacao`,
+        webhook_url: `${process.env.NEXTAUTH_URL}/api/webhook/infinitepay`,
         order_nsu: orderNsu,
-        items: [  // ← CORRETO: "items" (plural), não "itens"
+        items: [
             {
                 quantity: 1,
                 price: amountInCents,
                 description: "Inscrição Estrategista da Copa 2026"
             }
-        ],
-        customer: {
+        ]
+    };
+
+    // Adicionar dados do cliente se disponíveis
+    if (customer.name && customer.email) {
+        payload.customer = {
             name: customer.name,
             email: customer.email,
             phone_number: customer.phone_number || ""
-        },
-        redirect_url: `${process.env.NEXTAUTH_URL}/pagamento/confirmacao`,
-        webhook_url: `${process.env.NEXTAUTH_URL}/api/webhook/infinitepay`
-    };
+        };
+    }
 
     try {
-        console.log("🔧 Payload enviado:", JSON.stringify(payload, null, 2));
+        console.log("🔧 Enviando para InfinitePay:", JSON.stringify(payload, null, 2));
         
         const response = await fetch(`${INFINITEPAY_API}/links`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(payload)
         });
 
@@ -47,8 +71,11 @@ export async function createPaymentLink(
                 slug: data.slug
             };
         } else {
-            console.error("❌ Erro na resposta:", data);
-            return { success: false, error: data.message || data.error || "Erro ao criar link" };
+            console.error("❌ Erro detalhado:", data);
+            return { 
+                success: false, 
+                error: data.message || data.error || "Erro ao criar link" 
+            };
         }
     } catch (error) {
         console.error("❌ Erro de conexão:", error);

@@ -7,11 +7,11 @@ export async function createPaymentLink(
 ) {
     const amountInCents = value * 100;
     
-    // Payload EXATAMENTE como a documentação (usando "itens")
+    // CORREÇÃO: Usar "items" (inglês) em vez de "itens"
     const payload = {
         handle: "eltonluisoc",
         order_nsu: orderNsu,
-        itens: [  // ← ATENÇÃO: "itens" com S, igual à documentação!
+        items: [  // ← CORRIGIDO: items (inglês)
             {
                 quantity: 1,
                 price: amountInCents,

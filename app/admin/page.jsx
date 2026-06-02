@@ -50,6 +50,7 @@ export default function AdminPage() {
   });
   const [disponibilidadeData, setDisponibilidadeData] = useState(null);
   const [mostrarDisponibilidade, setMostrarDisponibilidade] = useState(false);
+  const [mostrarParticipantes, setMostrarParticipantes] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -452,6 +453,73 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+{/* LISTA DE PARTICIPANTES (DOBRÁVEL) */}
+<div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
+  <button 
+    onClick={() => setMostrarParticipantes(!mostrarParticipantes)} 
+    className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center"
+  >
+    <div className="flex items-center gap-2">
+      <Users className="w-4 h-4 text-green-400" />
+      <h2 className="text-sm font-bold text-white">Todos os Participantes ({usuariosAtivos.length + usuariosEliminados.length + usuariosPendentes.length})</h2>
+    </div>
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500">
+        Ativos: {usuariosAtivos.length} | Eliminados: {usuariosEliminados.length} | Pendentes: {usuariosPendentes.length}
+      </span>
+      <svg className={`w-5 h-5 text-gray-400 transition-transform ${mostrarParticipantes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </button>
+  
+  {mostrarParticipantes && (
+    <div className="p-4 border-t border-white/10">
+      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="text-gray-400 border-b border-white/10 sticky top-0 bg-gray-900">
+            <tr>
+              <th className="text-left py-2 px-2">Nome</th>
+              <th className="text-left py-2 px-2">Email</th>
+              <th className="text-center py-2 px-2">Rodada</th>
+              <th className="text-center py-2 px-2">Status</th>
+              <th className="text-center py-2 px-2">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...usuariosAtivos, ...usuariosPendentes, ...usuariosEliminados].map((usuario) => (
+              <tr key={usuario.id} className="border-b border-white/5 hover:bg-white/5">
+                <td className="py-2 px-2 text-white text-sm">{usuario.nome}</td>
+                <td className="py-2 px-2 text-gray-400 text-xs">{usuario.email}</td>
+                <td className="py-2 px-2 text-center text-yellow-400 text-sm">{usuario.rodada_atual || '-'}</td>
+                <td className="py-2 px-2 text-center">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    usuario.status === 'ativo' ? 'bg-green-500/20 text-green-400' :
+                    usuario.status === 'eliminado' ? 'bg-red-500/20 text-red-400' :
+                    'bg-yellow-500/20 text-yellow-400'
+                  }`}>
+                    {usuario.status === 'ativo' ? 'Ativo' : usuario.status === 'eliminado' ? 'Eliminado' : 'Pendente'}
+                  </span>
+                </td>
+                <td className="py-2 px-2 text-center">
+                  {usuario.status === 'pendente' && (
+                    <button 
+                      onClick={() => aprovarUsuario(usuario.id)} 
+                      className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Aprovar
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* Jogos por Fase */}
         <div className="space-y-6">

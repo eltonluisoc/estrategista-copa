@@ -35,6 +35,7 @@ export default function CadastroPage() {
 
         try {
             // 1. Cadastrar usuário
+            console.log("🔧 Cadastrando usuário...");
             const res = await fetch("/api/cadastro", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -46,6 +47,7 @@ export default function CadastroPage() {
             });
 
             const data = await res.json();
+            console.log("📦 Resposta cadastro:", data);
 
             if (!res.ok) {
                 setMensagem(data.error || "❌ Erro no cadastro");
@@ -54,6 +56,7 @@ export default function CadastroPage() {
             }
 
             // 2. Criar link de pagamento
+            console.log("🔧 Criando link de pagamento...");
             const pixRes = await fetch("/api/pagamento/criar", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -65,17 +68,19 @@ export default function CadastroPage() {
             });
 
             const pixData = await pixRes.json();
+            console.log("📦 Resposta pagamento:", pixData);
 
             if (pixRes.ok && pixData.link) {
+                console.log("✅ Redirecionando para:", pixData.link);
                 // Redirecionar para o link de pagamento
                 window.location.href = pixData.link;
             } else {
-                setMensagem("❌ Erro ao gerar link de pagamento. Tente novamente.");
+                setMensagem(pixData.error || "❌ Erro ao gerar link de pagamento. Tente novamente.");
                 setLoading(false);
             }
         } catch (error) {
-            console.error("Erro:", error);
-            setMensagem("❌ Erro de conexão");
+            console.error("❌ Erro:", error);
+            setMensagem("❌ Erro de conexão. Tente novamente.");
             setLoading(false);
         }
     };

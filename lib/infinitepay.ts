@@ -1,4 +1,4 @@
-// lib/infinitepay.ts
+// lib/infinitepay.ts - VERSÃO REAL
 const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
 
 export async function createPaymentLink(

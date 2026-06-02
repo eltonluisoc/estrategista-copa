@@ -115,12 +115,24 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/usuarios?excluirAdmin=true');
       const data = await res.json();
-      const ativos = data.filter(u => u.status === 'ativo');
-      const eliminados = data.filter(u => u.status === 'eliminado');
-      const pendentes = data.filter(u => u.status === 'pendente');  // ← LINHA ADICIONADA
+      
+      // Remover duplicatas por ID
+      const unicos = [];
+      const ids = new Set();
+      for (const usuario of data) {
+        if (!ids.has(usuario.id)) {
+          ids.add(usuario.id);
+          unicos.push(usuario);
+        }
+      }
+      
+      const ativos = unicos.filter(u => u.status === 'ativo');
+      const eliminados = unicos.filter(u => u.status === 'eliminado');
+      const pendentes = unicos.filter(u => u.status === 'pendente');
+      
       setUsuariosAtivos(ativos);
       setUsuariosEliminados(eliminados);
-      setUsuariosPendentes(pendentes);  // ← LINHA ADICIONADA
+      setUsuariosPendentes(pendentes);
     } catch (error) {
       console.error('Erro:', error);
     }

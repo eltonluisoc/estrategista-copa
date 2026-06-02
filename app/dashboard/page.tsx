@@ -13,6 +13,7 @@ interface Usuario {
   status: 'ativo' | 'eliminado';
   rodada_eliminacao?: number;
   rodada_atual?: number;
+  aprovado?: boolean;
 }
 
 interface Time {
@@ -83,8 +84,38 @@ export default function DashboardPage() {
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
   const [modoTeste, setModoTeste] = useState(false);
+  const [gerandoPagamento, setGerandoPagamento] = useState(false);
 
-  const estaAprovado = session?.user?.aprovado === true;
+  const estaAprovado = session?.user?.aprovado === true || usuario?.aprovado === true;
+
+  // Função para gerar novo link de pagamento
+  const gerarNovoLinkPagamento = async () => {
+    setGerandoPagamento(true);
+    setMensagem(null);
+    try {
+      const res = await fetch("/api/pagamento/criar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuarioId: usuario?.id || session?.user?.id,
+          nome: usuario?.nome || session?.user?.name,
+          email: usuario?.email || session?.user?.email
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.link) {
+        window.location.href = data.link;
+      } else {
+        setMensagem({ tipo: "erro", texto: data.error || "Erro ao gerar link de pagamento" });
+      }
+    } catch (error) {
+      console.error("Erro:", error);
+      setMensagem({ tipo: "erro", texto: "Erro de conexão" });
+    }
+    setGerandoPagamento(false);
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -153,6 +184,13 @@ export default function DashboardPage() {
       const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
       const userData = await userRes.json();
       
+      // VERIFICAÇÃO DE PAGAMENTO PENDENTE
+      if (userData.aprovado === false) {
+        setUsuario({ ...userData, aprovado: false });
+        setLoading(false);
+        return;
+      }
+      
       // Calcular rodada atual do usuário
       let rodadaUsuario = 1;
       const palpitesOrdenados = [...palpitesData].sort((a, b) => a.rodada - b.rodada);
@@ -201,7 +239,7 @@ export default function DashboardPage() {
       }
       
       setRodadaAtual(rodadaDoSistema);
-      setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
+      setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo', aprovado: true });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -324,6 +362,50 @@ export default function DashboardPage() {
     return null;
   }
 
+  // TELA DE PAGAMENTO PENDENTE
+  if (usuario?.aprovado === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="container mx-auto px-4 py-20 max-w-md">
+          <div className="bg-white/10 rounded-2xl p-8 text-center border border-yellow-500/30">
+            <div className="text-6xl mb-4">⏳</div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Pagamento Pendente
+            </h2>
+            <p className="text-gray-400 mb-6">
+              Você ainda não concluiu o pagamento da sua inscrição.
+              <br />
+              <span className="text-yellow-500 font-semibold">R$ 20,00</span>
+            </p>
+
+            {mensagem && (
+              <div className={`p-3 rounded-lg text-sm mb-4 ${
+                mensagem.tipo === 'sucesso' 
+                  ? 'bg-green-500/20 text-green-400' 
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {mensagem.texto}
+              </div>
+            )}
+
+            <button
+              onClick={gerarNovoLinkPagamento}
+              disabled={gerandoPagamento}
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            >
+              {gerandoPagamento ? "Gerando link..." : "💳 Pagar Agora"}
+            </button>
+
+            <p className="text-gray-500 text-xs mt-4">
+              Após o pagamento, sua conta será aprovada automaticamente.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -411,21 +493,7 @@ export default function DashboardPage() {
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
               
-              {!estaAprovado ? (
-                <div className="text-center py-6">
-                  <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
-                  <p className="text-yellow-400 font-semibold text-sm">⏳ Inscrição pendente</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Seu cadastro aguarda aprovação do administrador.
-                  </p>
-                  <button
-                    onClick={forcarRecarregamento}
-                    className="mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 px-3 py-1.5 rounded-lg text-sm transition"
-                  >
-                    <RefreshCw className="w-3 h-3 inline" /> Verificar aprovação
-                  </button>
-                </div>
-              ) : usuario?.status === 'eliminado' ? (
+              {usuario?.status === 'eliminado' ? (
                 <div className="text-center py-6">
                   <XCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
                   <p className="text-gray-400">Você foi eliminado!</p>

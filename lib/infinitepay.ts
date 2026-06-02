@@ -1,16 +1,57 @@
-// lib/infinitepay.ts - VERSÃO MOCK PARA TESTE
+// lib/infinitepay.ts
+const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
+
 export async function createPaymentLink(
     orderNsu: string,
     customer: { name: string; email: string; phone_number?: string },
     value: number = 20
 ) {
-    console.log("🔧 MOCK: Criando link para:", { orderNsu, customer, value });
+    const amountInCents = value * 100;
     
-    // Retorna um link mockado
-    return {
-        success: true,
-        link: `https://checkout.infinitepay.io/eltonluisoc/mock-${Date.now()}`,
+    const payload = {
+        handle: process.env.INFINITEPAY_HANDLE,
         order_nsu: orderNsu,
-        slug: `mock-${Date.now()}`
+        itens: [
+            {
+                quantity: 1,
+                price: amountInCents,
+                description: "Inscrição Estrategista da Copa 2026"
+            }
+        ],
+        customer: {
+            name: customer.name,
+            email: customer.email,
+            phone_number: customer.phone_number || ""
+        },
+        redirect_url: `${process.env.NEXTAUTH_URL}/pagamento/confirmacao`,
+        webhook_url: `${process.env.NEXTAUTH_URL}/api/webhook/infinitepay`
     };
+
+    try {
+        console.log("🔧 Enviando para InfinitePay:", JSON.stringify(payload, null, 2));
+        
+        const response = await fetch(`${INFINITEPAY_API}/links`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        console.log("✅ Resposta InfinitePay:", data);
+
+        if (response.ok && data.url) {
+            return {
+                success: true,
+                link: data.url,
+                order_nsu: data.order_nsu,
+                slug: data.slug
+            };
+        } else {
+            console.error("❌ Erro na resposta:", data);
+            return { success: false, error: data.error || "Erro ao criar link" };
+        }
+    } catch (error) {
+        console.error("❌ Erro de conexão:", error);
+        return { success: false, error: "Erro de conexão com InfinitePay" };
+    }
 }

@@ -51,6 +51,7 @@ export default function AdminPage() {
   const [disponibilidadeData, setDisponibilidadeData] = useState(null);
   const [mostrarDisponibilidade, setMostrarDisponibilidade] = useState(false);
   const [mostrarParticipantes, setMostrarParticipantes] = useState(false);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -112,11 +113,12 @@ export default function AdminPage() {
   };
 
   const carregarUsuarios = async () => {
+    if (carregandoUsuarios) return;
+    setCarregandoUsuarios(true);
     try {
       const res = await fetch('/api/usuarios?excluirAdmin=true');
       const data = await res.json();
       
-      // Remover duplicatas por ID
       const unicos = [];
       const ids = new Set();
       for (const usuario of data) {
@@ -135,8 +137,10 @@ export default function AdminPage() {
       setUsuariosPendentes(pendentes);
     } catch (error) {
       console.error('Erro:', error);
+    } finally {
+      setCarregandoUsuarios(false);
     }
-};
+  };
 
   const carregarFinanceiro = async () => {
     try {
@@ -323,6 +327,8 @@ export default function AdminPage() {
     { id: 'final', nome: 'Final', jogos: jogosFinal, expandida: faseExpandida.final, totalJogos: 1 }
   ];
 
+  const todosUsuarios = [...new Map([...usuariosAtivos, ...usuariosPendentes, ...usuariosEliminados].map(u => [u.id, u])).values()];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
@@ -335,7 +341,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Cards de Financeiro */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-4 border border-green-500/30">
             <div className="flex items-center justify-between mb-1">
@@ -375,7 +380,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Usuários Pendentes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
           <div className="bg-yellow-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -403,13 +407,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Disponibilidade */}
         {mostrarDisponibilidade && disponibilidadeData && (
           <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
             <div className="bg-blue-600/20 px-4 py-3 border-b border-white/10 flex justify-between items-center">
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Eye className="w-4 h-4 text-blue-400" /> 
-                Disponibilidade de Times por Participante
+                <Eye className="w-4 h-4 text-blue-400" /> Disponibilidade de Times
               </h2>
               <button onClick={() => setMostrarDisponibilidade(false)} className="text-gray-400 hover:text-white">
                 <XCircle className="w-5 h-5" />
@@ -468,76 +470,64 @@ export default function AdminPage() {
           </div>
         )}
 
-{/* LISTA DE PARTICIPANTES (DOBRÁVEL) */}
-<div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
-  <button 
-    onClick={() => setMostrarParticipantes(!mostrarParticipantes)} 
-    className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center"
-  >
-    <div className="flex items-center gap-2">
-      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-      <h2 className="text-sm font-bold text-white">Todos os Participantes ({usuariosAtivos.length + usuariosEliminados.length + usuariosPendentes.length})</h2>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500">
-        Ativos: {usuariosAtivos.length} | Eliminados: {usuariosEliminados.length} | Pendentes: {usuariosPendentes.length}
-      </span>
-      <svg className={`w-5 h-5 text-gray-400 transition-transform ${mostrarParticipantes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
-  </button>
-  
-  {mostrarParticipantes && (
-    <div className="p-4 border-t border-white/10">
-      <div className="overflow-x-auto max-h-96 overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="text-gray-400 border-b border-white/10 sticky top-0 bg-gray-900">
-            <tr>
-              <th className="text-left py-2 px-2">Nome</th>
-              <th className="text-left py-2 px-2">Email</th>
-              <th className="text-center py-2 px-2">Rodada</th>
-              <th className="text-center py-2 px-2">Status</th>
-              <th className="text-center py-2 px-2">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...new Map([...usuariosAtivos, ...usuariosPendentes, ...usuariosEliminados].map(u => [u.id, u])).values()].map((usuario) => (
-              <tr key={usuario.id} className="border-b border-white/5 hover:bg-white/5">
-                <td className="py-2 px-2 text-white text-sm">{usuario.nome}</td>
-                <td className="py-2 px-2 text-gray-400 text-xs">{usuario.email}</td>
-                <td className="py-2 px-2 text-center text-yellow-400 text-sm">{usuario.rodada_atual || '-'}</td>
-                <td className="py-2 px-2 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    usuario.status === 'ativo' ? 'bg-green-500/20 text-green-400' :
-                    usuario.status === 'eliminado' ? 'bg-red-500/20 text-red-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {usuario.status === 'ativo' ? 'Ativo' : usuario.status === 'eliminado' ? 'Eliminado' : 'Pendente'}
-                  </span>
-                </td>
-                <td className="py-2 px-2 text-center">
-                  {usuario.status === 'pendente' && (
-                    <button 
-                      onClick={() => aprovarUsuario(usuario.id)} 
-                      className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-xs"
-                    >
-                      Aprovar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )}
-</div>
+        <div className="bg-white/5 rounded-xl border border-white/10 mb-6 overflow-hidden">
+          <button onClick={() => setMostrarParticipantes(!mostrarParticipantes)} className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/50 to-transparent hover:bg-white/5 transition flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <h2 className="text-sm font-bold text-white">Todos os Participantes ({todosUsuarios.length})</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                Ativos: {usuariosAtivos.length} | Eliminados: {usuariosEliminados.length} | Pendentes: {usuariosPendentes.length}
+              </span>
+              <svg className={`w-5 h-5 text-gray-400 transition-transform ${mostrarParticipantes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </button>
+          
+          {mostrarParticipantes && (
+            <div className="p-4 border-t border-white/10">
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-400 border-b border-white/10 sticky top-0 bg-gray-900">
+                    <tr>
+                      <th className="text-left py-2 px-2">Nome</th>
+                      <th className="text-left py-2 px-2">Email</th>
+                      <th className="text-center py-2 px-2">Rodada</th>
+                      <th className="text-center py-2 px-2">Status</th>
+                      <th className="text-center py-2 px-2">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todosUsuarios.map((usuario) => (
+                      <tr key={usuario.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="py-2 px-2 text-white text-sm">{usuario.nome}</td>
+                        <td className="py-2 px-2 text-gray-400 text-xs">{usuario.email}</td>
+                        <td className="py-2 px-2 text-center text-yellow-400 text-sm">{usuario.rodada_atual || '-'}</td>
+                        <td className="py-2 px-2 text-center">
+                          <span className={`px-2 py-1 text-xs rounded-full ${usuario.status === 'ativo' ? 'bg-green-500/20 text-green-400' : usuario.status === 'eliminado' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                            {usuario.status === 'ativo' ? 'Ativo' : usuario.status === 'eliminado' ? 'Eliminado' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {usuario.status === 'pendente' && (
+                            <button onClick={() => aprovarUsuario(usuario.id)} className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-xs">
+                              Aprovar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Jogos por Fase */}
         <div className="space-y-6">
           {fases.map((fase) => (
             <div key={fase.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
@@ -631,7 +621,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Últimos Eliminados */}
         <div className="mt-6 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
           <div className="bg-red-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -664,8 +653,8 @@ export default function AdminPage() {
                       </div>
                       <div className="bg-black/50 rounded p-1">
                         <div className="text-gray-500">Resultado</div>
-                        <div className={elim.vencedor === elim.time_escolhido ? 'text-green-400' : 'text-red-400'}>
-                          {elim.vencedor === elim.time_escolhido ? '✅ Acertou' : '❌ Errou'}
+                        <div className={elim.vencedor === elim.time_escolhido ? "text-green-400" : "text-red-400"}>
+                          {elim.vencedor === elim.time_escolhido ? "✅ Acertou" : "❌ Errou"}
                         </div>
                       </div>
                     </div>
@@ -677,7 +666,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Modal Novo/Editar Jogo */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl p-5 w-full max-w-md border border-yellow-600/30">

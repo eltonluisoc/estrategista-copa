@@ -12,7 +12,7 @@ export async function GET() {
 
   // Buscar todos os participantes (exceto admin)
   const participantes = await sql`
-    SELECT id, nome, email, status, rodada_eliminacao
+    SELECT id, nome, email, status, rodada_eliminacao, rodada_atual, pontos
     FROM usuarios 
     WHERE email != 'admin@estrategista.com'
   `
@@ -34,7 +34,7 @@ export async function GET() {
     if (p.status === 'eliminado') {
       return { 
         ...p, 
-        rodada_atual: null, 
+        rodada_atual: p.rodada_atual || null, 
         acertos: [], 
         palpite_atual: null, 
         palpite_atual_visivel: false 
@@ -47,7 +47,7 @@ export async function GET() {
     if (palpitesOrdenados.length === 0) {
       return { 
         ...p, 
-        rodada_atual: 1, 
+        rodada_atual: p.rodada_atual || 1, 
         acertos: [], 
         palpite_atual: null, 
         palpite_atual_visivel: false 
@@ -55,11 +55,8 @@ export async function GET() {
     }
     
     const acertos = []
-    let rodadaAtual = 1
     let palpiteAtual = null
     let palpiteAtualVisivel = false
-    let eliminado = false
-    let rodadaEliminacao = null
     
     for (const palpite of palpitesOrdenados) {
       if (palpite.finalizado === true && palpite.vencedor_id) {
@@ -68,19 +65,11 @@ export async function GET() {
             rodada: palpite.rodada,
             time: palpite.time_nome
           })
-          rodadaAtual = palpite.rodada + 1
-        } else {
-          eliminado = true
-          rodadaEliminacao = palpite.rodada
-          break
         }
       } else {
-        rodadaAtual = palpite.rodada
-        
         const prazo = palpite.prazo ? new Date(palpite.prazo) : null
         const prazoExpirado = prazo ? agora > prazo : false
         
-        // CORREÇÃO: No modo teste, SEMPRE mostrar o palpite
         if (modoTeste) {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
@@ -88,7 +77,6 @@ export async function GET() {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
         } else {
-          // Prazo não expirado e não modo teste - NÃO mostrar
           palpiteAtual = null
           palpiteAtualVisivel = false
         }
@@ -96,28 +84,17 @@ export async function GET() {
       }
     }
     
-    if (eliminado) {
-      return { 
-        ...p, 
-        status: 'eliminado',
-        rodada_eliminacao: rodadaEliminacao,
-        rodada_atual: null,
-        acertos,
-        palpite_atual: null,
-        palpite_atual_visivel: false
-      }
-    }
-    
     return { 
       ...p, 
-      status: 'ativo',
-      rodada_atual: rodadaAtual,
+      status: p.status,
+      rodada_atual: p.rodada_atual || 1,
       acertos,
       palpite_atual: palpiteAtual,
       palpite_atual_visivel: palpiteAtualVisivel
     }
   })
   
+  // Ordenar: ativos por rodada (decrescente), depois eliminados
   const ordenados = participantesComDados.sort((a: any, b: any) => {
     if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
     if (a.status !== 'eliminado' && b.status === 'eliminado') return -1
@@ -127,6 +104,13 @@ export async function GET() {
     
     if (rodadaA !== rodadaB) {
       return rodadaB - rodadaA
+    }
+    
+    // Desempate por pontos
+    const pontosA = a.pontos || 0
+    const pontosB = b.pontos || 0
+    if (pontosA !== pontosB) {
+      return pontosB - pontosA
     }
     
     return a.nome.localeCompare(b.nome)

@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { id } = await params
     const usuarios = await sql`
-      SELECT id, email, nome, status, rodada_eliminacao, aprovado, pagamento_confirmado
+      SELECT id, email, nome, status, rodada_eliminacao, aprovado, pagamento_confirmado, rodada_atual, pontos
       FROM usuarios WHERE id = ${id}
     `
     if (usuarios.length === 0) {

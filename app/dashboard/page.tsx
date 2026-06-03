@@ -190,62 +190,40 @@ export default function DashboardPage() {
       setLoading(false);
       return;
     }
-      
-      // Calcular rodada atual do usuário
-      let rodadaUsuario = 1;
-      const palpitesOrdenados = [...palpitesData].sort((a, b) => a.rodada - b.rodada);
-      
-      for (const palpite of palpitesOrdenados) {
-        const jogo = jogosData.find((j: Jogo) => j.rodada === palpite.rodada);
-        
-        if (jogo && jogo.finalizado) {
-          if (jogo.vencedor_id === palpite.time_id) {
-            rodadaUsuario = palpite.rodada + 1;
-          } else if (jogo.vencedor_id !== palpite.time_id) {
-            setUsuario({ ...userData, status: 'eliminado', rodada_eliminacao: palpite.rodada, rodada_atual: palpite.rodada });
-            setLoading(false);
-            return;
-          }
-        } else {
-          rodadaUsuario = palpite.rodada;
-          break;
-        }
+    
+    // USAR rodada_atual do banco em vez de calcular
+    let rodadaUsuario = userData.rodada_atual || 1;
+    
+    // Determinar rodada atual baseada nos jogos disponíveis com prazo válido
+    const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const jogosComPrazoValido = jogosData.filter((j: Jogo) => {
+      const prazo = new Date(j.prazo);
+      const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      return !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
+    });
+    
+    let rodadaDoSistema = rodadaUsuario;
+    
+    if (jogosComPrazoValido.length > 0) {
+      const proximoJogoValido = jogosComPrazoValido.sort((a: Jogo, b: Jogo) => 
+        new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
+      )[0];
+      rodadaDoSistema = proximoJogoValido.rodada;
+    } else {
+      const todosJogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > new Date() && !j.finalizado);
+      if (todosJogosFuturos.length > 0) {
+        rodadaDoSistema = todosJogosFuturos[0].rodada;
       }
-      
-      if (palpitesData.length === 0) {
-        rodadaUsuario = 1;
-      }
-      
-      // Determinar rodada atual baseada nos jogos disponíveis com prazo válido
-      const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const jogosComPrazoValido = jogosData.filter((j: Jogo) => {
-        const prazo = new Date(j.prazo);
-        const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        return !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
-      });
-      
-      let rodadaDoSistema = rodadaUsuario;
-      
-      if (jogosComPrazoValido.length > 0) {
-        const proximoJogoValido = jogosComPrazoValido.sort((a: Jogo, b: Jogo) => 
-          new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
-        )[0];
-        rodadaDoSistema = proximoJogoValido.rodada;
-      } else {
-        const todosJogosFuturos = jogosData.filter((j: Jogo) => new Date(j.data_hora) > new Date() && !j.finalizado);
-        if (todosJogosFuturos.length > 0) {
-          rodadaDoSistema = todosJogosFuturos[0].rodada;
-        }
-      }
-      
-      setRodadaAtual(rodadaDoSistema);
-      setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo', aprovado: true });
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    setRodadaAtual(rodadaDoSistema);
+    setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePalpite = async (e: React.FormEvent) => {
     e.preventDefault();

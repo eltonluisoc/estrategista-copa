@@ -6,10 +6,8 @@ const sql = neon(process.env.DATABASE_URL!)
 
 // CORREÇÃO DEFINITIVA - Prazo sempre 23:59 do dia anterior
 function calcularPrazoBrasilia(dataHora: Date): Date {
-    // Criar uma nova data com o dia anterior
     const prazo = new Date(dataHora);
     prazo.setDate(dataHora.getDate() - 1);
-    // Forçar 23:59:00
     prazo.setHours(23, 59, 0, 0);
     return prazo;
 }
@@ -95,13 +93,19 @@ export async function POST(request: Request) {
           `
           eliminados++
           eliminadosIds.push(p.usuario_id)
+        } else {
+          // CORREÇÃO: Acertou - atualizar rodada_atual e pontos
+          await sql`
+            UPDATE usuarios 
+            SET rodada_atual = COALESCE(rodada_atual, 1) + 1, 
+                pontos = COALESCE(pontos, 0) + 1 
+            WHERE id = ${p.usuario_id}
+          `
         }
       }
     }
 
-    // ============================================================
-    // CORREÇÃO: Eliminar participantes ativos que NÃO palpitaram nesta rodada
-    // ============================================================
+    // Eliminar participantes ativos que NÃO palpitaram nesta rodada
     const participantesSemPalpite = await sql`
       SELECT u.id
       FROM usuarios u
@@ -122,7 +126,6 @@ export async function POST(request: Request) {
       eliminados++
       eliminadosIds.push(p.id)
     }
-    // ============================================================
 
     // Registrar log de eliminação
     if (eliminadosIds.length > 0) {
@@ -160,7 +163,6 @@ export async function PUT(request: Request) {
   try {
     const { id, time_casa, time_fora, data_hora, rodada, grupo } = await request.json()
 
-    // CORREÇÃO DEFINITIVA DO PRAZO
     const dataHoraObj = new Date(data_hora)
     const prazo = new Date(dataHoraObj)
     prazo.setDate(dataHoraObj.getDate() - 1)

@@ -1,9 +1,15 @@
-﻿import { neon } from '@neondatabase/serverless'
+import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
+  // Buscar modo teste
+  const config = await sql`
+    SELECT valor FROM configuracoes WHERE chave = 'modo_teste'
+  `
+  const modoTeste = config.length > 0 ? config[0].valor === 'true' : false
+
   // Buscar todos os participantes (exceto admin)
   const participantes = await sql`
     SELECT id, nome, email, status, rodada_eliminacao, rodada_atual, pontos
@@ -64,8 +70,10 @@ export async function GET() {
         const prazo = palpite.prazo ? new Date(palpite.prazo) : null
         const prazoExpirado = prazo ? agora > prazo : false
         
-        // REGRA DEFINITIVA: Palpite só fica visível se o prazo já expirou
-        if (prazoExpirado) {
+        if (modoTeste) {
+          palpiteAtual = palpite.time_nome
+          palpiteAtualVisivel = true
+        } else if (prazoExpirado) {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
         } else {
@@ -98,6 +106,7 @@ export async function GET() {
       return rodadaB - rodadaA
     }
     
+    // Desempate por pontos
     const pontosA = a.pontos || 0
     const pontosB = b.pontos || 0
     if (pontosA !== pontosB) {

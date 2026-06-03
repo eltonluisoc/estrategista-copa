@@ -84,6 +84,7 @@ export default function DashboardPage() {
   const [timeSelecionado, setTimeSelecionado] = useState('');
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+  const [modoTeste, setModoTeste] = useState(false);
   const [gerandoPagamento, setGerandoPagamento] = useState(false);
 
   const estaAprovado = session?.user?.aprovado === true || usuario?.aprovado === true;
@@ -128,6 +129,7 @@ export default function DashboardPage() {
     }
     if (status === 'authenticated' && session?.user?.id && session?.user?.email !== 'admin@estrategista.com') {
       carregarDados();
+      carregarModoTeste();
     }
   }, [status, session]);
 
@@ -149,6 +151,16 @@ export default function DashboardPage() {
     }, 30000);
     return () => clearInterval(interval);
   }, [session, estaAprovado, update]);
+
+  const carregarModoTeste = async () => {
+    try {
+      const res = await fetch('/api/configuracoes?chave=modo_teste');
+      const data = await res.json();
+      setModoTeste(data.valor === 'true');
+    } catch (error) {
+      console.error('Erro ao carregar modo teste:', error);
+    }
+  };
 
   const carregarDados = async () => {
     setLoading(true);
@@ -180,7 +192,7 @@ export default function DashboardPage() {
         return;
       }
       
-      // USAR rodada_atual do banco como fonte primária
+      // CORREÇÃO: Usar rodada_atual do banco como fonte primária
       let rodadaUsuario = userData.rodada_atual || 1;
       
       // Atualizar a rodada do usuário no estado
@@ -194,7 +206,7 @@ export default function DashboardPage() {
       const jogosDaRodadaUsuario = jogosData.filter((j: Jogo) => {
         const prazo = new Date(j.prazo);
         const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        return j.rodada === rodadaUsuario && !j.finalizado && prazoBrasilia >= agoraBrasilia;
+        return j.rodada === rodadaUsuario && !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
       });
       
       // Se não há jogos disponíveis na rodada do usuário, buscar a próxima rodada com jogos
@@ -202,7 +214,7 @@ export default function DashboardPage() {
         const proximosJogos = jogosData.filter((j: Jogo) => {
           const prazo = new Date(j.prazo);
           const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-          return !j.finalizado && prazoBrasilia >= agoraBrasilia;
+          return !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
         }).sort((a: Jogo, b: Jogo) => new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime());
         
         if (proximosJogos.length > 0) {
@@ -235,7 +247,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (jogoDoTime && prazoExpirado(new Date(jogoDoTime.prazo))) {
+    if (jogoDoTime && prazoExpirado(new Date(jogoDoTime.prazo)) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
       return;
     }
@@ -272,7 +284,7 @@ export default function DashboardPage() {
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    if (prazoJogo && prazoExpirado(new Date(prazoJogo))) {
+    if (prazoJogo && prazoExpirado(new Date(prazoJogo)) && !modoTeste) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }
@@ -400,7 +412,7 @@ export default function DashboardPage() {
   const jogosRodada = jogos.filter((j) => {
     const prazo = new Date(j.prazo);
     const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    return j.rodada === rodadaAtual && !j.finalizado && prazoBrasilia >= agoraBrasilia;
+    return j.rodada === rodadaAtual && !j.finalizado && (modoTeste || prazoBrasilia >= agoraBrasilia);
   });
   
   const participantesAtivos = rankingParticipantes.filter((p) => p.status === 'ativo').length;

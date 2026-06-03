@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   try {
-    // Buscar detalhes das eliminações
+    // Buscar detalhes das eliminações - CORRIGIDO
     const eliminados = await sql`
       SELECT 
         u.id,
@@ -29,9 +29,13 @@ export async function GET() {
       FROM usuarios u
       LEFT JOIN palpites p ON p.usuario_id = u.id AND p.rodada = u.rodada_eliminacao
       LEFT JOIN times t ON t.id = p.time_id
-      LEFT JOIN jogos j ON j.rodada = u.rodada_eliminacao
-      WHERE u.status = 'eliminado' AND u.email != 'admin@estrategista.com'
-      ORDER BY u.rodada_eliminacao DESC, u.created_at DESC
+      LEFT JOIN jogos j ON j.rodada = u.rodada_eliminacao 
+        AND (j.time_casa = t.nome OR j.time_fora = t.nome)
+      WHERE u.status = 'eliminado' 
+        AND u.email != 'admin@estrategista.com'
+        AND p.id IS NOT NULL
+      GROUP BY u.id, u.nome, u.email, u.rodada_eliminacao, p.rodada, t.nome, j.time_casa, j.time_fora, j.gols_casa, j.gols_fora, j.vencedor_id
+      ORDER BY u.rodada_eliminacao DESC, u.id
       LIMIT 20
     `
 

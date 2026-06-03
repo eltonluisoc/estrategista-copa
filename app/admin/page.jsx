@@ -506,6 +506,7 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* ÚLTIMOS ELIMINADOS - VERSÃO SIMPLIFICADA */}
         <div className="mt-6 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
           <div className="bg-red-600/20 px-4 py-2 border-b border-white/10">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -524,24 +525,7 @@ export default function AdminPage() {
                         <div className="text-white text-sm font-medium">{elim.nome}</div>
                         <div className="text-gray-400 text-xs">{elim.email}</div>
                       </div>
-                      <div className="text-red-400 text-xs">Rodada {elim.rodada_eliminacao}</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                      <div className="bg-black/50 rounded p-1">
-                        <div className="text-gray-500">Palpite</div>
-                        <div className="text-yellow-400">{elim.time_escolhido}</div>
-                      </div>
-                      <div className="bg-black/50 rounded p-1">
-                        <div className="text-gray-500">Jogo</div>
-                        <div className="text-white truncate">{elim.time_casa} x {elim.time_fora}</div>
-                        <div className="text-gray-400">{elim.gols_casa}-{elim.gols_fora}</div>
-                      </div>
-                      <div className="bg-black/50 rounded p-1">
-                        <div className="text-gray-500">Resultado</div>
-                        <div className={elim.vencedor === elim.time_escolhido ? "text-green-400" : "text-red-400"}>
-                          {elim.vencedor === elim.time_escolhido ? "✅ Acertou" : "❌ Errou"}
-                        </div>
-                      </div>
+                      <div className="text-red-400 text-xs">Rodada {elim.rodada_eliminacao || '?'}</div>
                     </div>
                   </div>
                 ))}

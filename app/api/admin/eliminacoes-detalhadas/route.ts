@@ -1,44 +1,25 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
-  // Verificar autenticação
-  const session = await auth()
-  if (session?.user?.email !== 'admin@estrategista.com') {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
-
   try {
-    // Buscar detalhes das eliminações - CORRIGIDO
+    // Query simplificada para retornar apenas os eliminados
     const eliminados = await sql`
       SELECT 
-        u.id,
-        u.nome,
-        u.email,
-        u.rodada_eliminacao,
-        p.rodada as rodada_palpite,
-        t.nome as time_escolhido,
-        j.time_casa,
-        j.time_fora,
-        j.gols_casa,
-        j.gols_fora,
-        (SELECT nome FROM times WHERE id = j.vencedor_id) as vencedor
-      FROM usuarios u
-      LEFT JOIN palpites p ON p.usuario_id = u.id AND p.rodada = u.rodada_eliminacao
-      LEFT JOIN times t ON t.id = p.time_id
-      LEFT JOIN jogos j ON j.rodada = u.rodada_eliminacao 
-        AND (j.time_casa = t.nome OR j.time_fora = t.nome)
-      WHERE u.status = 'eliminado' 
-        AND u.email != 'admin@estrategista.com'
-        AND p.id IS NOT NULL
-      GROUP BY u.id, u.nome, u.email, u.rodada_eliminacao, p.rodada, t.nome, j.time_casa, j.time_fora, j.gols_casa, j.gols_fora, j.vencedor_id
-      ORDER BY u.rodada_eliminacao DESC, u.id
+        id,
+        nome,
+        email,
+        rodada_eliminacao
+      FROM usuarios 
+      WHERE status = 'eliminado' 
+        AND email != 'admin@estrategista.com'
+      ORDER BY rodada_eliminacao DESC
       LIMIT 20
     `
 
+    console.log('Eliminados encontrados:', eliminados.length)
     return NextResponse.json(eliminados)
   } catch (error) {
     console.error('Erro ao buscar eliminados:', error)

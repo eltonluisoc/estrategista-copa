@@ -27,10 +27,14 @@ function ConfirmacaoContent() {
 
         if (orderNsu) {
             setStatus("sucesso");
-            setTimeout(() => router.push("/login"), 3000);
+            setTimeout(() => {
+                router.push("/login?pagamento=sucesso");
+            }, 2000);
         } else {
             setStatus("pendente");
-            setTimeout(() => router.push("/login"), 5000);
+            setTimeout(() => {
+                router.push("/login");
+            }, 5000);
         }
     }, [searchParams, router, isClient]);
 

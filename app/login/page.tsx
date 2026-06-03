@@ -1,22 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { Trophy, Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Trophy, Mail, Lock, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const pagamento = searchParams.get('pagamento');
+    if (pagamento === 'sucesso') {
+      setMensagemSucesso('✅ Pagamento confirmado! Faça login para acessar sua conta.');
+      // Limpa o parâmetro da URL sem recarregar
+      window.history.replaceState({}, '', '/login');
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setMensagemSucesso('');
 
     const result = await signIn('credentials', {
       email,
@@ -56,6 +68,13 @@ export default function LoginPage() {
         <p className="text-gray-400 text-center mb-6">
           Acesse sua conta para palpitar
         </p>
+
+        {mensagemSucesso && (
+          <div className="bg-green-500/20 border border-green-500 rounded-lg p-3 flex items-center gap-2 mb-4">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            <p className="text-green-400 text-sm">{mensagemSucesso}</p>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

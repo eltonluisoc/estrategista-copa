@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { id } = await params
     const usuarios = await sql`
-      SELECT id, email, nome, status, rodada_eliminacao
+      SELECT id, email, nome, status, rodada_eliminacao, aprovado, pagamento_confirmado
       FROM usuarios WHERE id = ${id}
     `
     if (usuarios.length === 0) {
@@ -18,6 +18,7 @@ export async function GET(
     }
     return NextResponse.json(usuarios[0])
   } catch (error) {
+    console.error('Erro ao buscar usuário:', error)
     return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
   }
 }

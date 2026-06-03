@@ -162,34 +162,34 @@ export default function DashboardPage() {
   };
 
   const carregarDados = async () => {
-    setLoading(true);
-    try {
-      const [timesRes, palpitesRes, jogosRes, rankingRes] = await Promise.all([
-        fetch('/api/times'),
-        fetch(`/api/palpites?usuarioId=${session?.user?.id}`),
-        fetch('/api/jogos'),
-        fetch('/api/participantes')
-      ]);
-      
-      const timesData = await timesRes.json();
-      const palpitesData = await palpitesRes.json();
-      const jogosData = await jogosRes.json();
-      const rankingData = await rankingRes.json();
-      
-      setTimes(timesData);
-      setPalpites(palpitesData);
-      setJogos(jogosData);
-      setRankingParticipantes(rankingData);
-      
-      const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
-      const userData = await userRes.json();
-      
-      // VERIFICAÇÃO DE PAGAMENTO PENDENTE
-      if (userData.aprovado === false) {
-        setUsuario({ ...userData, aprovado: false });
-        setLoading(false);
-        return;
-      }
+  setLoading(true);
+  try {
+    const [timesRes, palpitesRes, jogosRes, rankingRes] = await Promise.all([
+      fetch('/api/times'),
+      fetch(`/api/palpites?usuarioId=${session?.user?.id}`),
+      fetch('/api/jogos'),
+      fetch('/api/participantes')
+    ]);
+    
+    const timesData = await timesRes.json();
+    const palpitesData = await palpitesRes.json();
+    const jogosData = await jogosRes.json();
+    const rankingData = await rankingRes.json();
+    
+    setTimes(timesData);
+    setPalpites(palpitesData);
+    setJogos(jogosData);
+    setRankingParticipantes(rankingData);
+    
+    const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
+    const userData = await userRes.json();
+    
+    // VERIFICAÇÃO DE PAGAMENTO PENDENTE
+    if (userData.aprovado === false) {
+      setUsuario({ ...userData, aprovado: false });
+      setLoading(false);
+      return;
+    }
       
       // Calcular rodada atual do usuário
       let rodadaUsuario = 1;

@@ -99,6 +99,31 @@ export async function POST(request: Request) {
       }
     }
 
+    // ============================================================
+    // CORREÇÃO: Eliminar participantes ativos que NÃO palpitaram nesta rodada
+    // ============================================================
+    const participantesSemPalpite = await sql`
+      SELECT u.id
+      FROM usuarios u
+      WHERE u.status = 'ativo'
+        AND u.email != 'admin@estrategista.com'
+        AND NOT EXISTS (
+          SELECT 1 FROM palpites p 
+          WHERE p.usuario_id = u.id AND p.rodada = ${rodada}
+        )
+    `
+
+    for (const p of participantesSemPalpite) {
+      await sql`
+        UPDATE usuarios 
+        SET status = 'eliminado', rodada_eliminacao = ${rodada} 
+        WHERE id = ${p.id}
+      `
+      eliminados++
+      eliminadosIds.push(p.id)
+    }
+    // ============================================================
+
     // Registrar log de eliminação
     if (eliminadosIds.length > 0) {
       await sql`

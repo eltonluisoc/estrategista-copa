@@ -385,25 +385,32 @@ export default function DashboardPage() {
       <GlobalHeader />
       <div className="container mx-auto px-4 py-6">
         
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Meu Bolão</h1>
-              <p className="text-gray-600 text-sm mt-1">
-                <span className="text-yellow-600 font-semibold">👤 {usuario?.nome || session?.user?.name}</span>
-                <span className="mx-2">|</span>
-                <span>Rodada <strong className="text-green-600">{rodadaExibicao}</strong></span>
-                <span className="mx-2">|</span>
-                <span>Acertos <strong className="text-blue-600">{usuario?.pontos || 0}</strong></span>
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-500">v12</div>
-              <Link href="/" className="text-blue-600 hover:underline text-xs">Ranking →</Link>
-            </div>
-          </div>
-        </div>
+        {/* Header com nome do participante - PADRÃO DO PROJETO */}
+<div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
+  <div className="flex justify-between items-center">
+    <div>
+      <h1 className="text-xl font-bold text-white tracking-tighter">
+        Meu <span className="text-yellow-500">Bolão</span>
+      </h1>
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        <span className="text-yellow-500 font-semibold text-sm flex items-center gap-1">
+          <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+          👤 {usuario?.nome || session?.user?.name}
+        </span>
+        <span className="text-gray-400 text-xs">•</span>
+        <span className="text-gray-300 text-sm">Rodada <strong className="text-green-400">{rodadaExibicao}</strong></span>
+        <span className="text-gray-400 text-xs">•</span>
+        <span className="text-gray-300 text-sm">Acertos <strong className="text-blue-400">{usuario?.pontos || 0}</strong></span>
+      </div>
+    </div>
+    <div className="text-right">
+      <div className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded-lg inline-block">v12</div>
+      <Link href="/" className="text-yellow-500 hover:text-yellow-400 text-xs block mt-1 transition">
+        Ver Ranking →
+      </Link>
+    </div>
+  </div>
+</div>
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">

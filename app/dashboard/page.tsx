@@ -29,6 +29,8 @@ interface Palpite {
   time_id: number;
   rodada: number;
   data_palpite: string;
+  resultado?: string;
+  time_nome?: string;
 }
 
 interface Jogo {
@@ -89,7 +91,6 @@ export default function DashboardPage() {
 
   const estaAprovado = session?.user?.aprovado === true || usuario?.aprovado === true;
 
-  // Função para gerar novo link de pagamento
   const gerarNovoLinkPagamento = async () => {
     setGerandoPagamento(true);
     setMensagem(null);
@@ -156,7 +157,7 @@ export default function DashboardPage() {
     try {
       const [timesRes, palpitesRes, jogosRes, rankingRes] = await Promise.all([
         fetch('/api/times'),
-        fetch(`/api/palpites?usuarioId=${session?.user?.id}`),
+        fetch(`/api/palpites/com-resultado?usuarioId=${session?.user?.id}`),
         fetch('/api/jogos'),
         fetch('/api/participantes')
       ]);
@@ -174,23 +175,16 @@ export default function DashboardPage() {
       const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
       const userData = await userRes.json();
       
-      // VERIFICAÇÃO DE PAGAMENTO PENDENTE
       if (userData.aprovado === false) {
         setUsuario({ ...userData, aprovado: false });
         setLoading(false);
         return;
       }
       
-      // USAR rodada_atual do banco como fonte primária
       let rodadaUsuario = userData.rodada_atual || 1;
-      
-      // Atualizar a rodada do usuário no estado
       setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
       
-      // Determinar a rodada a ser exibida (prioriza a rodada do usuário)
       let rodadaExibir = rodadaUsuario;
-      
-      // Buscar jogos da rodada do usuário que ainda estão disponíveis
       const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
       const jogosDaRodadaUsuario = jogosData.filter((j: Jogo) => {
         const prazo = new Date(j.prazo);
@@ -198,7 +192,6 @@ export default function DashboardPage() {
         return j.rodada === rodadaUsuario && !j.finalizado && prazoBrasilia >= agoraBrasilia;
       });
       
-      // Se não há jogos disponíveis na rodada do usuário, buscar a próxima rodada com jogos
       if (jogosDaRodadaUsuario.length === 0) {
         const proximosJogos = jogosData.filter((j: Jogo) => {
           const prazo = new Date(j.prazo);
@@ -336,7 +329,6 @@ export default function DashboardPage() {
     return null;
   }
 
-  // TELA DE PAGAMENTO PENDENTE
   if (usuario?.aprovado === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -344,36 +336,17 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-20 max-w-md">
           <div className="bg-white/10 rounded-2xl p-8 text-center border border-yellow-500/30">
             <div className="text-6xl mb-4">⏳</div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Pagamento Pendente
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Você ainda não concluiu o pagamento da sua inscrição.
-              <br />
-              <span className="text-yellow-500 font-semibold">R$ 20,00</span>
-            </p>
-
+            <h2 className="text-2xl font-bold text-white mb-2">Pagamento Pendente</h2>
+            <p className="text-gray-400 mb-6">Você ainda não concluiu o pagamento da sua inscrição.<br /><span className="text-yellow-500 font-semibold">R$ 20,00</span></p>
             {mensagem && (
-              <div className={`p-3 rounded-lg text-sm mb-4 ${
-                mensagem.tipo === 'sucesso' 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
+              <div className={`p-3 rounded-lg text-sm mb-4 ${mensagem.tipo === 'sucesso' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                 {mensagem.texto}
               </div>
             )}
-
-            <button
-              onClick={gerarNovoLinkPagamento}
-              disabled={gerandoPagamento}
-              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
-            >
+            <button onClick={gerarNovoLinkPagamento} disabled={gerandoPagamento} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50">
               {gerandoPagamento ? "Gerando link..." : "💳 Pagar Agora"}
             </button>
-
-            <p className="text-gray-500 text-xs mt-4">
-              Após o pagamento, sua conta será aprovada automaticamente.
-            </p>
+            <p className="text-gray-500 text-xs mt-4">Após o pagamento, sua conta será aprovada automaticamente.</p>
           </div>
         </div>
       </div>
@@ -396,7 +369,6 @@ export default function DashboardPage() {
   const timesDisponiveis = times.filter((t) => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some((p) => p.rodada === rodadaAtual);
   
-  // Filtrar jogos da rodada que ainda estão dentro do prazo (horário Brasília)
   const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   const jogosRodada = jogos.filter((j) => {
     const prazo = new Date(j.prazo);
@@ -406,40 +378,34 @@ export default function DashboardPage() {
   
   const participantesAtivos = rankingParticipantes.filter((p) => p.status === 'ativo').length;
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
-
-  const rodadaExibicao = usuario?.status === 'ativo' 
-    ? (usuario?.rodada_atual || rodadaAtual)
-    : (usuario?.rodada_eliminacao || '?');
+  const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
-
       <div className="container mx-auto px-4 py-6">
         
-        {/* Header com nome do participante - CORRIGIDO */}
-<div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-  <div className="flex justify-between items-center">
-    <div>
-      <h1 className="text-xl font-bold text-gray-900">Meu Bolão</h1>
-      <p className="text-gray-600 text-sm mt-1">
-        <span className="text-yellow-600 font-semibold">👤 {usuario?.nome || session?.user?.name}</span>
-        <span className="mx-2">|</span>
-        <span>Rodada <strong className="text-green-600">{rodadaExibicao}</strong></span>
-        <span className="mx-2">|</span>
-        <span>Acertos <strong className="text-blue-600">{usuario?.pontos || 0}</strong></span>
-      </p>
-    </div>
-    <div className="text-right">
-      <div className="text-xs text-gray-500">v12</div>
-      <Link href="/" className="text-blue-600 hover:underline text-xs">
-        Ranking →
-      </Link>
-    </div>
-  </div>
-</div>
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Meu Bolão</h1>
+              <p className="text-gray-600 text-sm mt-1">
+                <span className="text-yellow-600 font-semibold">👤 {usuario?.nome || session?.user?.name}</span>
+                <span className="mx-2">|</span>
+                <span>Rodada <strong className="text-green-600">{rodadaExibicao}</strong></span>
+                <span className="mx-2">|</span>
+                <span>Acertos <strong className="text-blue-600">{usuario?.pontos || 0}</strong></span>
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500">v12</div>
+              <Link href="/" className="text-blue-600 hover:underline text-xs">Ranking →</Link>
+            </div>
+          </div>
+        </div>
 
-        {/* Cards de Estatísticas do Bolão */}
+        {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-green-500/10 rounded-xl p-3 text-center border border-green-500/30">
             <Users className="w-6 h-6 text-green-400 mx-auto mb-1" />
@@ -460,180 +426,55 @@ export default function DashboardPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           
-          {/* COLUNA ESQUERDA - Palpites */}
           <div className="space-y-6">
             {/* Área de palpite */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-4">Palpite da Rodada {rodadaAtual}</h3>
-              
               {usuario?.status === 'eliminado' ? (
                 <div className="text-center py-6">
                   <XCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
                   <p className="text-gray-400">Você foi eliminado!</p>
-                  <p className="text-gray-500 text-xs mt-1">Na próxima Copa tem mais.</p>
                 </div>
               ) : jaPalpitouRodada ? (
                 <div className="text-center py-6">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                   <p className="text-gray-300 text-sm">Palpite já registrado para esta rodada!</p>
-                  <p className="text-gray-500 text-xs mt-1">Você pode alterá-lo até o prazo final.</p>
                 </div>
               ) : jogosRodada.length === 0 ? (
                 <div className="text-center py-6">
                   <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
-                  <p className="text-gray-300 text-sm">Nenhum jogo disponível para palpitar no momento.</p>
-                  <p className="text-gray-500 text-xs mt-1">Os jogos ficam disponíveis até 23h59 do dia anterior à partida.</p>
+                  <p className="text-gray-300 text-sm">Nenhum jogo disponível no momento.</p>
                 </div>
               ) : (
                 <form onSubmit={handlePalpite} className="space-y-3">
-                  <select
-                    value={timeSelecionado}
-                    onChange={(e) => setTimeSelecionado(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg py-2.5 px-3 text-white text-sm focus:outline-none focus:border-yellow-500"
-                    required
-                  >
+                  <select value={timeSelecionado} onChange={(e) => setTimeSelecionado(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg py-2.5 px-3 text-white text-sm focus:outline-none focus:border-yellow-500" required>
                     <option value="">Selecione um time</option>
-                    {timesDisponiveis.map((time) => (
-                      <option key={time.id} value={time.id}>
-                        {time.nome} (Grupo {time.grupo})
-                      </option>
-                    ))}
+                    {timesDisponiveis.map((time) => (<option key={time.id} value={time.id}>{time.nome} (Grupo {time.grupo})</option>))}
                   </select>
-
-                  {mensagem && (
-                    <div className={`p-2 rounded-lg text-xs ${
-                      mensagem.tipo === 'sucesso' 
-                        ? 'bg-green-500/20 border border-green-500 text-green-400'
-                        : 'bg-red-500/20 border border-red-500 text-red-400'
-                    }`}>
-                      {mensagem.texto}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={palpiteEnviando || timesDisponiveis.length === 0}
-                    className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
-                  >
-                    {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'}
-                    <ChevronRight className="w-3 h-3 inline ml-1" />
+                  {mensagem && (<div className={`p-2 rounded-lg text-xs ${mensagem.tipo === 'sucesso' ? 'bg-green-500/20 border border-green-500 text-green-400' : 'bg-red-500/20 border border-red-500 text-red-400'}`}>{mensagem.texto}</div>)}
+                  <button type="submit" disabled={palpiteEnviando || timesDisponiveis.length === 0} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 text-sm">
+                    {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'} <ChevronRight className="w-3 h-3 inline ml-1" />
                   </button>
                 </form>
               )}
             </div>
 
-            {/* Seus palpites - CORRIGIDO */}
-<div className="bg-white/5 rounded-xl p-5 border border-white/10">
-  <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
-  {palpites.length === 0 ? (
-    <div className="text-center py-6">
-      <Calendar className="w-10 h-10 text-yellow-500 mx-auto mb-2 opacity-50" />
-      <p className="text-gray-400 text-sm">Nenhum palpite ainda</p>
-    </div>
-  ) : (
-    <div className="space-y-1.5">
-      {palpites.map((palpite) => {
-        const time = times.find((t) => t.id === palpite.time_id);
-        const jogo = jogos.find((j) => j.rodada === palpite.rodada);
-        let resultado = '';
-        
-        // CORREÇÃO PRINCIPAL
-        if (jogo?.finalizado && jogo.vencedor_id !== null && jogo.vencedor_id !== undefined) {
-          if (jogo.vencedor_id === palpite.time_id) {
-            resultado = '✅ Acertou';
-          } else {
-            resultado = '❌ Errou';
-          }
-        } else {
-          resultado = '⏳ Aguardando';
-        }
-        
-        return (
-          <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
-            <div>
-              <span className="text-gray-300 text-sm">Rodada {palpite.rodada}</span>
-              <span className="text-gray-500 text-xs ml-2">({resultado})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-500 font-semibold text-sm">{time?.nome || 'Time'}</span>
-              {!jogo?.finalizado && (
-                <button
-                  onClick={() => deletarPalpite(palpite.id, palpite.rodada)}
-                  className="text-blue-400 hover:text-blue-300 transition"
-                  title="Alterar palpite"
-                >
-                  <Edit className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  )}
-</div>
-
-            {/* Times já usados */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-400" />
-                Times que você já usou ({timesUsadosList.length})
-              </h3>
-              {timesUsadosList.length === 0 ? (
-                <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {timesUsadosList.map((time) => (
-                    <div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center hover:border-red-500/30 transition-all">
-                      <div className="text-white text-sm font-medium">{time.nome}</div>
-                      <div className="text-gray-500 text-xs">Grupo {time.grupo}</div>
-                      <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
-                        <XCircle className="w-3 h-3" /> Usado
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* COLUNA DIREITA - Jogos da Rodada */}
-          <div className="space-y-6">
+            {/* Seus palpites */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-yellow-500" />
-                Jogos da Rodada {rodadaAtual}
-              </h3>
-              {jogosRodada.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p>
-                  <p className="text-gray-500 text-xs mt-2">
-                    Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.
-                  </p>
-                </div>
+              <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
+              {palpites.length === 0 ? (
+                <div className="text-center py-6"><Calendar className="w-10 h-10 text-yellow-500 mx-auto mb-2 opacity-50" /><p className="text-gray-400 text-sm">Nenhum palpite ainda</p></div>
               ) : (
-                <div className="space-y-2">
-                  {jogosRodada.map((jogo) => {
-                    const prazo = new Date(jogo.prazo);
-                    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-                    const prazoFormatado = formatarDataBrasilia(prazoBrasilia);
-                    const dataJogo = new Date(jogo.data_hora);
-                    const dataJogoFormatada = formatarDataBrasilia(dataJogo);
+                <div className="space-y-1.5">
+                  {palpites.map((palpite) => {
+                    const time = times.find((t) => t.id === palpite.time_id);
+                    const resultado = palpite.resultado === 'Acertou' ? '✅ Acertou' : palpite.resultado === 'Errou' ? '❌ Errou' : '⏳ Aguardando';
                     return (
-                      <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <div>
-                            <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-                            <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className="text-gray-500 text-xs">
-                              {dataJogoFormatada}
-                            </span>
-                            <span className="text-yellow-600/70 text-[10px]">
-                              ⏰ Prazo: {prazoFormatado}
-                            </span>
-                          </div>
+                      <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
+                        <div><span className="text-gray-300 text-sm">Rodada {palpite.rodada}</span><span className="text-gray-500 text-xs ml-2">({resultado})</span></div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-yellow-500 font-semibold text-sm">{palpite.time_nome || time?.nome || 'Time'}</span>
+                          {palpite.resultado === 'Aguardando' && (<button onClick={() => deletarPalpite(palpite.id, palpite.rodada)} className="text-blue-400 hover:text-blue-300 transition" title="Alterar palpite"><Edit className="w-3 h-3" /></button>)}
                         </div>
                       </div>
                     );
@@ -642,23 +483,46 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Aviso de segurança */}
+            {/* Times já usados */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><XCircle className="w-4 h-4 text-red-400" /> Times que você já usou ({timesUsadosList.length})</h3>
+              {timesUsadosList.length === 0 ? (<p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                  {timesUsadosList.map((time) => (<div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center"><div className="text-white text-sm font-medium">{time.nome}</div><div className="text-gray-500 text-xs">Grupo {time.grupo}</div><div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1"><XCircle className="w-3 h-3" /> Usado</div></div>))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><Calendar className="w-4 h-4 text-yellow-500" /> Jogos da Rodada {rodadaAtual}</h3>
+              {jogosRodada.length === 0 ? (<div className="text-center py-6"><p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p><p className="text-gray-500 text-xs mt-2">Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.</p></div>) : (
+                <div className="space-y-2">
+                  {jogosRodada.map((jogo) => {
+                    const prazo = new Date(jogo.prazo);
+                    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+                    return (
+                      <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <div><span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span><span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span></div>
+                          <div className="flex flex-col items-end"><span className="text-gray-500 text-xs">{formatarDataBrasilia(new Date(jogo.data_hora))}</span><span className="text-yellow-600/70 text-[10px]">⏰ Prazo: {formatarDataBrasilia(prazoBrasilia)}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div className="bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">
-              <div className="flex items-center justify-center gap-2 text-yellow-500 text-xs">
-                <Shield className="w-4 h-4" />
-                <span>Prazo para palpitar: até 23h59 do dia anterior ao jogo. Após este horário, o palpite fica bloqueado.</span>
-              </div>
+              <div className="flex items-center justify-center gap-2 text-yellow-500 text-xs"><Shield className="w-4 h-4" /><span>Prazo para palpitar: até 23h59 do dia anterior ao jogo.</span></div>
             </div>
           </div>
         </div>
       </div>
-
       <footer className="text-center py-6 text-gray-500 text-xs border-t border-white/10 mt-6">
         <p>Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-        <div className="mt-1">
-          <p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p>
-          <p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p>
-        </div>
+        <div className="mt-1"><p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p><p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p></div>
       </footer>
     </div>
   );

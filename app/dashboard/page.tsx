@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
 import { GlobalHeader } from '@/components/GlobalHeader';
+import Link from 'next/link';
 
 interface Usuario {
   id: string;
@@ -416,6 +417,30 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-6">
         
+        {/* Header com nome do participante - CORRIGIDO */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Meu Bolão</h1>
+              <div className="text-gray-600 mt-2">
+                <p>
+                  <span className="text-yellow-600 font-semibold text-lg">👤 {usuario?.nome || session?.user?.name}</span>
+                </p>
+                <p className="text-sm">
+                  🎯 Você está competindo! | Rodada atual: <strong className="text-green-600">{rodadaExibicao}</strong> | 
+                  Acertos: <strong className="text-blue-600">{usuario?.pontos || 0}</strong>
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">v12</div>
+              <Link href="/" className="text-blue-600 hover:underline text-sm">
+                Ver Ranking →
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Cards de Estatísticas do Bolão */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-green-500/10 rounded-xl p-3 text-center border border-green-500/30">
@@ -432,29 +457,6 @@ export default function DashboardPage() {
             <Award className="w-6 h-6 text-red-400 mx-auto mb-1" />
             <div className="text-xl font-bold text-red-400">{participantesEliminados}</div>
             <div className="text-gray-400 text-xs">Participantes Eliminados</div>
-          </div>
-        </div>
-
-        {/* Status do participante */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-white mb-0.5">Sua situação</h2>
-              <p className="text-gray-400 text-xs">Você está competindo pelo prêmio!</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {usuario?.status === 'ativo' ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 font-semibold text-sm">Rodada {rodadaExibicao}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-red-400 font-semibold text-sm">Eliminado na Rodada {rodadaExibicao}</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

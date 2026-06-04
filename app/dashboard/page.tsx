@@ -522,7 +522,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Seus palpites */}
+            {/* Seus palpites - CORRIGIDO */}
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
               {palpites.length === 0 ? (
@@ -537,7 +537,10 @@ export default function DashboardPage() {
                     const jogo = jogos.find((j) => j.rodada === palpite.rodada);
                     let resultado = '';
                     if (jogo?.finalizado) {
-                      if (jogo.vencedor_id === palpite.time_id) {
+                      // CORREÇÃO: Forçar conversão para número
+                      const vencedorId = Number(jogo.vencedor_id);
+                      const timeId = Number(palpite.time_id);
+                      if (vencedorId === timeId) {
                         resultado = '✅ Acertou';
                       } else {
                         resultado = '❌ Errou';

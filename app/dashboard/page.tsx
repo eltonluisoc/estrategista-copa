@@ -418,28 +418,26 @@ export default function DashboardPage() {
       <div className="container mx-auto px-4 py-6">
         
         {/* Header com nome do participante - CORRIGIDO */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Meu Bolão</h1>
-              <div className="text-gray-600 mt-2">
-                <p>
-                  <span className="text-yellow-600 font-semibold text-lg">👤 {usuario?.nome || session?.user?.name}</span>
-                </p>
-                <p className="text-sm">
-                  🎯 Você está competindo! | Rodada atual: <strong className="text-green-600">{rodadaExibicao}</strong> | 
-                  Acertos: <strong className="text-blue-600">{usuario?.pontos || 0}</strong>
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">v12</div>
-              <Link href="/" className="text-blue-600 hover:underline text-sm">
-                Ver Ranking →
-              </Link>
-            </div>
-          </div>
-        </div>
+<div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+  <div className="flex justify-between items-center">
+    <div>
+      <h1 className="text-xl font-bold text-gray-900">Meu Bolão</h1>
+      <p className="text-gray-600 text-sm mt-1">
+        <span className="text-yellow-600 font-semibold">👤 {usuario?.nome || session?.user?.name}</span>
+        <span className="mx-2">|</span>
+        <span>Rodada <strong className="text-green-600">{rodadaExibicao}</strong></span>
+        <span className="mx-2">|</span>
+        <span>Acertos <strong className="text-blue-600">{usuario?.pontos || 0}</strong></span>
+      </p>
+    </div>
+    <div className="text-right">
+      <div className="text-xs text-gray-500">v12</div>
+      <Link href="/" className="text-blue-600 hover:underline text-xs">
+        Ranking →
+      </Link>
+    </div>
+  </div>
+</div>
 
         {/* Cards de Estatísticas do Bolão */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -525,55 +523,55 @@ export default function DashboardPage() {
             </div>
 
             {/* Seus palpites - CORRIGIDO */}
-            <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
-              {palpites.length === 0 ? (
-                <div className="text-center py-6">
-                  <Calendar className="w-10 h-10 text-yellow-500 mx-auto mb-2 opacity-50" />
-                  <p className="text-gray-400 text-sm">Nenhum palpite ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {palpites.map((palpite) => {
-                    const time = times.find((t) => t.id === palpite.time_id);
-                    const jogo = jogos.find((j) => j.rodada === palpite.rodada);
-                    let resultado = '';
-                    if (jogo?.finalizado) {
-                      // CORREÇÃO: Forçar conversão para número
-                      const vencedorId = Number(jogo.vencedor_id);
-                      const timeId = Number(palpite.time_id);
-                      if (vencedorId === timeId) {
-                        resultado = '✅ Acertou';
-                      } else {
-                        resultado = '❌ Errou';
-                      }
-                    } else {
-                      resultado = '⏳ Aguardando';
-                    }
-                    return (
-                      <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
-                        <div>
-                          <span className="text-gray-300 text-sm">Rodada {palpite.rodada}</span>
-                          <span className="text-gray-500 text-xs ml-2">({resultado})</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-yellow-500 font-semibold text-sm">{time?.nome || 'Time'}</span>
-                          {!jogo?.finalizado && (
-                            <button
-                              onClick={() => deletarPalpite(palpite.id, palpite.rodada)}
-                              className="text-blue-400 hover:text-blue-300 transition"
-                              title="Alterar palpite"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+<div className="bg-white/5 rounded-xl p-5 border border-white/10">
+  <h3 className="text-lg font-bold text-white mb-3">Seus palpites</h3>
+  {palpites.length === 0 ? (
+    <div className="text-center py-6">
+      <Calendar className="w-10 h-10 text-yellow-500 mx-auto mb-2 opacity-50" />
+      <p className="text-gray-400 text-sm">Nenhum palpite ainda</p>
+    </div>
+  ) : (
+    <div className="space-y-1.5">
+      {palpites.map((palpite) => {
+        const time = times.find((t) => t.id === palpite.time_id);
+        const jogo = jogos.find((j) => j.rodada === palpite.rodada);
+        let resultado = '';
+        
+        // CORREÇÃO PRINCIPAL
+        if (jogo?.finalizado && jogo.vencedor_id !== null && jogo.vencedor_id !== undefined) {
+          if (jogo.vencedor_id === palpite.time_id) {
+            resultado = '✅ Acertou';
+          } else {
+            resultado = '❌ Errou';
+          }
+        } else {
+          resultado = '⏳ Aguardando';
+        }
+        
+        return (
+          <div key={palpite.id} className="flex justify-between items-center border-b border-white/10 py-2">
+            <div>
+              <span className="text-gray-300 text-sm">Rodada {palpite.rodada}</span>
+              <span className="text-gray-500 text-xs ml-2">({resultado})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500 font-semibold text-sm">{time?.nome || 'Time'}</span>
+              {!jogo?.finalizado && (
+                <button
+                  onClick={() => deletarPalpite(palpite.id, palpite.rodada)}
+                  className="text-blue-400 hover:text-blue-300 transition"
+                  title="Alterar palpite"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
               )}
             </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
 
             {/* Times já usados */}
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">

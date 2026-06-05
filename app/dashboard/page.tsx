@@ -470,9 +470,15 @@ export default function DashboardPage() {
               ) : (
                 <form onSubmit={handlePalpite} className="space-y-3">
                   <select value={timeSelecionado} onChange={(e) => setTimeSelecionado(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg py-2.5 px-3 text-white text-sm focus:outline-none focus:border-yellow-500" required>
-                    <option value="">Selecione um time</option>
-                    {timesDisponiveis.map((time) => (<option key={time.id} value={time.id}>{time.nome} (Grupo {time.grupo})</option>))}
-                  </select>
+                  <option value="">Selecione um time</option>
+                  {[...timesDisponiveis]
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .map((time) => (
+                      <option key={time.id} value={time.id}>
+                        {time.nome} (Grupo {time.grupo})
+                      </option>
+                    ))}
+                </select>
                   {mensagem && (<div className={`p-2 rounded-lg text-xs ${mensagem.tipo === 'sucesso' ? 'bg-green-500/20 border border-green-500 text-green-400' : 'bg-red-500/20 border border-red-500 text-red-400'}`}>{mensagem.texto}</div>)}
                   <button type="submit" disabled={palpiteEnviando || timesDisponiveis.length === 0} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 text-sm">
                     {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'} <ChevronRight className="w-3 h-3 inline ml-1" />

@@ -268,7 +268,7 @@ export default function AdminPage() {
 
   const fases = [
     { id: 'grupos', nome: 'Fase de Grupos (Rodadas 1, 2, 3)', jogos: jogosGrupos, expandida: faseExpandida.grupos, totalJogos: 72 },
-    { id: 'round32', nome: 'Round of 32 (32 avos de final)', jogos: jogosRound32, expandida: faseExpandida.round32, totalJogos: 16 },
+    { id: 'round32', nome: '16 avos de final', jogos: jogosRound32, expandida: faseExpandida.round32, totalJogos: 16 },
     { id: 'oitavas', nome: 'Oitavas de Final', jogos: jogosOitavas, expandida: faseExpandida.oitavas, totalJogos: 8 },
     { id: 'quartas', nome: 'Quartas de Final', jogos: jogosQuartas, expandida: faseExpandida.quartas, totalJogos: 4 },
     { id: 'semi', nome: 'Semifinal', jogos: jogosSemi, expandida: faseExpandida.semi, totalJogos: 2 },

@@ -518,8 +518,8 @@ export default function DashboardPage() {
               {jogosRodada.length === 0 ? (<div className="text-center py-6"><p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p><p className="text-gray-500 text-xs mt-2">Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.</p></div>) : (
                 <div className="space-y-2">
                   {jogosRodada.map((jogo) => {
-                    const dataHora = new Date(jogo.data_hora);
-                    const prazo = new Date(jogo.prazo);
+                    const dataHoraStr = jogo.data_hora.replace(' ', 'T');
+                    const prazoStr = jogo.prazo.replace(' ', 'T');
                     return (
                       <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -529,10 +529,10 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex flex-col items-end">
                             <span className="text-gray-500 text-xs">
-                              {dataHora.toLocaleDateString('pt-BR')} - {dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(dataHoraStr + 'Z').toLocaleString('pt-BR', { timeZone: 'UTC', hour12: false }).slice(0, 16).replace('T', ' ')}
                             </span>
                             <span className="text-yellow-600/70 text-[10px]">
-                              ⏰ Prazo: {prazo.toLocaleDateString('pt-BR')} - {prazo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              ⏰ Prazo: {new Date(prazoStr + 'Z').toLocaleString('pt-BR', { timeZone: 'UTC', hour12: false }).slice(0, 16).replace('T', ' ')}
                             </span>
                           </div>
                         </div>

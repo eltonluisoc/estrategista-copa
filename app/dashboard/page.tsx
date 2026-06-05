@@ -229,7 +229,13 @@ export default function DashboardPage() {
   }
 };
 
-  // DEBUG - Remover depois
+  // DEBUG - Expor variáveis globalmente para debug (remover depois)
+  useEffect(() => {
+    (window as any).debugTimes = times;
+    (window as any).debugPalpites = palpites;
+  }, [times, palpites]);
+
+  // DEBUG - Logs
   useEffect(() => {
     console.log('🔍 DEBUG - times:', times);
     console.log('🔍 DEBUG - palpites:', palpites);
@@ -521,12 +527,28 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Times já usados */}
+            {/* Times já usados - CORREÇÃO TEMPORÁRIA */}
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><XCircle className="w-4 h-4 text-red-400" /> Times que você já usou ({timesUsadosList.length})</h3>
-              {timesUsadosList.length === 0 ? (<p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>) : (
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-red-400" /> 
+                Times que você já usou ({palpites.length})
+              </h3>
+              {palpites.length === 0 ? (
+                <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
+              ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {timesUsadosList.map((time) => (<div key={time.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center"><div className="text-white text-sm font-medium">{time.nome}</div><div className="text-gray-500 text-xs">Grupo {time.grupo}</div><div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1"><XCircle className="w-3 h-3" /> Usado</div></div>))}
+                  {palpites.map((palpite) => {
+                    const time = times.find((t) => t.id === palpite.time_id);
+                    return (
+                      <div key={palpite.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                        <div className="text-white text-sm font-medium">{time?.nome || palpite.time_nome || 'Time'}</div>
+                        <div className="text-gray-500 text-xs">Rodada {palpite.rodada}</div>
+                        <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
+                          <XCircle className="w-3 h-3" /> Usado
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

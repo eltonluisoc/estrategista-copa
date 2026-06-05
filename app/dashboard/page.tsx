@@ -55,25 +55,6 @@ interface ParticipanteRanking {
   rodada_atual?: number;
 }
 
-// Funções auxiliares para fuso horário
-function formatarDataBrasilia(data: Date): string {
-  return data.toLocaleDateString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-function prazoExpirado(prazo: Date): boolean {
-  const agora = new Date();
-  const agoraBrasilia = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  return agoraBrasilia > prazoBrasilia;
-}
-
 export default function DashboardPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -155,7 +136,6 @@ export default function DashboardPage() {
   const carregarDados = async () => {
   setLoading(true);
   try {
-    // 1. Buscar dados básicos primeiro (jogos e usuário)
     const [jogosRes, userRes] = await Promise.all([
       fetch('/api/jogos'),
       fetch(`/api/usuarios/${session?.user?.id}`)
@@ -166,36 +146,26 @@ export default function DashboardPage() {
     
     setJogos(jogosData);
     
-    // VERIFICAÇÃO DE PAGAMENTO PENDENTE
     if (userData.aprovado === false) {
       setUsuario({ ...userData, aprovado: false });
       setLoading(false);
       return;
     }
     
-    // USAR rodada_atual do banco como fonte primária
     let rodadaUsuario = userData.rodada_atual || 1;
-    
-    // Atualizar a rodada do usuário no estado
     setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
     
-    // Determinar a rodada a ser exibida (prioriza a rodada do usuário)
     let rodadaExibir = rodadaUsuario;
-    
-    // Buscar jogos da rodada do usuário que ainda estão disponíveis
-    const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const agora = new Date();
     const jogosDaRodadaUsuario = jogosData.filter((j: Jogo) => {
       const prazo = new Date(j.prazo);
-      const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      return j.rodada === rodadaUsuario && !j.finalizado && prazoBrasilia >= agoraBrasilia;
+      return j.rodada === rodadaUsuario && !j.finalizado && prazo >= agora;
     });
     
-    // Se não há jogos disponíveis na rodada do usuário, buscar a próxima rodada com jogos
     if (jogosDaRodadaUsuario.length === 0) {
       const proximosJogos = jogosData.filter((j: Jogo) => {
         const prazo = new Date(j.prazo);
-        const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        return !j.finalizado && prazoBrasilia >= agoraBrasilia;
+        return !j.finalizado && prazo >= agora;
       }).sort((a: Jogo, b: Jogo) => new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime());
       
       if (proximosJogos.length > 0) {
@@ -207,7 +177,6 @@ export default function DashboardPage() {
     
     setRodadaAtual(rodadaExibir);
     
-    // 2. Agora buscar os times disponíveis para a rodada atual
     const [timesRes, palpitesRes, rankingRes] = await Promise.all([
       fetch(`/api/times/disponiveis?rodada=${rodadaExibir}&usuarioId=${session?.user?.id}`),
       fetch(`/api/palpites/com-resultado?usuarioId=${session?.user?.id}`),
@@ -235,16 +204,6 @@ export default function DashboardPage() {
     (window as any).debugPalpites = palpites;
   }, [times, palpites]);
 
-  // DEBUG - Logs
-  useEffect(() => {
-    console.log('🔍 DEBUG - times:', times);
-    console.log('🔍 DEBUG - palpites:', palpites);
-    const timesJaUsadosDebug = palpites.map((p) => p.time_id);
-    console.log('🔍 DEBUG - timesJaUsados:', timesJaUsadosDebug);
-    const timesUsadosListDebug = times.filter((t) => timesJaUsadosDebug.includes(t.id));
-    console.log('🔍 DEBUG - timesUsadosList:', timesUsadosListDebug);
-  }, [times, palpites]);
-
   const handlePalpite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!timeSelecionado || !session?.user?.id) return;
@@ -260,7 +219,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (jogoDoTime && prazoExpirado(new Date(jogoDoTime.prazo))) {
+    if (jogoDoTime && new Date(jogoDoTime.prazo) < new Date()) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para palpitar este jogo já encerrado!' });
       return;
     }
@@ -297,7 +256,7 @@ export default function DashboardPage() {
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    if (prazoJogo && prazoExpirado(new Date(prazoJogo))) {
+    if (prazoJogo && new Date(prazoJogo) < new Date()) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }
@@ -400,11 +359,10 @@ export default function DashboardPage() {
   const timesDisponiveis = times.filter((t) => !timesJaUsados.includes(t.id));
   const jaPalpitouRodada = palpites.some((p) => p.rodada === rodadaAtual);
   
-  const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const agora = new Date();
   const jogosRodada = jogos.filter((j) => {
     const prazo = new Date(j.prazo);
-    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    return j.rodada === rodadaAtual && !j.finalizado && prazoBrasilia >= agoraBrasilia;
+    return j.rodada === rodadaAtual && !j.finalizado && prazo >= agora;
   });
   
   const participantesAtivos = rankingParticipantes.filter((p) => p.status === 'ativo').length;
@@ -416,32 +374,32 @@ export default function DashboardPage() {
       <GlobalHeader />
       <div className="container mx-auto px-4 py-6">
         
-        {/* Header com nome do participante - PADRÃO DO PROJETO */}
-<div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
-  <div className="flex justify-between items-center">
-    <div>
-      <h1 className="text-xl font-bold text-white tracking-tighter">
-        Meu <span className="text-yellow-500">Bolão</span>
-      </h1>
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <span className="text-yellow-500 font-semibold text-sm flex items-center gap-1">
-          <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-          👤 {usuario?.nome || session?.user?.name}
-        </span>
-        <span className="text-gray-400 text-xs">•</span>
-        <span className="text-gray-300 text-sm">Rodada <strong className="text-green-400">{rodadaExibicao}</strong></span>
-        <span className="text-gray-400 text-xs">•</span>
-        <span className="text-gray-300 text-sm">Acertos <strong className="text-blue-400">{usuario?.pontos || 0}</strong></span>
-      </div>
-    </div>
-    <div className="text-right">
-      <div className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded-lg inline-block">v12</div>
-      <Link href="/" className="text-yellow-500 hover:text-yellow-400 text-xs block mt-1 transition">
-        Ver Ranking →
-      </Link>
-    </div>
-  </div>
-</div>
+        {/* Header com nome do participante */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tighter">
+                Meu <span className="text-yellow-500">Bolão</span>
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className="text-yellow-500 font-semibold text-sm flex items-center gap-1">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                  👤 {usuario?.nome || session?.user?.name}
+                </span>
+                <span className="text-gray-400 text-xs">•</span>
+                <span className="text-gray-300 text-sm">Rodada <strong className="text-green-400">{rodadaExibicao}</strong></span>
+                <span className="text-gray-400 text-xs">•</span>
+                <span className="text-gray-300 text-sm">Acertos <strong className="text-blue-400">{usuario?.pontos || 0}</strong></span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded-lg inline-block">v12</div>
+              <Link href="/" className="text-yellow-500 hover:text-yellow-400 text-xs block mt-1 transition">
+                Ver Ranking →
+              </Link>
+            </div>
+          </div>
+        </div>
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -486,15 +444,15 @@ export default function DashboardPage() {
               ) : (
                 <form onSubmit={handlePalpite} className="space-y-3">
                   <select value={timeSelecionado} onChange={(e) => setTimeSelecionado(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg py-2.5 px-3 text-white text-sm focus:outline-none focus:border-yellow-500" required>
-                  <option value="">Selecione um time</option>
-                  {[...timesDisponiveis]
-                    .sort((a, b) => a.nome.localeCompare(b.nome))
-                    .map((time) => (
-                      <option key={time.id} value={time.id}>
-                        {time.nome} (Grupo {time.grupo})
-                      </option>
-                    ))}
-                </select>
+                    <option value="">Selecione um time</option>
+                    {[...timesDisponiveis]
+                      .sort((a, b) => a.nome.localeCompare(b.nome))
+                      .map((time) => (
+                        <option key={time.id} value={time.id}>
+                          {time.nome} (Grupo {time.grupo})
+                        </option>
+                      ))}
+                  </select>
                   {mensagem && (<div className={`p-2 rounded-lg text-xs ${mensagem.tipo === 'sucesso' ? 'bg-green-500/20 border border-green-500 text-green-400' : 'bg-red-500/20 border border-red-500 text-red-400'}`}>{mensagem.texto}</div>)}
                   <button type="submit" disabled={palpiteEnviando || timesDisponiveis.length === 0} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 text-sm">
                     {palpiteEnviando ? 'Registrando...' : 'Confirmar palpite'} <ChevronRight className="w-3 h-3 inline ml-1" />
@@ -527,7 +485,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Times já usados - CORREÇÃO TEMPORÁRIA */}
+            {/* Times já usados */}
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-400" /> 
@@ -560,13 +518,23 @@ export default function DashboardPage() {
               {jogosRodada.length === 0 ? (<div className="text-center py-6"><p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p><p className="text-gray-500 text-xs mt-2">Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.</p></div>) : (
                 <div className="space-y-2">
                   {jogosRodada.map((jogo) => {
+                    const dataHora = new Date(jogo.data_hora);
                     const prazo = new Date(jogo.prazo);
-                    const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
                     return (
                       <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <div><span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span><span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span></div>
-                          <div className="flex flex-col items-end"><span className="text-gray-500 text-xs">{formatarDataBrasilia(new Date(jogo.data_hora))}</span><span className="text-yellow-600/70 text-[10px]">⏰ Prazo: {formatarDataBrasilia(prazoBrasilia)}</span></div>
+                          <div>
+                            <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                            <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-gray-500 text-xs">
+                              {dataHora.toLocaleDateString('pt-BR')} - {dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-yellow-600/70 text-[10px]">
+                              ⏰ Prazo: {prazo.toLocaleDateString('pt-BR')} - {prazo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );

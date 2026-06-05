@@ -153,66 +153,81 @@ export default function DashboardPage() {
   }, [session, estaAprovado, update]);
 
   const carregarDados = async () => {
-    setLoading(true);
-    try {
-      const [timesRes, palpitesRes, jogosRes, rankingRes] = await Promise.all([
-        fetch('/api/times'),
-        fetch(`/api/palpites/com-resultado?usuarioId=${session?.user?.id}`),
-        fetch('/api/jogos'),
-        fetch('/api/participantes')
-      ]);
-      
-      const timesData = await timesRes.json();
-      const palpitesData = await palpitesRes.json();
-      const jogosData = await jogosRes.json();
-      const rankingData = await rankingRes.json();
-      
-      setTimes(timesData);
-      setPalpites(palpitesData);
-      setJogos(jogosData);
-      setRankingParticipantes(rankingData);
-      
-      const userRes = await fetch(`/api/usuarios/${session?.user?.id}`);
-      const userData = await userRes.json();
-      
-      if (userData.aprovado === false) {
-        setUsuario({ ...userData, aprovado: false });
-        setLoading(false);
-        return;
-      }
-      
-      let rodadaUsuario = userData.rodada_atual || 1;
-      setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
-      
-      let rodadaExibir = rodadaUsuario;
-      const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const jogosDaRodadaUsuario = jogosData.filter((j: Jogo) => {
+  setLoading(true);
+  try {
+    // 1. Buscar dados básicos primeiro (jogos e usuário)
+    const [jogosRes, userRes] = await Promise.all([
+      fetch('/api/jogos'),
+      fetch(`/api/usuarios/${session?.user?.id}`)
+    ]);
+    
+    const jogosData = await jogosRes.json();
+    const userData = await userRes.json();
+    
+    setJogos(jogosData);
+    
+    // VERIFICAÇÃO DE PAGAMENTO PENDENTE
+    if (userData.aprovado === false) {
+      setUsuario({ ...userData, aprovado: false });
+      setLoading(false);
+      return;
+    }
+    
+    // USAR rodada_atual do banco como fonte primária
+    let rodadaUsuario = userData.rodada_atual || 1;
+    
+    // Atualizar a rodada do usuário no estado
+    setUsuario({ ...userData, rodada_atual: rodadaUsuario, status: userData.status || 'ativo' });
+    
+    // Determinar a rodada a ser exibida (prioriza a rodada do usuário)
+    let rodadaExibir = rodadaUsuario;
+    
+    // Buscar jogos da rodada do usuário que ainda estão disponíveis
+    const agoraBrasilia = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const jogosDaRodadaUsuario = jogosData.filter((j: Jogo) => {
+      const prazo = new Date(j.prazo);
+      const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      return j.rodada === rodadaUsuario && !j.finalizado && prazoBrasilia >= agoraBrasilia;
+    });
+    
+    // Se não há jogos disponíveis na rodada do usuário, buscar a próxima rodada com jogos
+    if (jogosDaRodadaUsuario.length === 0) {
+      const proximosJogos = jogosData.filter((j: Jogo) => {
         const prazo = new Date(j.prazo);
         const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        return j.rodada === rodadaUsuario && !j.finalizado && prazoBrasilia >= agoraBrasilia;
-      });
+        return !j.finalizado && prazoBrasilia >= agoraBrasilia;
+      }).sort((a: Jogo, b: Jogo) => new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime());
       
-      if (jogosDaRodadaUsuario.length === 0) {
-        const proximosJogos = jogosData.filter((j: Jogo) => {
-          const prazo = new Date(j.prazo);
-          const prazoBrasilia = new Date(prazo.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-          return !j.finalizado && prazoBrasilia >= agoraBrasilia;
-        }).sort((a: Jogo, b: Jogo) => new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime());
-        
-        if (proximosJogos.length > 0) {
-          rodadaExibir = proximosJogos[0].rodada;
-        }
-      } else {
-        rodadaExibir = rodadaUsuario;
+      if (proximosJogos.length > 0) {
+        rodadaExibir = proximosJogos[0].rodada;
       }
-      
-      setRodadaAtual(rodadaExibir);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
+    } else {
+      rodadaExibir = rodadaUsuario;
     }
-  };
+    
+    setRodadaAtual(rodadaExibir);
+    
+    // 2. Agora buscar os times disponíveis para a rodada atual
+    const [timesRes, palpitesRes, rankingRes] = await Promise.all([
+      fetch(`/api/times/disponiveis?rodada=${rodadaExibir}&usuarioId=${session?.user?.id}`),
+      fetch(`/api/palpites/com-resultado?usuarioId=${session?.user?.id}`),
+      fetch('/api/participantes')
+    ]);
+    
+    const timesData = await timesRes.json();
+    const palpitesData = await palpitesRes.json();
+    const rankingData = await rankingRes.json();
+    
+    setTimes(timesData);
+    setPalpites(palpitesData);
+    setRankingParticipantes(rankingData);
+    
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePalpite = async (e: React.FormEvent) => {
     e.preventDefault();

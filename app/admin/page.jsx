@@ -7,12 +7,30 @@ import { Trophy, LogOut, Save, CheckCircle, AlertCircle, Plus, Edit, Trash2, X, 
 import { GlobalHeader } from '@/components/GlobalHeader';
 
 const timesLista = [
-  'Brasil', 'Argentina', 'França', 'Alemanha', 'Espanha', 'Inglaterra',
-  'Portugal', 'Holanda', 'Itália', 'Bélgica', 'Croácia', 'Uruguai',
-  'México', 'Coreia do Sul', 'África do Sul', 'República Tcheca',
-  'Canadá', 'Bósnia', 'Catar', 'Suíça', 'Marrocos', 'Haiti', 'Escócia',
-  'EUA', 'Paraguai', 'Austrália', 'Turquia', 'Curaçao', 'Costa do Marfim',
-  'Equador', 'Japão', 'Suécia', 'Tunísia', 'Egito', 'Irã', 'Nova Zelândia'
+  // Grupo A
+  'México', 'África do Sul', 'Coreia do Sul', 'República Tcheca',
+  // Grupo B
+  'Canadá', 'Suíça', 'Catar', 'Bósnia e Herzegovina',
+  // Grupo C
+  'Brasil', 'Marrocos', 'Escócia', 'Haiti',
+  // Grupo D
+  'Estados Unidos', 'Paraguai', 'Austrália', 'Turquia',
+  // Grupo E
+  'Alemanha', 'Curaçao', 'Costa do Marfim', 'Equador',
+  // Grupo F
+  'Países Baixos', 'Japão', 'Suécia', 'Tunísia',
+  // Grupo G
+  'Bélgica', 'Egito', 'Irã', 'Nova Zelândia',
+  // Grupo H
+  'Espanha', 'Cabo Verde', 'Arábia Saudita', 'Uruguai',
+  // Grupo I
+  'França', 'Senegal', 'Iraque', 'Noruega',
+  // Grupo J
+  'Argentina', 'Argélia', 'Áustria', 'Jordânia',
+  // Grupo K
+  'Portugal', 'República Democrática do Congo', 'Uzbequistão', 'Colômbia',
+  // Grupo L
+  'Inglaterra', 'Croácia', 'Gana', 'Panamá'
 ];
 
 const VALOR_INSCRICAO = 20;
@@ -34,7 +52,7 @@ export default function AdminPage() {
   
   const [faseExpandida, setFaseExpandida] = useState({
     grupos: true,
-    round32: false,
+    dezesseisAvos: false,
     oitavas: false,
     quartas: false,
     semi: false,
@@ -260,7 +278,7 @@ export default function AdminPage() {
   }
 
   const jogosGrupos = jogos.filter(j => j.rodada === 1 || j.rodada === 2 || j.rodada === 3);
-  const jogosRound32 = jogos.filter(j => j.rodada === 4);
+  const jogosDezesseisAvos = jogos.filter(j => j.rodada === 4);
   const jogosOitavas = jogos.filter(j => j.rodada === 5);
   const jogosQuartas = jogos.filter(j => j.rodada === 6);
   const jogosSemi = jogos.filter(j => j.rodada === 7);
@@ -268,9 +286,9 @@ export default function AdminPage() {
 
   const fases = [
     { id: 'grupos', nome: 'Fase de Grupos (Rodadas 1, 2, 3)', jogos: jogosGrupos, expandida: faseExpandida.grupos, totalJogos: 72 },
-    { id: 'round32', nome: '16 avos de final', jogos: jogosRound32, expandida: faseExpandida.round32, totalJogos: 16 },
-    { id: 'oitavas', nome: 'Oitavas de Final', jogos: jogosOitavas, expandida: faseExpandida.oitavas, totalJogos: 8 },
-    { id: 'quartas', nome: 'Quartas de Final', jogos: jogosQuartas, expandida: faseExpandida.quartas, totalJogos: 4 },
+    { id: 'dezesseisAvos', nome: '16 avos de final', jogos: jogosDezesseisAvos, expandida: faseExpandida.dezesseisAvos, totalJogos: 16 },
+    { id: 'oitavas', nome: 'Oitavas de final', jogos: jogosOitavas, expandida: faseExpandida.oitavas, totalJogos: 8 },
+    { id: 'quartas', nome: 'Quartas de final', jogos: jogosQuartas, expandida: faseExpandida.quartas, totalJogos: 4 },
     { id: 'semi', nome: 'Semifinal', jogos: jogosSemi, expandida: faseExpandida.semi, totalJogos: 2 },
     { id: 'final', nome: 'Final', jogos: jogosFinal, expandida: faseExpandida.final, totalJogos: 1 }
   ];
@@ -558,10 +576,10 @@ export default function AdminPage() {
                 <input type="number" placeholder="Rodada" value={editando?.rodada || novoJogo.rodada} onChange={(e) => editando ? setEditando({...editando, rodada: parseInt(e.target.value)}) : setNovoJogo({...novoJogo, rodada: parseInt(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded-xl p-2 text-white text-sm" />
                 <select value={editando?.grupo || novoJogo.grupo} onChange={(e) => editando ? setEditando({...editando, grupo: e.target.value}) : setNovoJogo({...novoJogo, grupo: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl p-2 text-white text-sm">
                   <option value="Grupos">Grupos</option>
-                  <option value="Round of 32">RO32</option>
+                  <option value="16 avos">16 avos</option>
                   <option value="Oitavas">Oitavas</option>
                   <option value="Quartas">Quartas</option>
-                  <option value="Semifinal">Semi</option>
+                  <option value="Semifinal">Semifinal</option>
                   <option value="Final">Final</option>
                 </select>
               </div>

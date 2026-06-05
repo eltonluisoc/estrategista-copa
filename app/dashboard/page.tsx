@@ -229,6 +229,16 @@ export default function DashboardPage() {
   }
 };
 
+  // DEBUG - Remover depois
+  useEffect(() => {
+    console.log('🔍 DEBUG - times:', times);
+    console.log('🔍 DEBUG - palpites:', palpites);
+    const timesJaUsadosDebug = palpites.map((p) => p.time_id);
+    console.log('🔍 DEBUG - timesJaUsados:', timesJaUsadosDebug);
+    const timesUsadosListDebug = times.filter((t) => timesJaUsadosDebug.includes(t.id));
+    console.log('🔍 DEBUG - timesUsadosList:', timesUsadosListDebug);
+  }, [times, palpites]);
+
   const handlePalpite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!timeSelecionado || !session?.user?.id) return;

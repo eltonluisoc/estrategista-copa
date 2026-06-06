@@ -112,9 +112,9 @@ export default function Home() {
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Target className="w-4 h-4 text-yellow-500" />
-              <span className="text-yellow-500 font-bold text-xs">1 erro</span>
+              <span className="text-yellow-500 font-bold text-xs">1 erro = eliminação</span>
             </div>
-            <p className="text-gray-300 text-xs">Empate ou derrota = eliminação</p>
+            <p className="text-gray-300 text-xs">Na fase de grupos</p>
           </div>
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -128,7 +128,7 @@ export default function Home() {
               <Trophy className="w-4 h-4 text-yellow-500" />
               <span className="text-yellow-500 font-bold text-xs">Fases Finais</span>
             </div>
-            <p className="text-gray-300 text-xs">Vale o resultado final (inclui prorrogação e pênaltis)</p>
+            <p className="text-gray-300 text-xs">Vale resultado final (inclui prorrogação e pênaltis)</p>
           </div>
         </div>
 

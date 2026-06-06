@@ -109,26 +109,31 @@ export default function Home() {
 
         {/* Cards de Regras */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+          {/* Card 1 - Fase de Grupos */}
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Target className="w-4 h-4 text-yellow-500" />
-              <span className="text-yellow-500 font-bold text-xs">1 erro = eliminação</span>
+              <span className="text-yellow-500 font-bold text-xs">FASE DE GRUPOS</span>
             </div>
-            <p className="text-gray-300 text-xs">Na fase de grupos</p>
+            <p className="text-gray-300 text-xs">Empate ou derrota = ELIMINAÇÃO</p>
           </div>
+
+          {/* Card 2 - Regra geral */}
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-yellow-500" />
-              <span className="text-yellow-500 font-bold text-xs">1 palpite</span>
+              <span className="text-yellow-500 font-bold text-xs">1 PALPITE</span>
             </div>
             <p className="text-gray-300 text-xs">Por rodada, até 23h59 do dia anterior</p>
           </div>
+
+          {/* Card 3 - Fases Eliminatórias */}
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="text-yellow-500 font-bold text-xs">Fases Finais</span>
+              <span className="text-yellow-500 font-bold text-xs">FASES FINAIS</span>
             </div>
-            <p className="text-gray-300 text-xs">Vale resultado final (inclui prorrogação e pênaltis)</p>
+            <p className="text-gray-300 text-xs">Vale o resultado final (incluindo prorrogação e pênaltis)</p>
           </div>
         </div>
 

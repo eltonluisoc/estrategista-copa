@@ -126,10 +126,11 @@ export default function Home() {
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="text-yellow-500 font-bold text-xs">Regras Finais</span>
+              <span className="text-yellow-500 font-bold text-xs">Fases Finais</span>
             </div>
-            <p className="text-gray-300 text-xs">Nas fases eliminatórias vale o resultado final do jogo (inclui prorrogação e pênaltis)</p>
+            <p className="text-gray-300 text-xs">Vale o resultado final (inclui prorrogação e pênaltis)</p>
           </div>
+        </div>
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">

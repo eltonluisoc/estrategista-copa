@@ -514,38 +514,44 @@ export default function DashboardPage() {
 
           <div className="space-y-6">
             <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><Calendar className="w-4 h-4 text-yellow-500" /> Jogos da Rodada {rodadaAtual}</h3>
-              {jogosRodada.length === 0 ? (<div className="text-center py-6"><p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p><p className="text-gray-500 text-xs mt-2">Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.</p></div>) : (
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-yellow-500" /> Jogos da Rodada {rodadaAtual}
+              </h3>
+              {jogosRodada.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p>
+                  <p className="text-gray-500 text-xs mt-2">Os jogos ficam disponíveis para palpite até 23h59 do dia anterior.</p>
+                </div>
+              ) : (
                 <div className="space-y-2">
                   {jogosRodada.map((jogo) => {
-  // Formatar data diretamente da string do banco
-  const formatarData = (dataStr: string) => {
-    if (!dataStr) return '';
-    const partes = dataStr.split(' ');
-    const dataPartes = partes[0].split('-');
-    const horaPartes = partes[1] ? partes[1].split(':') : ['00', '00'];
-    return `${dataPartes[2]}/${dataPartes[1]}/${dataPartes[0]} ${horaPartes[0]}:${horaPartes[1]}`;
-  };
+                    const formatarData = (dataStr: string) => {
+                      if (!dataStr) return '';
+                      const dataLimpa = dataStr.replace('Z', '').split('T');
+                      const dataPartes = dataLimpa[0].split('-');
+                      const horaPartes = dataLimpa[1] ? dataLimpa[1].split(':') : ['00', '00'];
+                      return `${dataPartes[2]}/${dataPartes[1]}/${dataPartes[0]} ${horaPartes[0]}:${horaPartes[1]}`;
+                    };
 
-  return (
-    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div>
-          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="text-gray-500 text-xs">
-            📅 {formatarData(jogo.data_hora)}
-          </span>
-          <span className="text-yellow-600/70 text-[10px]">
-            ⏰ Prazo: {formatarData(jogo.prazo)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-})}
+                    return (
+                      <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <div>
+                            <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                            <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-gray-500 text-xs">
+                              📅 {formatarData(jogo.data_hora)}
+                            </span>
+                            <span className="text-yellow-600/70 text-[10px]">
+                              ⏰ Prazo: {formatarData(jogo.prazo)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

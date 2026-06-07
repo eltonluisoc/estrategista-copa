@@ -99,7 +99,7 @@ export default function CadastroPage() {
                     
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="text-gray-300 text-sm block mb-1">Nome Completo *</label>
+                            <label className="text-gray-300 text-sm block mb-1">Nome (ou apelido) *</label>
                             <input
                                 type="text"
                                 name="nome"
@@ -107,7 +107,7 @@ export default function CadastroPage() {
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-500"
-                                placeholder="Digite seu nome completo"
+                                placeholder="Digite seu nome ou apelido"
                             />
                         </div>
 

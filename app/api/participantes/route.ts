@@ -64,7 +64,6 @@ export async function GET() {
         const prazo = palpite.prazo ? new Date(palpite.prazo) : null
         const prazoExpirado = prazo ? agora > prazo : false
         
-        // REGRA DEFINITIVA: Palpite só fica visível se o prazo já expirou
         if (prazoExpirado) {
           palpiteAtual = palpite.time_nome
           palpiteAtualVisivel = true
@@ -86,26 +85,56 @@ export async function GET() {
     }
   })
   
-  // Ordenar: ativos por rodada (decrescente), depois eliminados
-  const ordenados = participantesComDados.sort((a: any, b: any) => {
-    if (a.status === 'eliminado' && b.status !== 'eliminado') return 1
-    if (a.status !== 'eliminado' && b.status === 'eliminado') return -1
+  // ============================================================
+  // CORREÇÃO DO RANKING - Posição por rodada alcançada
+  // ============================================================
+  
+  // 1. Separar ativos (ainda na competição) e eliminados
+  const ativos = participantesComDados.filter((p: any) => p.status === 'ativo');
+  const eliminados = participantesComDados.filter((p: any) => p.status === 'eliminado');
+  
+  // 2. Ordenar ativos por rodada_atual (maior primeiro) e depois por pontos
+  ativos.sort((a: any, b: any) => {
+    if (a.rodada_atual !== b.rodada_atual) {
+      return b.rodada_atual - a.rodada_atual;
+    }
+    return (b.pontos || 0) - (a.pontos || 0);
+  });
+  
+  // 3. Ordenar eliminados por rodada_eliminacao (maior primeiro = quem foi mais longe)
+  eliminados.sort((a: any, b: any) => {
+    return (b.rodada_eliminacao || 0) - (a.rodada_eliminacao || 0);
+  });
+  
+  // 4. Calcular posição para cada participante
+  const todosParticipantes = [...ativos, ...eliminados];
+  const ordenados = [];
+  
+  for (let i = 0; i < todosParticipantes.length; i++) {
+    const atual = todosParticipantes[i];
+    let posicao = i + 1; // posição padrão
     
-    const rodadaA = a.status === 'ativo' ? (a.rodada_atual || 0) : 0
-    const rodadaB = b.status === 'ativo' ? (b.rodada_atual || 0) : 0
-    
-    if (rodadaA !== rodadaB) {
-      return rodadaB - rodadaA
+    // Verificar se tem participantes empatados antes
+    if (i > 0) {
+      const anterior = todosParticipantes[i - 1];
+      const valorAtual = atual.status === 'ativo' 
+        ? atual.rodada_atual 
+        : atual.rodada_eliminacao;
+      const valorAnterior = anterior.status === 'ativo' 
+        ? anterior.rodada_atual 
+        : anterior.rodada_eliminacao;
+      
+      if (valorAtual === valorAnterior) {
+        // Mesma posição do anterior
+        posicao = ordenados[i - 1].posicao;
+      }
     }
     
-    const pontosA = a.pontos || 0
-    const pontosB = b.pontos || 0
-    if (pontosA !== pontosB) {
-      return pontosB - pontosA
-    }
-    
-    return a.nome.localeCompare(b.nome)
-  })
+    ordenados.push({
+      ...atual,
+      posicao: posicao
+    });
+  }
   
   return NextResponse.json(ordenados)
 }

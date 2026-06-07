@@ -69,6 +69,10 @@ export default function DashboardPage() {
   const [palpiteEnviando, setPalpiteEnviando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
   const [gerandoPagamento, setGerandoPagamento] = useState(false);
+  
+  // STATES PARA EDIÇÃO DE NOME
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [novoNome, setNovoNome] = useState('');
 
   const estaAprovado = session?.user?.aprovado === true || usuario?.aprovado === true;
 
@@ -304,6 +308,41 @@ export default function DashboardPage() {
     }
   };
 
+  // FUNÇÃO PARA ATUALIZAR NOME
+  const atualizarNome = async () => {
+    if (!novoNome.trim()) {
+      setMensagem({ tipo: 'erro', texto: 'Nome não pode estar vazio' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/usuarios/atualizar-nome', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuarioId: session?.user?.id,
+          nome: novoNome.trim()
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMensagem({ tipo: 'sucesso', texto: 'Nome atualizado com sucesso!' });
+        setEditandoNome(false);
+        setNovoNome('');
+        carregarDados();
+        await update();
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao atualizar nome' });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro de conexão' });
+    }
+    setLoading(false);
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -374,7 +413,7 @@ export default function DashboardPage() {
       <GlobalHeader />
       <div className="container mx-auto px-4 py-6">
         
-        {/* Header com nome do participante */}
+        {/* Header com nome do participante - COM EDIÇÃO DE NOME */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
           <div className="flex justify-between items-center">
             <div>
@@ -382,10 +421,44 @@ export default function DashboardPage() {
                 Meu <span className="text-yellow-500">Bolão</span>
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-yellow-500 font-semibold text-sm flex items-center gap-1">
-                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-                  👤 {usuario?.nome || session?.user?.name}
-                </span>
+                {editandoNome ? (
+                  <div className="flex items-center gap-2">
+                    <input
+  type="text"
+  value={novoNome}
+  onChange={(e) => setNovoNome(e.target.value)}
+  placeholder="Digite seu novo nome"
+  className="bg-black/50 border border-yellow-500 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+  autoFocus
+/>
+                    <button
+                      onClick={atualizarNome}
+                      className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-xs transition"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={() => setEditandoNome(false)}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded-lg text-xs transition"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-yellow-500 font-semibold text-sm flex items-center gap-1">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                      👤 {usuario?.nome || session?.user?.name}
+                    </span>
+                    <button
+                      onClick={() => setEditandoNome(true)}
+                      className="text-blue-400 hover:text-blue-300 transition text-xs"
+                      title="Editar nome"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                )}
                 <span className="text-gray-400 text-xs">•</span>
                 <span className="text-gray-300 text-sm">Rodada <strong className="text-green-400">{rodadaExibicao}</strong></span>
                 <span className="text-gray-400 text-xs">•</span>
@@ -393,7 +466,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded-lg inline-block">v12</div>
+              <div className="text-xs text-gray-500 bg-black/30 px-2 py-1 rounded-lg inline-block">v13</div>
               <Link href="/" className="text-yellow-500 hover:text-yellow-400 text-xs block mt-1 transition">
                 Ver Ranking →
               </Link>

@@ -15,6 +15,7 @@ interface Participante {
   acertos?: { rodada: number; time: string }[];
   palpite_atual?: string;
   palpite_atual_visivel?: boolean;
+  posicao?: number;
 }
 
 interface Estatisticas {
@@ -203,51 +204,54 @@ export default function Home() {
               {participantesFiltrados.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">Nenhum participante encontrado</p>
               ) : (
-                participantesFiltrados.map((p, idx) => (
-                  <div key={p.id} className="flex justify-between items-center py-2 border-b border-white/5">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${
-                        idx === 0 ? 'text-yellow-400' :
-                        idx === 1 ? 'text-gray-300' :
-                        idx === 2 ? 'text-orange-400' :
-                        'text-gray-500'
-                      }`}>{idx + 1}</span>
-                      <span className="text-white text-sm sm:text-base">{p.nome}</span>
-                      <button
-                        onClick={() => abrirHistorico(p)}
-                        className="text-gray-500 hover:text-yellow-500 transition"
-                        title="Ver histórico"
-                      >
-                        <History className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="text-right">
-                      {p.status === 'ativo' ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-green-400 text-[10px] sm:text-xs flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                            Rodada {p.rodada_atual || 1}
+                participantesFiltrados.map((p, idx) => {
+                  const posicao = p.posicao || (idx + 1);
+                  return (
+                    <div key={p.id} className="flex justify-between items-center py-2 border-b border-white/5">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${
+                          posicao === 1 ? 'text-yellow-400' :
+                          posicao === 2 ? 'text-gray-300' :
+                          posicao === 3 ? 'text-orange-400' :
+                          'text-gray-500'
+                        }`}>{posicao}</span>
+                        <span className="text-white text-sm sm:text-base">{p.nome}</span>
+                        <button
+                          onClick={() => abrirHistorico(p)}
+                          className="text-gray-500 hover:text-yellow-500 transition"
+                          title="Ver histórico"
+                        >
+                          <History className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        {p.status === 'ativo' ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-green-400 text-[10px] sm:text-xs flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                              Rodada {p.rodada_atual || 1}
+                            </span>
+                            
+                            {p.palpite_atual && (modoTeste || p.palpite_atual_visivel) && (
+                              <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                🎯 {p.palpite_atual}
+                              </span>
+                            )}
+                            {p.palpite_atual && !modoTeste && !p.palpite_atual_visivel && (
+                              <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
+                                <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-red-400 text-[10px] sm:text-xs flex items-center gap-1">
+                            <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
                           </span>
-                          
-                          {p.palpite_atual && (modoTeste || p.palpite_atual_visivel) && (
-                            <span className="text-yellow-400 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                              🎯 {p.palpite_atual}
-                            </span>
-                          )}
-                          {p.palpite_atual && !modoTeste && !p.palpite_atual_visivel && (
-                            <span className="text-gray-500 text-[9px] sm:text-[10px] flex items-center gap-0.5">
-                              <EyeOff className="w-2.5 h-2.5" /> Palpite oculto
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-red-400 text-[10px] sm:text-xs flex items-center gap-1">
-                          <XCircle className="w-3 h-3" /> Eliminado (Rodada {p.rodada_eliminacao})
-                        </span>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

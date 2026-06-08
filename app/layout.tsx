@@ -17,8 +17,29 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "Estrategista da Copa 2026",
-  description: "O bolão mais estratégico da Copa do Mundo",
+  description: "O bolão mais estratégico da Copa do Mundo. 1 erro e você está fora!",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Estrategista da Copa 2026",
+    description: "Participe do bolão mais estratégico da Copa do Mundo! 1 erro = eliminação. Teste sua sorte e ganhe prêmios!",
+    url: "https://estrategistadacopa.com.br",
+    siteName: "Estrategista da Copa",
+    images: [
+      {
+        url: "https://estrategistadacopa.com.br/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Logo Estrategista da Copa 2026",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Estrategista da Copa 2026",
+    description: "O bolão mais estratégico da Copa do Mundo. 1 erro e você está fora!",
+    images: ["https://estrategistadacopa.com.br/icon-512.png"],
+  },
 };
 
 export default function RootLayout({

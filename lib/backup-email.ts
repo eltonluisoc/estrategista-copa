@@ -90,7 +90,7 @@ Documento gerado automaticamente pelo sistema Estrategista da Copa
 
     // Enviar email
     await resend.emails.send({
-      from: 'Estrategista da Copa <backup@estrategistadacopa.com.br>',
+      from: 'Estrategista da Copa <onboarding@resend.dev>',
       to: [process.env.ADMIN_EMAIL!],
       subject: `📊 Backup Diário - ${dataFormatada} - ${jogos.length} jogos, ${totalPalpites} palpites`,
       text: conteudo,

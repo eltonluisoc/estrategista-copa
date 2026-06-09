@@ -52,7 +52,7 @@ export default function Home() {
       const configData = await configRes.json();
       const modoTesteData = await modoTesteRes.json();
 
-      setParticipantes(participantesData);
+      setParticipantes(Array.isArray(participantesData) ? participantesData : (participantesData.ranking || []));
       setEstatisticas({
         total: statsData.total || 0,
         ativos: statsData.ativos || 0,

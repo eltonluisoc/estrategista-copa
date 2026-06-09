@@ -68,14 +68,12 @@ export default function PremiacaoPage() {
 
         {/* Prêmio Total */}
         <div className="bg-gradient-to-br from-yellow-900/30 to-yellow-950/30 rounded-2xl p-8 mb-8 text-center border border-yellow-500/30">
-          <h2 className="text-yellow-500 font-semibold text-sm uppercase tracking-wider mb-2">PRÊMIO TOTAL</h2>
-          <div className="text-5xl font-bold text-yellow-400 mb-2">
-            {formatarMoeda(premioTotal)}
-          </div>
-          <p className="text-gray-400">
-            Arrecadação total: {formatarMoeda(totalAprovados * 20)}
-          </p>
-        </div>
+  <h2 className="text-yellow-500 font-semibold text-sm uppercase tracking-wider mb-2">PRÊMIO TOTAL</h2>
+  <div className="text-5xl font-bold text-yellow-400 mb-2">
+    {formatarMoeda(premioTotal)}
+  </div>
+  {/* Linha de arrecadação removida propositalmente */}
+</div>
 
         {/* Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">

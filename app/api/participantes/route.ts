@@ -4,9 +4,18 @@ import { NextResponse } from 'next/server'
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
-  // Buscar todos os participantes (exceto admin)
+  // Buscar participantes aprovados (pagamento confirmado OU aprovado manualmente por cartão)
+  const participantesAprovados = await sql`
+    SELECT COUNT(*) as total
+    FROM usuarios 
+    WHERE email != 'admin@estrategista.com' AND (aprovado = true OR pagamento_confirmado = true)
+  `
+  
+  const totalAprovados = participantesAprovados[0]?.total || 0
+  
+  // Buscar todos os participantes (exceto admin) - INCLUINDO aprovado e pagamento_confirmado
   const participantes = await sql`
-    SELECT id, nome, email, status, rodada_eliminacao, rodada_atual, pontos
+    SELECT id, nome, email, status, rodada_eliminacao, rodada_atual, pontos, aprovado, pagamento_confirmado
     FROM usuarios 
     WHERE email != 'admin@estrategista.com'
   `
@@ -31,7 +40,9 @@ export async function GET() {
         rodada_atual: p.rodada_atual || null, 
         acertos: [], 
         palpite_atual: null, 
-        palpite_atual_visivel: false 
+        palpite_atual_visivel: false,
+        aprovado: p.aprovado,
+        pagamento_confirmado: p.pagamento_confirmado
       }
     }
     
@@ -44,7 +55,9 @@ export async function GET() {
         rodada_atual: p.rodada_atual || 1, 
         acertos: [], 
         palpite_atual: null, 
-        palpite_atual_visivel: false 
+        palpite_atual_visivel: false,
+        aprovado: p.aprovado,
+        pagamento_confirmado: p.pagamento_confirmado
       }
     }
     
@@ -81,19 +94,22 @@ export async function GET() {
       rodada_atual: p.rodada_atual || 1,
       acertos,
       palpite_atual: palpiteAtual,
-      palpite_atual_visivel: palpiteAtualVisivel
+      palpite_atual_visivel: palpiteAtualVisivel,
+      aprovado: p.aprovado,
+      pagamento_confirmado: p.pagamento_confirmado
     }
   })
   
-  // ============================================================
-  // CORREÇÃO DO RANKING - Posição por rodada alcançada
-  // ============================================================
+  // Separar ativos (APENAS quem pagou - por PIX ou cartão - E está ativo)
+  const ativos = participantesComDados.filter((p: any) => {
+    const estaAtivo = p.status === 'ativo';
+    const pagou = (p.aprovado === true || p.pagamento_confirmado === true);
+    return estaAtivo && pagou;
+  });
   
-  // 1. Separar ativos (ainda na competição) e eliminados
-  const ativos = participantesComDados.filter((p: any) => p.status === 'ativo');
   const eliminados = participantesComDados.filter((p: any) => p.status === 'eliminado');
   
-  // 2. Ordenar ativos por rodada_atual (maior primeiro) e depois por pontos
+  // Ordenar ativos
   ativos.sort((a: any, b: any) => {
     if (a.rodada_atual !== b.rodada_atual) {
       return b.rodada_atual - a.rodada_atual;
@@ -101,20 +117,19 @@ export async function GET() {
     return (b.pontos || 0) - (a.pontos || 0);
   });
   
-  // 3. Ordenar eliminados por rodada_eliminacao (maior primeiro = quem foi mais longe)
+  // Ordenar eliminados
   eliminados.sort((a: any, b: any) => {
     return (b.rodada_eliminacao || 0) - (a.rodada_eliminacao || 0);
   });
   
-  // 4. Calcular posição para cada participante
+  // Calcular posições
   const todosParticipantes = [...ativos, ...eliminados];
   const ordenados = [];
   
   for (let i = 0; i < todosParticipantes.length; i++) {
     const atual = todosParticipantes[i];
-    let posicao = i + 1; // posição padrão
+    let posicao = i + 1;
     
-    // Verificar se tem participantes empatados antes
     if (i > 0) {
       const anterior = todosParticipantes[i - 1];
       const valorAtual = atual.status === 'ativo' 
@@ -125,7 +140,6 @@ export async function GET() {
         : anterior.rodada_eliminacao;
       
       if (valorAtual === valorAnterior) {
-        // Mesma posição do anterior
         posicao = ordenados[i - 1].posicao;
       }
     }
@@ -136,5 +150,21 @@ export async function GET() {
     });
   }
   
-  return NextResponse.json(ordenados)
+  // Calcular quem está em primeiro (maior rodada entre ativos)
+  let qtosEmPrimeiro = 0;
+  let maiorRodada = 0;
+  
+  if (ativos.length > 0) {
+    maiorRodada = Math.max(...ativos.map((a: any) => a.rodada_atual));
+    qtosEmPrimeiro = ativos.filter((a: any) => a.rodada_atual === maiorRodada).length;
+  }
+  
+  // Retornar com os campos para premiação
+  return NextResponse.json({
+    ranking: ordenados,
+    totalAprovados: totalAprovados,
+    participantesAtivos: ativos.length,
+    maiorRodada: maiorRodada,
+    qtosEmPrimeiro: qtosEmPrimeiro
+  });
 }

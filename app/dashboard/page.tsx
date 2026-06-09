@@ -193,7 +193,7 @@ export default function DashboardPage() {
     
     setTimes(timesData);
     setPalpites(palpitesData);
-    setRankingParticipantes(rankingData);
+    setRankingParticipantes(rankingData.ranking || []);  // CORRIGIDO
     
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
@@ -424,13 +424,13 @@ export default function DashboardPage() {
                 {editandoNome ? (
                   <div className="flex items-center gap-2">
                     <input
-  type="text"
-  value={novoNome}
-  onChange={(e) => setNovoNome(e.target.value)}
-  placeholder="Digite seu novo nome"
-  className="bg-black/50 border border-yellow-500 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
-  autoFocus
-/>
+                      type="text"
+                      value={novoNome}
+                      onChange={(e) => setNovoNome(e.target.value)}
+                      placeholder="Digite seu novo nome"
+                      className="bg-black/50 border border-yellow-500 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+                      autoFocus
+                    />
                     <button
                       onClick={atualizarNome}
                       className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-xs transition"

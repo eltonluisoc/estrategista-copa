@@ -35,6 +35,18 @@ const timesLista = [
 
 const VALOR_INSCRICAO = 20;
 
+// Função para formatar data sem conversão de fuso (igual ao dashboard)
+const formatarDataAdmin = (dataStr: string) => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -465,7 +477,7 @@ export default function AdminPage() {
                           {fase.jogos.map((jogo) => (
                             <tr key={jogo.id} className={`border-b border-white/5 hover:bg-white/5 ${jogo.finalizado ? 'opacity-60' : ''}`}>
                               <td className="py-2 px-2 text-gray-400 whitespace-nowrap text-xs">
-                                {new Date(jogo.data_hora).toLocaleString('pt-BR')}
+                                {formatarDataAdmin(jogo.data_hora)}
                               </td>
                               <td className="py-2 px-2">
                                 <div className="text-white text-sm">{jogo.time_casa} x {jogo.time_fora}</div>
@@ -515,7 +527,7 @@ export default function AdminPage() {
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                       </table>
                     </div>
                   )}
                 </div>

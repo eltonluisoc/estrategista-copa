@@ -100,8 +100,25 @@ export async function GET() {
     }
   })
   
+  // ========== DEBUG: Identificar quem está sendo excluído ==========
+  console.log('\n=== VERIFICANDO QUEM NÃO É CONSIDERADO ATIVO ===');
+  participantesComDados.forEach((p: any) => {
+    const estaAtivo = p.status === 'ativo';
+    const pagou = (p.aprovado === true || p.pagamento_confirmado === true);
+    if (estaAtivo && !pagou) {
+      console.log(`❌ EXCLUÍDO: ${p.nome} - aprovado: ${p.aprovado}, pag_conf: ${p.pagamento_confirmado}`);
+    }
+    if (!estaAtivo) {
+      console.log(`❌ NÃO ESTÁ ATIVO: ${p.nome} - status: ${p.status}`);
+    }
+    if (estaAtivo && pagou) {
+      console.log(`✅ INCLUÍDO: ${p.nome}`);
+    }
+  });
+  console.log('==================================================\n');
+  
   // Separar ativos (APENAS quem pagou - por PIX ou cartão - E está ativo)
-  const ativos = participantesComDados.filter((p: any) => {
+  const ativosFiltrados = participantesComDados.filter((p: any) => {
     const estaAtivo = p.status === 'ativo';
     const pagou = (p.aprovado === true || p.pagamento_confirmado === true);
     return estaAtivo && pagou;
@@ -110,7 +127,7 @@ export async function GET() {
   const eliminados = participantesComDados.filter((p: any) => p.status === 'eliminado');
   
   // Ordenar ativos
-  ativos.sort((a: any, b: any) => {
+  ativosFiltrados.sort((a: any, b: any) => {
     if (a.rodada_atual !== b.rodada_atual) {
       return b.rodada_atual - a.rodada_atual;
     }
@@ -123,7 +140,7 @@ export async function GET() {
   });
   
   // Calcular posições
-  const todosParticipantes = [...ativos, ...eliminados];
+  const todosParticipantes = [...ativosFiltrados, ...eliminados];
   const ordenados = [];
   
   for (let i = 0; i < todosParticipantes.length; i++) {
@@ -154,16 +171,25 @@ export async function GET() {
   let qtosEmPrimeiro = 0;
   let maiorRodada = 0;
   
-  if (ativos.length > 0) {
-    maiorRodada = Math.max(...ativos.map((a: any) => a.rodada_atual));
-    qtosEmPrimeiro = ativos.filter((a: any) => a.rodada_atual === maiorRodada).length;
+  if (ativosFiltrados.length > 0) {
+    const rodadasValidas = ativosFiltrados
+      .map((a: any) => a.rodada_atual)
+      .filter((r: any) => r !== null && r !== undefined && typeof r === 'number');
+    
+    if (rodadasValidas.length > 0) {
+      maiorRodada = Math.max(...rodadasValidas);
+      qtosEmPrimeiro = ativosFiltrados.filter((a: any) => a.rodada_atual === maiorRodada).length;
+    } else {
+      maiorRodada = 1;
+      qtosEmPrimeiro = ativosFiltrados.length;
+    }
   }
   
   // Retornar com os campos para premiação
   return NextResponse.json({
     ranking: ordenados,
     totalAprovados: totalAprovados,
-    participantesAtivos: ativos.length,
+    participantesAtivos: ativosFiltrados.length,
     maiorRodada: maiorRodada,
     qtosEmPrimeiro: qtosEmPrimeiro
   });

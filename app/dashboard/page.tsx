@@ -194,7 +194,7 @@ export default function DashboardPage() {
     
     setTimes(timesData);
     setPalpites(palpitesData);
-    setRankingParticipantes(rankingData.ranking || []);  // CORRIGIDO
+    setRankingParticipantes(rankingData.ranking || []);
     
   } catch (error) {
     console.error('Erro ao carregar dados:', error);
@@ -409,6 +409,20 @@ export default function DashboardPage() {
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
+  // Função para converter UTC para Horário de Brasília
+  const formatarData = (dataStr: string) => {
+    if (!dataStr) return '';
+    const dataUTC = new Date(dataStr);
+    const dia = dataUTC.getUTCDate().toString().padStart(2, '0');
+    const mes = (dataUTC.getUTCMonth() + 1).toString().padStart(2, '0');
+    const ano = dataUTC.getUTCFullYear();
+    let horaBrasilia = dataUTC.getUTCHours() - 3;
+    if (horaBrasilia < 0) horaBrasilia += 24;
+    const hora = horaBrasilia.toString().padStart(2, '0');
+    const minuto = dataUTC.getUTCMinutes().toString().padStart(2, '0');
+    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
@@ -493,7 +507,8 @@ export default function DashboardPage() {
             <div className="text-gray-400 text-xs">Participantes Eliminados</div>
           </div>
         </div>
-{/* Banner do WhatsApp - Versão Reduzida */}
+
+        {/* Banner do WhatsApp - Versão Reduzida */}
         <div className="mb-4">
           <a
             href="https://chat.whatsapp.com/EIfDnDerrlG5bChfSY2wDK"
@@ -612,34 +627,24 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {jogosRodada.map((jogo) => {
-                    const formatarData = (dataStr: string) => {
-                      if (!dataStr) return '';
-                      const dataLimpa = dataStr.replace('Z', '').split('T');
-                      const dataPartes = dataLimpa[0].split('-');
-                      const horaPartes = dataLimpa[1] ? dataLimpa[1].split(':') : ['00', '00'];
-                      return `${dataPartes[2]}/${dataPartes[1]}/${dataPartes[0]} ${horaPartes[0]}:${horaPartes[1]}`;
-                    };
-
-                    return (
-                      <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <div>
-                            <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-                            <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className="text-gray-500 text-xs">
-                              📅 {formatarData(jogo.data_hora)}
-                            </span>
-                            <span className="text-yellow-600/70 text-[10px]">
-                              ⏰ Prazo: {formatarData(jogo.prazo)}
-                            </span>
-                          </div>
+                  {jogosRodada.map((jogo) => (
+                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-gray-500 text-xs">
+                            📅 {formatarData(jogo.data_hora)}
+                          </span>
+                          <span className="text-yellow-600/70 text-[10px]">
+                            ⏰ Prazo: {formatarData(jogo.prazo)}
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -652,9 +657,9 @@ export default function DashboardPage() {
       <footer className="text-center py-6 text-gray-500 text-xs border-t border-white/10 mt-6">
         <p>Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
         <div className="mt-1"><p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p><p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p></div>
-      <div className="mt-4 flex justify-center">
-  <WhatsAppButton />
-</div>
+        <div className="mt-4 flex justify-center">
+          <WhatsAppButton />
+        </div>
       </footer>
     </div>
   );

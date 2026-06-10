@@ -36,7 +36,7 @@ const timesLista = [
 const VALOR_INSCRICAO = 20;
 
 // Função para formatar data sem conversão de fuso (igual ao dashboard)
-const formatarDataAdmin = (dataStr: string) => {
+const formatarDataAdmin = (dataStr) => {
   if (!dataStr) return '';
   const data = new Date(dataStr);
   const dia = data.getDate().toString().padStart(2, '0');

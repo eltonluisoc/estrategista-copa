@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
 import { GlobalHeader } from '@/components/GlobalHeader';
 import Link from 'next/link';
+import { WhatsAppBanner, WhatsAppButton } from '@/components/WhatsAppButton';
 
 interface Usuario {
   id: string;
@@ -492,6 +493,20 @@ export default function DashboardPage() {
             <div className="text-gray-400 text-xs">Participantes Eliminados</div>
           </div>
         </div>
+{/* Banner do WhatsApp - Versão Reduzida */}
+        <div className="mb-4">
+          <a
+            href="https://chat.whatsapp.com/EIfDnDerrlG5bChfSY2wDK"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/40 rounded-lg px-4 py-2 transition-all duration-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+              <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+            </svg>
+            <span className="text-green-400 text-sm font-medium">📱 Entre no grupo do WhatsApp</span>
+          </a>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           
@@ -637,6 +652,9 @@ export default function DashboardPage() {
       <footer className="text-center py-6 text-gray-500 text-xs border-t border-white/10 mt-6">
         <p>Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
         <div className="mt-1"><p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p><p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p></div>
+      <div className="mt-4 flex justify-center">
+  <WhatsAppButton />
+</div>
       </footer>
     </div>
   );

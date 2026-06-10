@@ -156,6 +156,18 @@ export default function Home() {
             <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Eliminados</div>
           </div>
         </div>
+        {/* Botão WhatsApp */}
+        <div className="flex justify-center mb-8">
+          <a
+            href="https://chat.whatsapp.com/EIfDnDerrlG5bChfSY2wDK"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-all duration-300 shadow-lg text-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-circle"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg>
+            📱 Entrar no Grupo do WhatsApp
+          </a>
+        </div>
 
         {/* Ranking dos Participantes */}
         <div className="bg-white/5 rounded-xl border border-white/10 mb-8 overflow-hidden">

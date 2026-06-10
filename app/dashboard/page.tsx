@@ -411,18 +411,15 @@ export default function DashboardPage() {
 
   // Função para converter UTC para Horário de Brasília
   const formatarData = (dataStr: string) => {
-    if (!dataStr) return '';
-    const dataUTC = new Date(dataStr);
-    const dia = dataUTC.getUTCDate().toString().padStart(2, '0');
-    const mes = (dataUTC.getUTCMonth() + 1).toString().padStart(2, '0');
-    const ano = dataUTC.getUTCFullYear();
-    let horaBrasilia = dataUTC.getUTCHours() - 3;
-    if (horaBrasilia < 0) horaBrasilia += 24;
-    const hora = horaBrasilia.toString().padStart(2, '0');
-    const minuto = dataUTC.getUTCMinutes().toString().padStart(2, '0');
-    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
-  };
-
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />

@@ -412,13 +412,13 @@ export default function DashboardPage() {
   // Função para converter UTC para Horário de Brasília
   const formatarData = (dataStr: string) => {
   if (!dataStr) return '';
-  const data = new Date(dataStr);
-  const dia = data.getDate().toString().padStart(2, '0');
-  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-  const ano = data.getFullYear();
-  const hora = data.getHours().toString().padStart(2, '0');
-  const minuto = data.getMinutes().toString().padStart(2, '0');
-  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+  // Remove o 'Z' e trata como string pura
+  const semZ = dataStr.replace('Z', '').replace(/-\d{2}:\d{2}$/, '');
+  const partes = semZ.split(/[T\-:]/);
+  if (partes.length >= 5) {
+    return `${partes[2]}/${partes[1]}/${partes[0]} ${partes[3]}:${partes[4]}`;
+  }
+  return dataStr;
 };
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">

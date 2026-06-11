@@ -410,22 +410,16 @@ export default function DashboardPage() {
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
   // FUNÇÃO CORRIGIDA: Converte UTC para Brasília
-  const formatarData = (dataStr: string) => {
-    if (!dataStr) return '';
-    const data = new Date(dataStr);
-    // Pega os valores em UTC
-    let hora = data.getUTCHours();
-    let dia = data.getUTCDate();
-    const mes = data.getUTCMonth() + 1;
-    const ano = data.getUTCFullYear();
-    const minuto = data.getUTCMinutes();
-    
-    // Converte para Brasília (UTC-3)
-    hora = hora - 3;
-    if (hora < 0) {
-      hora += 24;
-      dia = dia - 1;
-    }
+  const formatarData = (dataStr) => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
     
     const diaStr = dia.toString().padStart(2, '0');
     const mesStr = mes.toString().padStart(2, '0');

@@ -5,54 +5,28 @@ import { createHash } from 'crypto';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const sql = neon(process.env.DATABASE_URL!);
 
-// Função para converter UTC para Brasília (igual ao dashboard)
+// Função para formatar data diretamente (banco já está em Brasília)
 const formatarDataBrasilia = (dataStr: string): string => {
   if (!dataStr) return '';
   const data = new Date(dataStr);
-  let hora = data.getUTCHours();
-  let dia = data.getUTCDate();
-  const mes = data.getUTCMonth() + 1;
-  const ano = data.getUTCFullYear();
-  const minuto = data.getUTCMinutes();
-  
-  // Converte para Brasília (UTC-3)
-  hora = hora - 3;
-  if (hora < 0) {
-    hora += 24;
-    dia = dia - 1;
-  }
-  
-  const diaStr = dia.toString().padStart(2, '0');
-  const mesStr = mes.toString().padStart(2, '0');
-  const horaStr = hora.toString().padStart(2, '0');
-  const minutoStr = minuto.toString().padStart(2, '0');
-  
-  return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
 };
 
-// Função para formatar prazo (23:59 do dia anterior em Brasília)
+// Função para formatar prazo (mesma lógica)
 const formatarPrazoBrasilia = (dataStr: string): string => {
   if (!dataStr) return '';
   const data = new Date(dataStr);
-  let hora = data.getUTCHours();
-  let dia = data.getUTCDate();
-  const mes = data.getUTCMonth() + 1;
-  const ano = data.getUTCFullYear();
-  const minuto = data.getUTCMinutes();
-  
-  // Converte para Brasília (UTC-3)
-  hora = hora - 3;
-  if (hora < 0) {
-    hora += 24;
-    dia = dia - 1;
-  }
-  
-  const diaStr = dia.toString().padStart(2, '0');
-  const mesStr = mes.toString().padStart(2, '0');
-  const horaStr = hora.toString().padStart(2, '0');
-  const minutoStr = minuto.toString().padStart(2, '0');
-  
-  return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
 };
 
 interface Jogo {
@@ -74,7 +48,7 @@ export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?
     const hoje = new Date();
     const dataFormatada = hoje.toLocaleDateString('pt-BR');
 
-    // Buscar jogos do dia (considerando horário de Brasília)
+    // Buscar jogos do dia
     const inicioDia = new Date(hoje);
     inicioDia.setHours(0, 0, 0, 0);
     const fimDia = new Date(hoje);

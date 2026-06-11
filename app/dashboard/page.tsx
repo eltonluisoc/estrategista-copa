@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Trophy, LogOut, Calendar, CheckCircle, XCircle, AlertCircle, ChevronRight, Edit, Users, RefreshCw, TrendingUp, Award, Shield } from 'lucide-react';
 import { GlobalHeader } from '@/components/GlobalHeader';
 import Link from 'next/link';
-import { WhatsAppBanner, WhatsAppButton } from '@/components/WhatsAppButton';
 
 interface Usuario {
   id: string;
@@ -409,24 +408,16 @@ export default function DashboardPage() {
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
-  // FUNÇÃO CORRIGIDA: Converte UTC para Brasília
-  const formatarData = (dataStr) => {
-  if (!dataStr) return '';
-  const data = new Date(dataStr);
-  const dia = data.getDate().toString().padStart(2, '0');
-  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-  const ano = data.getFullYear();
-  const hora = data.getHours().toString().padStart(2, '0');
-  const minuto = data.getMinutes().toString().padStart(2, '0');
-  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
-};
-    
-    const diaStr = dia.toString().padStart(2, '0');
-    const mesStr = mes.toString().padStart(2, '0');
-    const horaStr = hora.toString().padStart(2, '0');
-    const minutoStr = minuto.toString().padStart(2, '0');
-    
-    return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+  // FUNÇÃO CORRIGIDA: Formata data diretamente (banco já está em Brasília após conversão)
+  const formatarData = (dataStr: string) => {
+    if (!dataStr) return '';
+    const data = new Date(dataStr);
+    const dia = data.getDate().toString().padStart(2, '0');
+    const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+    const ano = data.getFullYear();
+    const hora = data.getHours().toString().padStart(2, '0');
+    const minuto = data.getMinutes().toString().padStart(2, '0');
+    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
   };
 
   return (
@@ -662,9 +653,22 @@ export default function DashboardPage() {
       </div>
       <footer className="text-center py-6 text-gray-500 text-xs border-t border-white/10 mt-6">
         <p>Estrategista da Copa 2026 | O bolão mais estratégico da Copa do Mundo</p>
-        <div className="mt-1"><p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p><p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p></div>
+        <div className="mt-1">
+          <p>Desenvolvido por <span className="text-yellow-500">Elton Luis</span></p>
+          <p className="text-xs mt-0.5">© {new Date().getFullYear()} - Todos os direitos reservados</p>
+        </div>
         <div className="mt-4 flex justify-center">
-          <WhatsAppButton />
+          <a
+            href="https://chat.whatsapp.com/EIfDnDerrlG5bChfSY2wDK"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/>
+            </svg>
+            <span>📱 Entrar no Grupo do WhatsApp</span>
+          </a>
         </div>
       </footer>
     </div>

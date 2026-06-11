@@ -410,15 +410,15 @@ export default function DashboardPage() {
 
   // FUNÇÃO CORRIGIDA: Formata data diretamente (banco já está em Brasília após conversão)
   const formatarData = (dataStr: string) => {
-    if (!dataStr) return '';
-    const data = new Date(dataStr);
-    const dia = data.getDate().toString().padStart(2, '0');
-    const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-    const ano = data.getFullYear();
-    const hora = data.getHours().toString().padStart(2, '0');
-    const minuto = data.getMinutes().toString().padStart(2, '0');
-    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
-  };
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getUTCDate().toString().padStart(2, '0');
+  const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getUTCFullYear();
+  const hora = data.getUTCHours().toString().padStart(2, '0');
+  const minuto = data.getUTCMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">

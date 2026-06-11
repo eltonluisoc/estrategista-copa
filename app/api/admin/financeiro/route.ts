@@ -25,8 +25,11 @@ export async function GET() {
     
     const totalAprovados = parseInt(aprovados[0].total)
     const totalArrecadado = totalAprovados * valorInscricao
-    const custos = totalArrecadado * 0.10
-    const premio = totalArrecadado - custos
+    
+    // REGRA CORRETA: Primeiro subtrai R$ 20,00, depois 10%
+    const comDescontoFix = totalArrecadado - valorInscricao
+    const custos = comDescontoFix * 0.10
+    const premio = comDescontoFix - custos
     
     return NextResponse.json({
       totalArrecadado,

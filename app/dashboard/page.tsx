@@ -409,17 +409,32 @@ export default function DashboardPage() {
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
-  // Função para converter UTC para Horário de Brasília
+  // FUNÇÃO CORRIGIDA: Converte UTC para Brasília
   const formatarData = (dataStr: string) => {
-  if (!dataStr) return '';
-  // Remove o 'Z' e trata como string pura
-  const semZ = dataStr.replace('Z', '').replace(/-\d{2}:\d{2}$/, '');
-  const partes = semZ.split(/[T\-:]/);
-  if (partes.length >= 5) {
-    return `${partes[2]}/${partes[1]}/${partes[0]} ${partes[3]}:${partes[4]}`;
-  }
-  return dataStr;
-};
+    if (!dataStr) return '';
+    const data = new Date(dataStr);
+    // Pega os valores em UTC
+    let hora = data.getUTCHours();
+    let dia = data.getUTCDate();
+    const mes = data.getUTCMonth() + 1;
+    const ano = data.getUTCFullYear();
+    const minuto = data.getUTCMinutes();
+    
+    // Converte para Brasília (UTC-3)
+    hora = hora - 3;
+    if (hora < 0) {
+      hora += 24;
+      dia = dia - 1;
+    }
+    
+    const diaStr = dia.toString().padStart(2, '0');
+    const mesStr = mes.toString().padStart(2, '0');
+    const horaStr = hora.toString().padStart(2, '0');
+    const minutoStr = minuto.toString().padStart(2, '0');
+    
+    return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />

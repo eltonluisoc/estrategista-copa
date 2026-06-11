@@ -408,17 +408,17 @@ export default function DashboardPage() {
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
-  // FUNÇÃO CORRIGIDA: Formata data diretamente (banco já está em Brasília após conversão)
+  // FUNÇÃO CORRIGIDA: Usa UTC para formatar sem conversão de fuso
   const formatarData = (dataStr: string) => {
-  if (!dataStr) return '';
-  const data = new Date(dataStr);
-  const dia = data.getUTCDate().toString().padStart(2, '0');
-  const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
-  const ano = data.getUTCFullYear();
-  const hora = data.getUTCHours().toString().padStart(2, '0');
-  const minuto = data.getUTCMinutes().toString().padStart(2, '0');
-  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
-};
+    if (!dataStr) return '';
+    const data = new Date(dataStr);
+    const dia = data.getUTCDate().toString().padStart(2, '0');
+    const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
+    const ano = data.getUTCFullYear();
+    const hora = data.getUTCHours().toString().padStart(2, '0');
+    const minuto = data.getUTCMinutes().toString().padStart(2, '0');
+    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -617,25 +617,6 @@ export default function DashboardPage() {
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-yellow-500" /> Jogos da Rodada {rodadaAtual}
               </h3>
-              
-              {/* ========== DEBUG ========== */}
-              <div className="bg-red-500/20 p-3 mb-4 rounded-lg text-xs font-mono overflow-auto">
-                <div className="text-white font-bold mb-2">🔍 DEBUG INFO:</div>
-                <div>Rodada Atual: <span className="text-yellow-400">{rodadaAtual}</span></div>
-                <div>Total de jogos na rodada: <span className="text-yellow-400">{jogosRodada.length}</span></div>
-                <div className="mt-2 text-white font-bold">Dados brutos dos jogos:</div>
-                {jogosRodada.map(j => (
-                  <div key={j.id} className="border-t border-white/20 mt-1 pt-1">
-                    <div>Jogo: {j.time_casa} x {j.time_fora}</div>
-                    <div>data_hora bruto: <span className="text-green-400">{j.data_hora}</span></div>
-                    <div>formatado: <span className="text-blue-400">{formatarData(j.data_hora)}</span></div>
-                    <div>prazo bruto: <span className="text-green-400">{j.prazo}</span></div>
-                    <div>prazo formatado: <span className="text-blue-400">{formatarData(j.prazo)}</span></div>
-                  </div>
-                ))}
-              </div>
-              {/* ========== FIM DEBUG ========== */}
-
               {jogosRodada.length === 0 ? (
                 <div className="text-center py-6">
                   <p className="text-gray-400 text-sm">Nenhum jogo disponível no momento.</p>

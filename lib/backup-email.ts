@@ -5,22 +5,86 @@ import { createHash } from 'crypto';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const sql = neon(process.env.DATABASE_URL!);
 
-export async function enviarBackupPorEmail() {
+// Função para converter UTC para Brasília (igual ao dashboard)
+const formatarDataBrasilia = (dataStr: string): string => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  let hora = data.getUTCHours();
+  let dia = data.getUTCDate();
+  const mes = data.getUTCMonth() + 1;
+  const ano = data.getUTCFullYear();
+  const minuto = data.getUTCMinutes();
+  
+  // Converte para Brasília (UTC-3)
+  hora = hora - 3;
+  if (hora < 0) {
+    hora += 24;
+    dia = dia - 1;
+  }
+  
+  const diaStr = dia.toString().padStart(2, '0');
+  const mesStr = mes.toString().padStart(2, '0');
+  const horaStr = hora.toString().padStart(2, '0');
+  const minutoStr = minuto.toString().padStart(2, '0');
+  
+  return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+};
+
+// Função para formatar prazo (23:59 do dia anterior em Brasília)
+const formatarPrazoBrasilia = (dataStr: string): string => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  let hora = data.getUTCHours();
+  let dia = data.getUTCDate();
+  const mes = data.getUTCMonth() + 1;
+  const ano = data.getUTCFullYear();
+  const minuto = data.getUTCMinutes();
+  
+  // Converte para Brasília (UTC-3)
+  hora = hora - 3;
+  if (hora < 0) {
+    hora += 24;
+    dia = dia - 1;
+  }
+  
+  const diaStr = dia.toString().padStart(2, '0');
+  const mesStr = mes.toString().padStart(2, '0');
+  const horaStr = hora.toString().padStart(2, '0');
+  const minutoStr = minuto.toString().padStart(2, '0');
+  
+  return `${diaStr}/${mesStr}/${ano} ${horaStr}:${minutoStr}`;
+};
+
+interface Jogo {
+  id: number;
+  time_casa: string;
+  time_fora: string;
+  data_hora: string;
+  prazo: string;
+}
+
+interface Palpite {
+  nome: string;
+  palpite: string;
+  data_palpite: string;
+}
+
+export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?: number; palpites?: number; error?: string }> {
   try {
     const hoje = new Date();
     const dataFormatada = hoje.toLocaleDateString('pt-BR');
 
-    // Buscar jogos do dia
+    // Buscar jogos do dia (considerando horário de Brasília)
     const inicioDia = new Date(hoje);
     inicioDia.setHours(0, 0, 0, 0);
     const fimDia = new Date(hoje);
     fimDia.setHours(23, 59, 59, 999);
 
     const jogos = await sql`
-      SELECT id, time_casa, time_fora, data_hora
+      SELECT id, time_casa, time_fora, data_hora, prazo
       FROM jogos 
       WHERE data_hora BETWEEN ${inicioDia.toISOString()} AND ${fimDia.toISOString()}
-    `;
+    ` as Jogo[];
 
     // Buscar palpites do dia
     let palpitesTexto = '';
@@ -44,14 +108,15 @@ export async function enviarBackupPorEmail() {
           WHERE p.rodada = (SELECT rodada FROM jogos WHERE id = ${jogo.id})
             AND (t.nome = ${jogo.time_casa} OR t.nome = ${jogo.time_fora})
           ORDER BY u.nome
-        `;
+        ` as Palpite[];
 
         if (palpites.length > 0) {
           totalPalpites += palpites.length;
           palpitesTexto += `\n📋 ${jogo.time_casa} x ${jogo.time_fora}\n`;
-          palpitesTexto += `   📅 ${new Date(jogo.data_hora).toLocaleString('pt-BR')}\n`;
+          palpitesTexto += `   📅 ${formatarDataBrasilia(jogo.data_hora)}\n`;
+          palpitesTexto += `   ⏰ Prazo: ${formatarPrazoBrasilia(jogo.prazo)}\n`;
           palpitesTexto += `   ${'-'.repeat(40)}\n`;
-          palpites.forEach((p, idx) => {
+          palpites.forEach((p: Palpite, idx: number) => {
             palpitesTexto += `   ${idx + 1}. ${p.nome} → ${p.palpite}\n`;
           });
           palpitesTexto += `\n`;
@@ -59,11 +124,11 @@ export async function enviarBackupPorEmail() {
       }
     }
 
-    // Calcular hash ANTES de montar o conteúdo do email
+    // Calcular hash
     const hashBase = `${dataFormatada}|${jogos.length}|${totalPalpites}|${totalAtivos}`;
     const hash = createHash('sha256').update(hashBase).digest('hex').substring(0, 16);
 
-    // Montar conteúdo do email (sem referência circular)
+    // Montar conteúdo do email
     const conteudo = `
 📊 BACKUP DIÁRIO - ESTRATEGISTA DA COPA 2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

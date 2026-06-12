@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       VALUES (${usuario.id}, ${token}, ${expiresAt.toISOString()})
     `;
 
-    const resetLink = `http://localhost:3000/redefinir-senha?token=${token}`;
+    const resetLink = `${process.env.NEXTAUTH_URL}/redefinir-senha?token=${token}`;
 
     await resend.emails.send({
       from: 'Estrategista da Copa <noreply@estrategistadacopa.com.br>',

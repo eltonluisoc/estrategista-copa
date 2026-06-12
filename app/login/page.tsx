@@ -20,7 +20,6 @@ function LoginContent() {
     const pagamento = searchParams.get('pagamento');
     if (pagamento === 'sucesso') {
       setMensagemSucesso('✅ Pagamento confirmado! Faça login para acessar sua conta.');
-      // Limpa o parâmetro da URL sem recarregar
       window.history.replaceState({}, '', '/login');
     }
   }, [searchParams]);
@@ -125,7 +124,17 @@ function LoginContent() {
           </button>
         </form>
 
-        <p className="text-center mt-6 text-sm text-gray-500">
+        {/* Link para Esqueci minha senha */}
+        <div className="text-center mt-4">
+          <Link 
+            href="/esqueci-senha" 
+            className="text-yellow-500 hover:text-yellow-400 text-sm transition"
+          >
+            Esqueci minha senha
+          </Link>
+        </div>
+
+        <p className="text-center mt-4 text-sm text-gray-500">
           Não tem conta?{' '}
           <Link href="/cadastro" className="text-yellow-500 hover:text-yellow-400 transition">
             Cadastre-se

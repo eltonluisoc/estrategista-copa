@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     let eliminados = 0
     const eliminadosIds = []
 
+    // 1. ELIMINAR QUEM ERROU O PALPITE (ou EMPATE)
     if (vencedor === 'EMPATE') {
       for (const p of palpitesDesteJogo) {
         await sql`
@@ -105,10 +106,36 @@ export async function POST(request: Request) {
       }
     }
 
-    // ========== REMOVIDO: Eliminação por "não palpitou" ==========
-    // A eliminação de quem não palpitou na rodada só deve ocorrer
-    // quando TODOS os jogos da rodada forem finalizados.
-    // ==============================================================
+    // 2. VERIFICAR SE ESTE FOI O ÚLTIMO JOGO DA RODADA
+    const jogosRestantes = await sql`
+      SELECT COUNT(*) as total
+      FROM jogos 
+      WHERE rodada = ${rodada} AND finalizado = false
+    `
+
+    if (jogosRestantes[0].total === 0) {
+      // Último jogo da rodada - eliminar quem NÃO FEZ NENHUM PALPITE na rodada
+      const participantesSemPalpite = await sql`
+        SELECT u.id
+        FROM usuarios u
+        WHERE u.status = 'ativo'
+          AND u.email != 'admin@estrategista.com'
+          AND NOT EXISTS (
+            SELECT 1 FROM palpites p 
+            WHERE p.usuario_id = u.id AND p.rodada = ${rodada}
+          )
+      `
+
+      for (const p of participantesSemPalpite) {
+        await sql`
+          UPDATE usuarios 
+          SET status = 'eliminado', rodada_eliminacao = ${rodada} 
+          WHERE id = ${p.id}
+        `
+        eliminados++
+        eliminadosIds.push(p.id)
+      }
+    }
 
     // Registrar log de eliminação
     if (eliminadosIds.length > 0) {

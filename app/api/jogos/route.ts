@@ -7,8 +7,32 @@ const sql = neon(databaseUrl || '')
 // GET - Buscar todos os jogos
 export async function GET() {
   try {
-    const jogos = await sql`SELECT * FROM jogos ORDER BY data_hora`
-    return NextResponse.json(jogos)
+    const jogos = await sql`
+      SELECT 
+        id, 
+        time_casa, 
+        time_fora, 
+        data_hora, 
+        grupo, 
+        finalizado, 
+        rodada, 
+        prazo, 
+        vencedor_id, 
+        gols_casa, 
+        gols_fora,
+        to_char(prazo, 'YYYY-MM-DD HH24:MI:SS') as prazo_sem_tz
+      FROM jogos 
+      ORDER BY data_hora
+    `
+    
+    // Formatar a resposta para remover o 'Z' do prazo
+    const jogosFormatados = jogos.map(jogo => ({
+      ...jogo,
+      prazo: jogo.prazo_sem_tz || jogo.prazo,
+      prazo_sem_tz: undefined
+    }))
+    
+    return NextResponse.json(jogosFormatados)
   } catch (error) {
     console.error('Erro ao buscar jogos:', error)
     return NextResponse.json({ error: 'Erro ao buscar jogos' }, { status: 500 })
@@ -21,20 +45,17 @@ export async function POST(request: Request) {
     const { jogoId, vencedor, rodada } = await request.json()
 
     if (vencedor === 'EMPATE') {
-      // Em caso de empate: jogo finalizado sem vencedor
       await sql`
         UPDATE jogos 
         SET finalizado = true, vencedor_id = NULL
         WHERE id = ${jogoId}
       `
       
-      // Buscar todos os palpites desta rodada
       const todosPalpites = await sql`
         SELECT p.usuario_id FROM palpites p
         WHERE p.rodada = ${rodada}
       `
       
-      // Eliminar todos que palpitaram nesta rodada (pois empatou)
       for (const p of todosPalpites) {
         await sql`
           UPDATE usuarios 
@@ -45,21 +66,18 @@ export async function POST(request: Request) {
       
       return NextResponse.json({ eliminados: todosPalpites.length })
     } else {
-      // Vitória de um time
       await sql`
         UPDATE jogos 
         SET vencedor_id = (SELECT id FROM times WHERE nome = ${vencedor}), finalizado = true 
         WHERE id = ${jogoId}
       `
 
-      // Buscar palpites que erraram (escolheram o time perdedor)
       const palpitesErrados = await sql`
         SELECT p.usuario_id FROM palpites p
         WHERE p.rodada = ${rodada} 
         AND p.time_id != (SELECT id FROM times WHERE nome = ${vencedor})
       `
 
-      // Eliminar quem errou
       for (const p of palpitesErrados) {
         await sql`
           UPDATE usuarios 

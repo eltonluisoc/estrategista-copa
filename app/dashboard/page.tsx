@@ -408,17 +408,29 @@ export default function DashboardPage() {
   const participantesEliminados = rankingParticipantes.filter((p) => p.status === 'eliminado').length;
   const rodadaExibicao = usuario?.status === 'ativo' ? (usuario?.rodada_atual || rodadaAtual) : (usuario?.rodada_eliminacao || '?');
 
-  // FUNÇÃO CORRIGIDA: Usa UTC para formatar sem conversão de fuso
-  const formatarData = (dataStr: string) => {
-    if (!dataStr) return '';
-    const data = new Date(dataStr);
-    const dia = data.getUTCDate().toString().padStart(2, '0');
-    const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
-    const ano = data.getUTCFullYear();
-    const hora = data.getUTCHours().toString().padStart(2, '0');
-    const minuto = data.getUTCMinutes().toString().padStart(2, '0');
-    return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
-  };
+  // Para data_hora (jogo - está em UTC)
+const formatarDataJogo = (dataStr: string) => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getUTCDate().toString().padStart(2, '0');
+  const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getUTCFullYear();
+  const hora = data.getUTCHours().toString().padStart(2, '0');
+  const minuto = data.getUTCMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
+
+// Para prazo (está em Brasília)
+const formatarDataPrazo = (dataStr: string) => {
+  if (!dataStr) return '';
+  const data = new Date(dataStr);
+  const dia = data.getDate().toString().padStart(2, '0');
+  const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+  const ano = data.getFullYear();
+  const hora = data.getHours().toString().padStart(2, '0');
+  const minuto = data.getMinutes().toString().padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -624,25 +636,25 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {jogosRodada.map((jogo) => (
-                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-gray-500 text-xs">
-                            📅 {formatarData(jogo.data_hora)}
-                          </span>
-                          <span className="text-yellow-600/70 text-[10px]">
-                            ⏰ Prazo: {formatarData(jogo.prazo)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+  {jogosRodada.map((jogo) => (
+    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div>
+          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-gray-500 text-xs">
+            📅 {formatarDataJogo(jogo.data_hora)}
+          </span>
+          <span className="text-yellow-600/70 text-[10px]">
+            ⏰ Prazo: {formatarDataPrazo(jogo.prazo)}
+          </span>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
               )}
             </div>
             <div className="bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">

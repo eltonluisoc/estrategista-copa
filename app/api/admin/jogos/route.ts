@@ -94,7 +94,7 @@ export async function POST(request: Request) {
           eliminados++
           eliminadosIds.push(p.usuario_id)
         } else {
-          // CORREÇÃO: Acertou - atualizar rodada_atual e pontos
+          // Acertou - atualizar rodada_atual e pontos
           await sql`
             UPDATE usuarios 
             SET rodada_atual = COALESCE(rodada_atual, 1) + 1, 
@@ -105,27 +105,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Eliminar participantes ativos que NÃO palpitaram nesta rodada
-    const participantesSemPalpite = await sql`
-      SELECT u.id
-      FROM usuarios u
-      WHERE u.status = 'ativo'
-        AND u.email != 'admin@estrategista.com'
-        AND NOT EXISTS (
-          SELECT 1 FROM palpites p 
-          WHERE p.usuario_id = u.id AND p.rodada = ${rodada}
-        )
-    `
-
-    for (const p of participantesSemPalpite) {
-      await sql`
-        UPDATE usuarios 
-        SET status = 'eliminado', rodada_eliminacao = ${rodada} 
-        WHERE id = ${p.id}
-      `
-      eliminados++
-      eliminadosIds.push(p.id)
-    }
+    // ========== REMOVIDO: Eliminação por "não palpitou" ==========
+    // A eliminação de quem não palpitou na rodada só deve ocorrer
+    // quando TODOS os jogos da rodada forem finalizados.
+    // ==============================================================
 
     // Registrar log de eliminação
     if (eliminadosIds.length > 0) {

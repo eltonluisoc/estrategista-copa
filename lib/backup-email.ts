@@ -5,7 +5,6 @@ import { createHash } from 'crypto';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const sql = neon(process.env.DATABASE_URL!);
 
-// Função para formatar data diretamente (banco já está em Brasília)
 const formatarDataBrasilia = (dataStr: string): string => {
   if (!dataStr) return '';
   const data = new Date(dataStr);
@@ -17,7 +16,6 @@ const formatarDataBrasilia = (dataStr: string): string => {
   return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
 };
 
-// Função para formatar prazo (mesma lógica)
 const formatarPrazoBrasilia = (dataStr: string): string => {
   if (!dataStr) return '';
   const data = new Date(dataStr);
@@ -43,26 +41,11 @@ interface Palpite {
   data_palpite: string;
 }
 
-export async function enviarBackupPorEmail(ignorarHorario: boolean = false): Promise<{ success: boolean; jogos?: number; palpites?: number; error?: string }> {
+export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?: number; palpites?: number; error?: string }> {
   try {
-    // ========== VALIDAÇÃO DE HORÁRIO (UTC) ==========
-    // Só valida se NÃO for chamada manual (ignorarHorario = false)
-    if (!ignorarHorario) {
-      const agora = new Date();
-      const horaUTC = agora.getUTCHours();
-      const minutoUTC = agora.getUTCMinutes();
-      
-      if (horaUTC !== 3 || minutoUTC !== 1) {
-        console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:01 UTC.`);
-        return { success: false, error: 'Horário não programado' };
-      }
-    }
-    // =================================================
-
     const hoje = new Date();
     const dataFormatada = hoje.toLocaleDateString('pt-BR');
 
-    // Buscar jogos do dia
     const inicioDia = new Date(hoje);
     inicioDia.setHours(0, 0, 0, 0);
     const fimDia = new Date(hoje);
@@ -74,11 +57,9 @@ export async function enviarBackupPorEmail(ignorarHorario: boolean = false): Pro
       WHERE data_hora BETWEEN ${inicioDia.toISOString()} AND ${fimDia.toISOString()}
     ` as Jogo[];
 
-    // Buscar palpites do dia
     let palpitesTexto = '';
     let totalPalpites = 0;
 
-    // Buscar total de participantes ativos
     const ativosResult = await sql`
       SELECT COUNT(*) as total FROM usuarios WHERE status = 'ativo' AND email != 'admin@estrategista.com'
     `;
@@ -112,11 +93,9 @@ export async function enviarBackupPorEmail(ignorarHorario: boolean = false): Pro
       }
     }
 
-    // Calcular hash
     const hashBase = `${dataFormatada}|${jogos.length}|${totalPalpites}|${totalAtivos}`;
     const hash = createHash('sha256').update(hashBase).digest('hex').substring(0, 16);
 
-    // Montar conteúdo do email
     const conteudo = `
 📊 BACKUP DIÁRIO - ESTRATEGISTA DA COPA 2026
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,7 +120,6 @@ ${palpitesTexto}
 Documento gerado automaticamente pelo sistema Estrategista da Copa
     `;
 
-    // Enviar email
     await resend.emails.send({
       from: 'Estrategista da Copa <onboarding@resend.dev>',
       to: [process.env.ADMIN_EMAIL!],

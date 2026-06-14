@@ -74,8 +74,8 @@ export async function GET() {
           })
         }
       } else {
-        const prazo = palpite.prazo ? new Date(palpite.prazo) : null
-        const prazoExpirado = prazo ? agora > prazo : false
+        // CORREÇÃO: Comparar timestamps diretamente (evita conversão de fuso)
+        const prazoExpirado = palpite.prazo ? new Date(palpite.prazo).getTime() <= new Date().getTime() : false
         
         if (prazoExpirado) {
           palpiteAtual = palpite.time_nome

@@ -20,16 +20,21 @@ export async function GET() {
     WHERE email != 'admin@estrategista.com'
   `
   
-  // Buscar palpites com resultados
+  // Buscar palpites com resultados (query corrigida com subconsulta para prazo)
   const palpites = await sql`
-  SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
-         j.vencedor_id, j.finalizado, j.prazo, j.gols_casa, j.gols_fora
-  FROM palpites p
-  JOIN times t ON p.time_id = t.id
-  LEFT JOIN jogos j ON j.rodada = p.rodada 
-    AND (j.time_casa = t.nome OR j.time_fora = t.nome)
-  ORDER BY p.rodada ASC, p.data_palpite ASC
-`
+    SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
+           j.vencedor_id, j.finalizado, 
+           COALESCE(
+             (SELECT prazo FROM jogos WHERE rodada = p.rodada AND time_casa = t.nome LIMIT 1),
+             (SELECT prazo FROM jogos WHERE rodada = p.rodada AND time_fora = t.nome LIMIT 1)
+           ) as prazo,
+           j.gols_casa, j.gols_fora
+    FROM palpites p
+    JOIN times t ON p.time_id = t.id
+    LEFT JOIN jogos j ON j.rodada = p.rodada 
+      AND (j.time_casa = t.nome OR j.time_fora = t.nome)
+    ORDER BY p.rodada ASC, p.data_palpite ASC
+  `
   
   const agora = new Date()
   

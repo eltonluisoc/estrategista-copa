@@ -19,6 +19,10 @@ export async function GET(request: Request) {
       t.nome as time_nome,
       j.finalizado,
       j.vencedor_id,
+      COALESCE(
+        (SELECT prazo FROM jogos WHERE rodada = p.rodada AND time_casa = t.nome LIMIT 1),
+        (SELECT prazo FROM jogos WHERE rodada = p.rodada AND time_fora = t.nome LIMIT 1)
+      ) as prazo,
       CASE 
         WHEN j.finalizado = true AND j.vencedor_id = p.time_id THEN 'Acertou'
         WHEN j.finalizado = true AND j.vencedor_id != p.time_id THEN 'Errou'

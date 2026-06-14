@@ -80,16 +80,16 @@ export async function GET() {
         }
       } else {
         // CORREÇÃO: Comparar timestamps diretamente (evita conversão de fuso)
-        const prazoExpirado = palpite.prazo ? new Date(palpite.prazo + ' UTC').getTime() <= new Date().getTime() : false
-        
-        if (prazoExpirado) {
-          palpiteAtual = palpite.time_nome
-          palpiteAtualVisivel = true
-        } else {
-          palpiteAtual = null
-          palpiteAtualVisivel = false
-        }
-        break
+        const prazoExpirado = palpite.prazo ? new Date(palpite.prazo).getTime() <= new Date().getTime() : false
+
+if (prazoExpirado) {
+  palpiteAtual = palpite.time_nome
+  palpiteAtualVisivel = true
+} else {
+  palpiteAtual = null
+  palpiteAtualVisivel = false
+}
+break
       }
     }
     

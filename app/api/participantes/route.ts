@@ -4,23 +4,19 @@ import { NextResponse } from 'next/server'
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
-  // Buscar participantes aprovados (pagamento confirmado OU aprovado manualmente por cartão)
   const participantesAprovados = await sql`
     SELECT COUNT(*) as total
     FROM usuarios 
     WHERE email != 'admin@estrategista.com' AND (aprovado = true OR pagamento_confirmado = true)
   `
-  
   const totalAprovados = participantesAprovados[0]?.total || 0
   
-  // Buscar todos os participantes (exceto admin) - INCLUINDO aprovado e pagamento_confirmado
   const participantes = await sql`
     SELECT id, nome, email, status, rodada_eliminacao, rodada_atual, pontos, aprovado, pagamento_confirmado
     FROM usuarios 
     WHERE email != 'admin@estrategista.com'
   `
   
-  // Buscar palpites com resultados (query corrigida com subconsulta para prazo)
   const palpites = await sql`
     SELECT p.usuario_id, p.rodada, p.time_id, t.nome as time_nome,
            j.vencedor_id, j.finalizado, 
@@ -36,7 +32,10 @@ export async function GET() {
     ORDER BY p.rodada ASC, p.data_palpite ASC
   `
   
-  const agora = new Date()
+  // Data/hora atual em Brasília para comparação com prazo
+  const agora = new Date();
+  const agoraBrasilia = new Date(agora.getTime() - 3 * 60 * 60 * 1000);
+  const agoraStr = agoraBrasilia.toISOString().slice(0, 19).replace('T', ' ');
   
   const participantesComDados = participantes.map((p: any) => {
     if (p.status === 'eliminado') {
@@ -79,17 +78,17 @@ export async function GET() {
           })
         }
       } else {
-        // CORREÇÃO: Comparar timestamps diretamente (evita conversão de fuso)
-        const prazoExpirado = palpite.prazo ? new Date(palpite.prazo).getTime() <= new Date().getTime() : false
-
-if (prazoExpirado) {
-  palpiteAtual = palpite.time_nome
-  palpiteAtualVisivel = true
-} else {
-  palpiteAtual = null
-  palpiteAtualVisivel = false
-}
-break
+        // COMPARAÇÃO SIMPLES: prazo (string) vs agora (string) - ambos em Brasília
+        const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
+        
+        if (prazoExpirado) {
+          palpiteAtual = palpite.time_nome
+          palpiteAtualVisivel = true
+        } else {
+          palpiteAtual = null
+          palpiteAtualVisivel = false
+        }
+        break
       }
     }
     
@@ -105,24 +104,6 @@ break
     }
   })
   
-  // ========== DEBUG: Identificar quem está sendo excluído ==========
-  console.log('\n=== VERIFICANDO QUEM NÃO É CONSIDERADO ATIVO ===');
-  participantesComDados.forEach((p: any) => {
-    const estaAtivo = p.status === 'ativo';
-    const pagou = (p.aprovado === true || p.pagamento_confirmado === true);
-    if (estaAtivo && !pagou) {
-      console.log(`❌ EXCLUÍDO: ${p.nome} - aprovado: ${p.aprovado}, pag_conf: ${p.pagamento_confirmado}`);
-    }
-    if (!estaAtivo) {
-      console.log(`❌ NÃO ESTÁ ATIVO: ${p.nome} - status: ${p.status}`);
-    }
-    if (estaAtivo && pagou) {
-      console.log(`✅ INCLUÍDO: ${p.nome}`);
-    }
-  });
-  console.log('==================================================\n');
-  
-  // Separar ativos (APENAS quem pagou - por PIX ou cartão - E está ativo)
   const ativosFiltrados = participantesComDados.filter((p: any) => {
     const estaAtivo = p.status === 'ativo';
     const pagou = (p.aprovado === true || p.pagamento_confirmado === true);
@@ -131,7 +112,6 @@ break
   
   const eliminados = participantesComDados.filter((p: any) => p.status === 'eliminado');
   
-  // Ordenar ativos
   ativosFiltrados.sort((a: any, b: any) => {
     if (a.rodada_atual !== b.rodada_atual) {
       return b.rodada_atual - a.rodada_atual;
@@ -139,12 +119,10 @@ break
     return (b.pontos || 0) - (a.pontos || 0);
   });
   
-  // Ordenar eliminados
   eliminados.sort((a: any, b: any) => {
     return (b.rodada_eliminacao || 0) - (a.rodada_eliminacao || 0);
   });
   
-  // Calcular posições
   const todosParticipantes = [...ativosFiltrados, ...eliminados];
   const ordenados = [];
   
@@ -172,7 +150,6 @@ break
     });
   }
   
-  // Calcular quem está em primeiro (maior rodada entre ativos)
   let qtosEmPrimeiro = 0;
   let maiorRodada = 0;
   
@@ -190,7 +167,6 @@ break
     }
   }
   
-  // Retornar com os campos para premiação
   return NextResponse.json({
     ranking: ordenados,
     totalAprovados: totalAprovados,

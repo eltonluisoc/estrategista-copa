@@ -78,8 +78,19 @@ export async function GET() {
     const palpitesFuturos = []
     
     for (const palpite of palpitesOrdenados) {
-      const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
-      console.log(`  Palpite: ${palpite.time_nome} (rodada ${palpite.rodada}) - prazo: ${palpite.prazo} - expirado: ${prazoExpirado} - finalizado: ${palpite.finalizado}`);
+      // Converte prazo para string no formato 'YYYY-MM-DD HH:MM:SS'
+      let prazoStr = null
+      if (palpite.prazo) {
+        try {
+          prazoStr = new Date(palpite.prazo).toISOString().slice(0, 19).replace('T', ' ')
+        } catch (e) {
+          prazoStr = palpite.prazo
+        }
+      }
+      const prazoExpirado = prazoStr ? prazoStr <= agoraStr : false
+      
+      console.log(`  Palpite: ${palpite.time_nome} (rodada ${palpite.rodada}) - prazoStr: ${prazoStr} - expirado: ${prazoExpirado} - finalizado: ${palpite.finalizado}`);
+      
       if (prazoExpirado) {
         palpitesExpirados.push(palpite)
       } else {

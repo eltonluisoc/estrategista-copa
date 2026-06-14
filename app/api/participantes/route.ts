@@ -69,8 +69,21 @@ export async function GET() {
     let palpiteAtual = null
     let palpiteAtualVisivel = false
     
+    // Separa palpites em dois grupos: prazo expirado e prazo futuro
+    const palpitesExpirados = []
+    const palpitesFuturos = []
+    
     for (const palpite of palpitesOrdenados) {
-      // Jogo finalizado com vencedor
+      const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
+      if (prazoExpirado) {
+        palpitesExpirados.push(palpite)
+      } else {
+        palpitesFuturos.push(palpite)
+      }
+    }
+    
+    // 1. Processa palpites com prazo expirado (devem aparecer no ranking)
+    for (const palpite of palpitesExpirados) {
       if (palpite.finalizado === true && palpite.vencedor_id) {
         if (palpite.time_id === palpite.vencedor_id) {
           acertos.push({
@@ -78,22 +91,32 @@ export async function GET() {
             time: palpite.time_nome
           })
         }
-        // CONTINUA para o próximo palpite
-      } 
-      // Jogo ainda não finalizado (ou finalizado sem vencedor/empate)
-      else {
-        // Verifica se o prazo já expirou
-        const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
-        
-        if (prazoExpirado) {
-          palpiteAtual = palpite.time_nome
-          palpiteAtualVisivel = true
+        // Continua para o próximo palpite expirado (pode ter mais acertos)
+      } else {
+        // Primeiro palpite expirado não finalizado: mostra no ranking
+        palpiteAtual = palpite.time_nome
+        palpiteAtualVisivel = true
+        break
+      }
+    }
+    
+    // 2. Se nenhum palpite expirado foi encontrado, processa os futuros
+    if (palpiteAtual === null && palpitesFuturos.length > 0) {
+      for (const palpite of palpitesFuturos) {
+        if (palpite.finalizado === true && palpite.vencedor_id) {
+          if (palpite.time_id === palpite.vencedor_id) {
+            acertos.push({
+              rodada: palpite.rodada,
+              time: palpite.time_nome
+            })
+          }
+          // Continua para o próximo palpite futuro
         } else {
+          // Primeiro palpite futuro não finalizado: NÃO mostra no ranking
           palpiteAtual = null
           palpiteAtualVisivel = false
+          break
         }
-        // SAI do loop no primeiro palpite não finalizado
-        break
       }
     }
     

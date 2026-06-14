@@ -69,18 +69,25 @@ export async function GET() {
     let palpiteAtual = null
     let palpiteAtualVisivel = false
     
+    // ========== LOGS DE DEBUG ==========
+    console.log(`\n=== PROCESSANDO ${p.nome} ===`);
+    console.log(`Palpites do usuário: ${palpitesOrdenados.length}`);
+    
     // Separa palpites em dois grupos: prazo expirado e prazo futuro
     const palpitesExpirados = []
     const palpitesFuturos = []
     
     for (const palpite of palpitesOrdenados) {
       const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
+      console.log(`  Palpite: ${palpite.time_nome} (rodada ${palpite.rodada}) - prazo: ${palpite.prazo} - expirado: ${prazoExpirado} - finalizado: ${palpite.finalizado}`);
       if (prazoExpirado) {
         palpitesExpirados.push(palpite)
       } else {
         palpitesFuturos.push(palpite)
       }
     }
+    
+    console.log(`  Expirados: ${palpitesExpirados.length} - Futuros: ${palpitesFuturos.length}`);
     
     // 1. Processa palpites com prazo expirado (devem aparecer no ranking)
     for (const palpite of palpitesExpirados) {
@@ -96,6 +103,7 @@ export async function GET() {
         // Primeiro palpite expirado não finalizado: mostra no ranking
         palpiteAtual = palpite.time_nome
         palpiteAtualVisivel = true
+        console.log(`  >>> Palpite atual (expirado): ${palpiteAtual}`);
         break
       }
     }
@@ -115,10 +123,14 @@ export async function GET() {
           // Primeiro palpite futuro não finalizado: NÃO mostra no ranking
           palpiteAtual = null
           palpiteAtualVisivel = false
+          console.log(`  >>> Palpite atual (futuro): ${palpiteAtual}`);
           break
         }
       }
     }
+    
+    console.log(`  Resultado final - palpite_atual: ${palpiteAtual}, visivel: ${palpiteAtualVisivel}`);
+    console.log(`====================================\n`);
     
     return { 
       ...p, 

@@ -70,6 +70,7 @@ export async function GET() {
     let palpiteAtualVisivel = false
     
     for (const palpite of palpitesOrdenados) {
+      // Jogo finalizado com vencedor
       if (palpite.finalizado === true && palpite.vencedor_id) {
         if (palpite.time_id === palpite.vencedor_id) {
           acertos.push({
@@ -77,8 +78,11 @@ export async function GET() {
             time: palpite.time_nome
           })
         }
-      } else {
-        // COMPARAÇÃO SIMPLES: prazo (string) vs agora (string) - ambos em Brasília
+        // CONTINUA para o próximo palpite
+      } 
+      // Jogo ainda não finalizado (ou finalizado sem vencedor/empate)
+      else {
+        // Verifica se o prazo já expirou
         const prazoExpirado = palpite.prazo ? palpite.prazo <= agoraStr : false
         
         if (prazoExpirado) {
@@ -88,6 +92,7 @@ export async function GET() {
           palpiteAtual = null
           palpiteAtualVisivel = false
         }
+        // SAI do loop no primeiro palpite não finalizado
         break
       }
     }
@@ -173,5 +178,5 @@ export async function GET() {
     participantesAtivos: ativosFiltrados.length,
     maiorRodada: maiorRodada,
     qtosEmPrimeiro: qtosEmPrimeiro
-  });
+  })
 }

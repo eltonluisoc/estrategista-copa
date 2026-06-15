@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Trophy, LogOut, LogIn, Home, Users, Shield, Award } from 'lucide-react';
+import { Trophy, LogOut, LogIn, Home, Users, Shield, Award, BarChart3 } from 'lucide-react';
 
 export function GlobalHeader() {
   const { data: session } = useSession();
@@ -34,6 +34,11 @@ export function GlobalHeader() {
 
               <Link href="/premiacao" className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
                 <Award className="w-4 h-4" /> Premiação
+              </Link>
+
+              {/* NOVO LINK EVOLUÇÃO */}
+              <Link href="/evolucao" className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
+                <BarChart3 className="w-4 h-4" /> Evolução
               </Link>
 
               {session ? (

@@ -18,7 +18,8 @@ export default function EvolucaoPage() {
   const [stats, setStats] = useState<RodadaStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalInicial, setTotalInicial] = useState(0);
-  const [totalFinal, setTotalFinal] = useState(0);
+  const [totalAtivos, setTotalAtivos] = useState(0);
+  const [totalEliminadosReais, setTotalEliminadosReais] = useState(0);
 
   useEffect(() => {
     carregarDados();
@@ -31,52 +32,61 @@ export default function EvolucaoPage() {
       const data = await res.json();
       const participantes = data.ranking || [];
       
-      // Calcular estatísticas por rodada
-      const ativosPorRodada: { [key: number]: number } = {};
-      const eliminadosPorRodada: { [key: number]: number } = {};
+      // Dados reais
+      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
+      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
+      const totalParticipantes = participantes.length;
       
-      // Inicializar rodadas 1 a 8
-      for (let i = 1; i <= 8; i++) {
-        ativosPorRodada[i] = 0;
-        eliminadosPorRodada[i] = 0;
-      }
+      setTotalInicial(totalParticipantes);
+      setTotalAtivos(participantesAtivos);
+      setTotalEliminadosReais(participantesEliminados);
       
-      // Contar participantes por rodada
-      participantes.forEach((p: any) => {
-        if (p.status === 'ativo') {
-          const rodada = p.rodada_atual || 1;
-          if (rodada <= 8) ativosPorRodada[rodada]++;
-        } else if (p.status === 'eliminado') {
-          const rodada = p.rodada_eliminacao || 1;
-          if (rodada <= 8) eliminadosPorRodada[rodada]++;
-        }
-      });
-      
-      // Calcular totais acumulados
-      let totalAtivos = 0;
-      let totalEliminadosAcumulado = 0;
+      // Calcular estatísticas APENAS para rodada 1 (já que estamos nela)
+      // As outras rodadas serão preenchidas com base em PROJEÇÃO ou mantidas como "?"
       const statsCalculadas: RodadaStats[] = [];
       
-      for (let i = 1; i <= 8; i++) {
-        totalAtivos = ativosPorRodada[i];
-        totalEliminadosAcumulado += eliminadosPorRodada[i];
+      // Rodada 1 (atual)
+      const ativosRodada1 = participantesAtivos + participantesEliminados; // Todos que começaram
+      const eliminadosRodada1 = participantesEliminados;
+      const percentualRodada1 = (ativosRodada1 / totalParticipantes * 100).toFixed(1);
+      
+      statsCalculadas.push({
+        rodada: 1,
+        ativos: ativosRodada1,
+        eliminados: eliminadosRodada1,
+        totalEliminados: eliminadosRodada1,
+        variacao: 0,
+        percentual: parseFloat(percentualRodada1)
+      });
+      
+      // Rodadas 2 a 8 - usar dados reais se existirem, senão mostrar 0 ou "?"
+      for (let i = 2; i <= 8; i++) {
+        // Verificar se há participantes com rodada_atual >= i (sobreviventes)
+        const sobreviventes = participantes.filter((p: any) => 
+          p.status === 'ativo' && (p.rodada_atual || 1) >= i
+        ).length;
         
-        const variacao = i === 1 ? 0 : (ativosPorRodada[i] - ativosPorRodada[i-1]);
-        const percentual = (totalAtivos / (participantes.length) * 100).toFixed(1);
+        const eliminadosNestaRodada = participantes.filter((p: any) => 
+          p.status === 'eliminado' && p.rodada_eliminacao === i
+        ).length;
+        
+        const totalEliminadosAteRodada = participantes.filter((p: any) => 
+          p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
+        ).length;
+        
+        const variacao = statsCalculadas[i-2]?.ativos - sobreviventes;
         
         statsCalculadas.push({
           rodada: i,
-          ativos: totalAtivos,
-          eliminados: eliminadosPorRodada[i],
-          totalEliminados: totalEliminadosAcumulado,
+          ativos: sobreviventes,
+          eliminados: eliminadosNestaRodada,
+          totalEliminados: totalEliminadosAteRodada,
           variacao: variacao,
-          percentual: parseFloat(percentual)
+          percentual: totalParticipantes > 0 ? parseFloat((sobreviventes / totalParticipantes * 100).toFixed(1)) : 0
         });
       }
       
       setStats(statsCalculadas);
-      setTotalInicial(statsCalculadas[0]?.ativos || 0);
-      setTotalFinal(statsCalculadas[statsCalculadas.length - 1]?.ativos || 0);
       
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -96,8 +106,7 @@ export default function EvolucaoPage() {
     );
   }
 
-  const totalEliminados = totalInicial - totalFinal;
-  const taxaEliminacao = totalInicial > 0 ? ((totalEliminados / totalInicial) * 100).toFixed(0) : 0;
+  const taxaEliminacao = totalInicial > 0 ? ((totalEliminadosReais / totalInicial) * 100).toFixed(0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -128,12 +137,12 @@ export default function EvolucaoPage() {
           </div>
           <div className="bg-gradient-to-br from-green-900/20 to-green-950/20 rounded-xl p-3 sm:p-4 text-center border border-green-500/20">
             <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-green-400 mx-auto mb-1" />
-            <div className="text-xl sm:text-2xl font-bold text-green-400">{totalFinal}</div>
-            <div className="text-gray-400 text-[10px] sm:text-xs">Finalistas</div>
+            <div className="text-xl sm:text-2xl font-bold text-green-400">{totalAtivos}</div>
+            <div className="text-gray-400 text-[10px] sm:text-xs">Ainda na Competição</div>
           </div>
           <div className="bg-gradient-to-br from-red-900/20 to-red-950/20 rounded-xl p-3 sm:p-4 text-center border border-red-500/20">
             <Award className="w-5 h-5 sm:w-6 sm:h-6 text-red-400 mx-auto mb-1" />
-            <div className="text-xl sm:text-2xl font-bold text-red-400">{totalEliminados}</div>
+            <div className="text-xl sm:text-2xl font-bold text-red-400">{totalEliminadosReais}</div>
             <div className="text-gray-400 text-[10px] sm:text-xs">Eliminados</div>
           </div>
           <div className="bg-gradient-to-br from-blue-900/20 to-blue-950/20 rounded-xl p-3 sm:p-4 text-center border border-blue-500/20">
@@ -143,7 +152,7 @@ export default function EvolucaoPage() {
           </div>
         </div>
 
-        {/* Linha do Tempo - OPÇÃO 1 CORRIGIDA */}
+        {/* Linha do Tempo - APENAS RODADAS COM DADOS REAIS */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8 overflow-x-auto">
           <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-yellow-500" />
@@ -152,37 +161,44 @@ export default function EvolucaoPage() {
           
           <div className="timeline-wrapper" style={{ minWidth: '700px' }}>
             <div className="timeline-track">
-              {stats.map((item, index) => (
-                <div key={item.rodada} className="timeline-node">
-                  {/* Círculo - NÃO CORTADO */}
-                  <div className="timeline-dot-wrapper">
-                    <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''}`}>
-                      <span>{item.rodada}</span>
+              {stats.map((item, index) => {
+                // Só mostrar dados reais até a rodada atual (onde há dados)
+                const temDadosReais = item.ativos > 0 || item.eliminados > 0 || item.rodada === 1;
+                
+                return (
+                  <div key={item.rodada} className="timeline-node">
+                    <div className="timeline-dot-wrapper">
+                      <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''}`}>
+                        <span>{item.rodada}</span>
+                      </div>
+                      {index < stats.length - 1 && (
+                        <div className="timeline-connector"></div>
+                      )}
                     </div>
-                    {/* Linha conectora */}
-                    {index < stats.length - 1 && (
-                      <div className="timeline-connector"></div>
-                    )}
+                    
+                    <div className="timeline-info">
+                      <div className="timeline-rodada">RODADA {item.rodada}</div>
+                      {temDadosReais ? (
+                        <>
+                          <div className="timeline-ativos">{item.ativos}</div>
+                          <div className="timeline-ativos-label">ativos</div>
+                          {item.eliminados > 0 && (
+                            <div className="timeline-eliminados">{item.eliminados} elim.</div>
+                          )}
+                          {item.variacao < 0 && (
+                            <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="timeline-placeholder">—</div>
+                      )}
+                      {item.rodada === 1 && (
+                        <div className="timeline-badge-start">🎯 INÍCIO</div>
+                      )}
+                    </div>
                   </div>
-                  
-                  {/* Informações */}
-                  <div className="timeline-info">
-                    <div className="timeline-rodada">RODADA {item.rodada}</div>
-                    <div className="timeline-ativos">{item.ativos}</div>
-                    <div className="timeline-ativos-label">ativos</div>
-                    <div className="timeline-eliminados">{item.eliminados} elim.</div>
-                    {item.variacao < 0 && (
-                      <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
-                    )}
-                    {item.rodada === 1 && (
-                      <div className="timeline-badge-start">🎯 INÍCIO</div>
-                    )}
-                    {item.rodada === stats.length && (
-                      <div className="timeline-badge-end">🏆 FINAL</div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
@@ -257,8 +273,8 @@ export default function EvolucaoPage() {
         }
         
         .timeline-node:hover .timeline-dot {
-          transform: scale(1.1);
-          box-shadow: 0 0 30px rgba(234, 179, 8, 0.5);
+          transform: scale(1.05);
+          box-shadow: 0 0 30px rgba(234, 179, 8, 0.4);
         }
         
         .timeline-dot span {
@@ -273,7 +289,7 @@ export default function EvolucaoPage() {
           left: 50%;
           width: 100%;
           height: 3px;
-          background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.2));
+          background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.1));
           transform: translateY(-50%);
           z-index: 1;
         }
@@ -314,6 +330,12 @@ export default function EvolucaoPage() {
           font-weight: 600;
         }
         
+        .timeline-placeholder {
+          font-size: 1rem;
+          color: #4a5568;
+          font-weight: 500;
+        }
+        
         .timeline-badge-start {
           font-size: 0.6rem;
           background: rgba(234, 179, 8, 0.15);
@@ -324,18 +346,8 @@ export default function EvolucaoPage() {
           margin-top: 10px;
         }
         
-        .timeline-badge-end {
-          font-size: 0.6rem;
-          background: rgba(234, 179, 8, 0.15);
-          color: #eab308;
-          padding: 3px 10px;
-          border-radius: 20px;
-          display: inline-block;
-          margin-top: 10px;
-        }
-        
         .shadow-glow {
-          box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+          box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
         }
         
         @media (max-width: 768px) {

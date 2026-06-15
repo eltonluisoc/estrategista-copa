@@ -9,25 +9,95 @@ interface RodadaStats {
   rodada: number;
   ativos: number;
   eliminados: number;
+  totalEliminados: number;
   variacao: number;
+  percentual: number;
 }
 
 export default function EvolucaoPage() {
-  const [stats, setStats] = useState<RodadaStats[]>([
-    { rodada: 1, ativos: 29, eliminados: 0, variacao: 0 },
-    { rodada: 2, ativos: 28, eliminados: 1, variacao: -1 },
-    { rodada: 3, ativos: 26, eliminados: 3, variacao: -2 },
-    { rodada: 4, ativos: 22, eliminados: 7, variacao: -4 },
-    { rodada: 5, ativos: 18, eliminados: 11, variacao: -4 },
-    { rodada: 6, ativos: 12, eliminados: 17, variacao: -6 },
-    { rodada: 7, ativos: 8, eliminados: 21, variacao: -4 },
-    { rodada: 8, ativos: 4, eliminados: 25, variacao: -4 },
-  ]);
+  const [stats, setStats] = useState<RodadaStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalInicial, setTotalInicial] = useState(0);
+  const [totalFinal, setTotalFinal] = useState(0);
 
-  const totalInicial = stats[0]?.ativos || 0;
-  const totalAtual = stats[stats.length - 1]?.ativos || 0;
-  const totalEliminados = stats[stats.length - 1]?.eliminados || 0;
-  const taxaEliminacao = ((totalEliminados / totalInicial) * 100).toFixed(0);
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = async () => {
+    try {
+      // Buscar participantes da API
+      const res = await fetch('/api/participantes');
+      const data = await res.json();
+      const participantes = data.ranking || [];
+      
+      // Calcular estatísticas por rodada
+      const ativosPorRodada: { [key: number]: number } = {};
+      const eliminadosPorRodada: { [key: number]: number } = {};
+      
+      // Inicializar rodadas 1 a 8
+      for (let i = 1; i <= 8; i++) {
+        ativosPorRodada[i] = 0;
+        eliminadosPorRodada[i] = 0;
+      }
+      
+      // Contar participantes por rodada
+      participantes.forEach((p: any) => {
+        if (p.status === 'ativo') {
+          const rodada = p.rodada_atual || 1;
+          if (rodada <= 8) ativosPorRodada[rodada]++;
+        } else if (p.status === 'eliminado') {
+          const rodada = p.rodada_eliminacao || 1;
+          if (rodada <= 8) eliminadosPorRodada[rodada]++;
+        }
+      });
+      
+      // Calcular totais acumulados
+      let totalAtivos = 0;
+      let totalEliminadosAcumulado = 0;
+      const statsCalculadas: RodadaStats[] = [];
+      
+      for (let i = 1; i <= 8; i++) {
+        totalAtivos = ativosPorRodada[i];
+        totalEliminadosAcumulado += eliminadosPorRodada[i];
+        
+        const variacao = i === 1 ? 0 : (ativosPorRodada[i] - ativosPorRodada[i-1]);
+        const percentual = (totalAtivos / (participantes.length) * 100).toFixed(1);
+        
+        statsCalculadas.push({
+          rodada: i,
+          ativos: totalAtivos,
+          eliminados: eliminadosPorRodada[i],
+          totalEliminados: totalEliminadosAcumulado,
+          variacao: variacao,
+          percentual: parseFloat(percentual)
+        });
+      }
+      
+      setStats(statsCalculadas);
+      setTotalInicial(statsCalculadas[0]?.ativos || 0);
+      setTotalFinal(statsCalculadas[statsCalculadas.length - 1]?.ativos || 0);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
+        <GlobalHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-yellow-500 text-xl">Carregando dados...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const totalEliminados = totalInicial - totalFinal;
+  const taxaEliminacao = totalInicial > 0 ? ((totalEliminados / totalInicial) * 100).toFixed(0) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -58,7 +128,7 @@ export default function EvolucaoPage() {
           </div>
           <div className="bg-gradient-to-br from-green-900/20 to-green-950/20 rounded-xl p-3 sm:p-4 text-center border border-green-500/20">
             <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-green-400 mx-auto mb-1" />
-            <div className="text-xl sm:text-2xl font-bold text-green-400">{totalAtual}</div>
+            <div className="text-xl sm:text-2xl font-bold text-green-400">{totalFinal}</div>
             <div className="text-gray-400 text-[10px] sm:text-xs">Finalistas</div>
           </div>
           <div className="bg-gradient-to-br from-red-900/20 to-red-950/20 rounded-xl p-3 sm:p-4 text-center border border-red-500/20">
@@ -74,42 +144,41 @@ export default function EvolucaoPage() {
         </div>
 
         {/* Linha do Tempo - OPÇÃO 1 CORRIGIDA */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8 overflow-x-auto">
+          <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-yellow-500" />
             Linha do Tempo
           </h2>
           
-          <div className="overflow-x-auto pb-4">
-            <div className="timeline-container" style={{ minWidth: '650px' }}>
+          <div className="timeline-wrapper" style={{ minWidth: '700px' }}>
+            <div className="timeline-track">
               {stats.map((item, index) => (
                 <div key={item.rodada} className="timeline-node">
-                  {/* Círculo */}
-                  <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''} ${item.rodada === stats.length ? 'timeline-dot-end' : ''}`}>
-                    <span>{item.rodada}</span>
+                  {/* Círculo - NÃO CORTADO */}
+                  <div className="timeline-dot-wrapper">
+                    <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''}`}>
+                      <span>{item.rodada}</span>
+                    </div>
+                    {/* Linha conectora */}
+                    {index < stats.length - 1 && (
+                      <div className="timeline-connector"></div>
+                    )}
                   </div>
-                  
-                  {/* Linha conectora */}
-                  {index < stats.length - 1 && (
-                    <div className="timeline-line"></div>
-                  )}
                   
                   {/* Informações */}
                   <div className="timeline-info">
                     <div className="timeline-rodada">RODADA {item.rodada}</div>
                     <div className="timeline-ativos">{item.ativos}</div>
                     <div className="timeline-ativos-label">ativos</div>
-                    <div className="timeline-eliminados">{item.eliminados} eliminados</div>
+                    <div className="timeline-eliminados">{item.eliminados} elim.</div>
                     {item.variacao < 0 && (
-                      <div className="timeline-variacao">
-                        ▼ {Math.abs(item.variacao)}
-                      </div>
+                      <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
                     )}
                     {item.rodada === 1 && (
-                      <div className="timeline-start-badge">🎯 INÍCIO</div>
+                      <div className="timeline-badge-start">🎯 INÍCIO</div>
                     )}
                     {item.rodada === stats.length && (
-                      <div className="timeline-end-badge">🏆 FINAL</div>
+                      <div className="timeline-badge-end">🏆 FINAL</div>
                     )}
                   </div>
                 </div>
@@ -118,7 +187,7 @@ export default function EvolucaoPage() {
           </div>
           
           {/* Legenda */}
-          <div className="flex flex-wrap justify-center gap-6 mt-6 pt-4 border-t border-white/10">
+          <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-white/10">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-glow"></div>
               <span className="text-gray-400 text-xs">Participantes Ativos</span>
@@ -129,97 +198,58 @@ export default function EvolucaoPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-0.5 bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
-              <span className="text-gray-400 text-xs">Progressão da Competição</span>
+              <span className="text-gray-400 text-xs">Progressão</span>
             </div>
           </div>
         </div>
 
-        {/* Tabela Detalhada */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Target className="w-5 h-5 text-yellow-500" />
-            Detalhamento por Rodada
-          </h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-2 text-gray-400 font-medium">Rodada</th>
-                  <th className="text-center py-3 px-2 text-gray-400 font-medium">Ativos</th>
-                  <th className="text-center py-3 px-2 text-gray-400 font-medium">Eliminados</th>
-                  <th className="text-center py-3 px-2 text-gray-400 font-medium">Variação</th>
-                  <th className="text-right py-3 px-2 text-gray-400 font-medium">% Restante</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.map((item) => {
-                  const percentual = ((item.ativos / totalInicial) * 100).toFixed(1);
-                  return (
-                    <tr key={item.rodada} className="border-b border-white/5 hover:bg-white/5 transition">
-                      <td className="py-3 px-2 font-semibold text-yellow-500">Rodada {item.rodada}</td>
-                      <td className="text-center py-3 px-2 text-green-400 font-medium">{item.ativos}</td>
-                      <td className="text-center py-3 px-2 text-red-400">{item.eliminados}</td>
-                      <td className="text-center py-3 px-2">
-                        {item.variacao < 0 ? (
-                          <span className="text-red-400">▼ {Math.abs(item.variacao)}</span>
-                        ) : (
-                          <span className="text-green-400">—</span>
-                        )}
-                      </td>
-                      <td className="text-right py-3 px-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-yellow-500 to-green-500 rounded-full"
-                              style={{ width: `${percentual}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-gray-400 text-xs w-10">{percentual}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         {/* Botão Voltar */}
-        <div className="text-center mt-8">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm"
-          >
+        <div className="text-center mt-4">
+          <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm">
             ← Voltar para o Ranking
           </Link>
         </div>
       </div>
 
       <style jsx>{`
-        .timeline-container {
-          display: flex;
+        .timeline-wrapper {
           position: relative;
-          justify-content: space-between;
+          width: 100%;
+          overflow-x: auto;
+        }
+        
+        .timeline-track {
+          display: flex;
+          justify-content: space-around;
+          align-items: flex-start;
+          gap: 0;
+          position: relative;
+          padding: 20px 0 30px 0;
         }
         
         .timeline-node {
           flex: 1;
           text-align: center;
+          min-width: 100px;
           position: relative;
         }
         
+        .timeline-dot-wrapper {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          margin-bottom: 20px;
+        }
+        
         .timeline-dot {
-          width: 56px;
-          height: 56px;
+          width: 60px;
+          height: 60px;
           background: linear-gradient(135deg, #1a3a2a, #0a1a10);
           border: 3px solid #eab308;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 16px;
           position: relative;
           z-index: 10;
           box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
@@ -232,37 +262,38 @@ export default function EvolucaoPage() {
         }
         
         .timeline-dot span {
-          font-size: 1.2rem;
-          font-weight: 700;
+          font-size: 1.3rem;
+          font-weight: 800;
           color: #eab308;
         }
         
-        .timeline-line {
+        .timeline-connector {
           position: absolute;
-          top: 28px;
+          top: 50%;
           left: 50%;
           width: 100%;
           height: 3px;
-          background: linear-gradient(90deg, rgba(234, 179, 8, 0.4), rgba(234, 179, 8, 0.1));
+          background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.2));
+          transform: translateY(-50%);
           z-index: 1;
         }
         
         .timeline-info {
-          margin-top: 12px;
+          margin-top: 8px;
         }
         
         .timeline-rodada {
           font-size: 0.7rem;
           color: #9ca3af;
           letter-spacing: 1px;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
         
         .timeline-ativos {
-          font-size: 1.6rem;
+          font-size: 1.8rem;
           font-weight: 800;
           color: #4ade80;
-          line-height: 1.2;
+          line-height: 1.1;
         }
         
         .timeline-ativos-label {
@@ -283,24 +314,24 @@ export default function EvolucaoPage() {
           font-weight: 600;
         }
         
-        .timeline-start-badge {
+        .timeline-badge-start {
           font-size: 0.6rem;
           background: rgba(234, 179, 8, 0.15);
           color: #eab308;
-          padding: 2px 8px;
+          padding: 3px 10px;
           border-radius: 20px;
           display: inline-block;
-          margin-top: 8px;
+          margin-top: 10px;
         }
         
-        .timeline-end-badge {
+        .timeline-badge-end {
           font-size: 0.6rem;
           background: rgba(234, 179, 8, 0.15);
           color: #eab308;
-          padding: 2px 8px;
+          padding: 3px 10px;
           border-radius: 20px;
           display: inline-block;
-          margin-top: 8px;
+          margin-top: 10px;
         }
         
         .shadow-glow {
@@ -309,17 +340,17 @@ export default function EvolucaoPage() {
         
         @media (max-width: 768px) {
           .timeline-dot {
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
           }
           .timeline-dot span {
-            font-size: 0.9rem;
-          }
-          .timeline-line {
-            top: 22px;
+            font-size: 1rem;
           }
           .timeline-ativos {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+          }
+          .timeline-node {
+            min-width: 80px;
           }
         }
       `}</style>

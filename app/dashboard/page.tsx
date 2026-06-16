@@ -260,7 +260,10 @@ export default function DashboardPage() {
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
     const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    if (prazoJogo && new Date(prazoJogo) < new Date()) {
+    // Converte prazo para string ISO e compara como string (sem fuso)
+const prazoStr = prazoJogo ? new Date(prazoJogo).toISOString().slice(0, 19).replace('T', ' ') : null;
+const agoraStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+if (prazoStr && prazoStr < agoraStr) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }

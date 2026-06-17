@@ -85,6 +85,11 @@ export default function Home() {
     return 'text-gray-500';
   };
 
+  // Calcular a maior rodada entre os ativos
+  const maiorRodada = participantes
+    .filter(p => p.status === 'ativo')
+    .reduce((max, p) => Math.max(max, p.rodada_atual || 1), 0);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
@@ -172,7 +177,7 @@ export default function Home() {
           </a>
         </div>
 
-        {/* Ranking dos Participantes - PALPITE ANTES DA RODADA */}
+        {/* Ranking dos Participantes */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 mb-8 overflow-hidden shadow-2xl">
           <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-500/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -226,24 +231,30 @@ export default function Home() {
                   const rodadaAtual = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || '?');
                   const posicaoClass = getPosicaoClass(posicao);
                   
+                  // Apenas quem está na MAIOR rodada e está ativo recebe destaque
+                  const isDestaque = p.status === 'ativo' && (p.rodada_atual || 1) === maiorRodada && maiorRodada > 1;
+                  
                   const temPalpite = p.palpite_atual && (modoTeste || p.palpite_atual_visivel);
                   const palpiteOculto = p.palpite_atual && !modoTeste && !p.palpite_atual_visivel;
                   
                   return (
                     <div 
                       key={p.id} 
-                      className="group flex flex-wrap justify-between items-center py-3 px-2 border-b border-white/5 hover:bg-white/5 rounded-lg transition-all duration-200 hover:translate-x-1"
+                      className={`group flex flex-wrap justify-between items-center py-3 px-2 border-b border-white/5 hover:bg-white/5 rounded-lg transition-all duration-200 hover:translate-x-1 ${
+                        isDestaque ? 'rodada-destaque' : ''
+                      }`}
                     >
-                      {/* Esquerda: Posição + Nome + Palpite (quando disponível) */}
+                      {/* Esquerda: Posição + Nome + Palpite */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${posicaoClass} transition-all duration-200 group-hover:scale-110`}>
                           {posicao}.
                         </span>
-                        <span className="text-white text-sm sm:text-base font-medium group-hover:text-yellow-400 transition-colors duration-200">
+                        <span className={`text-sm sm:text-base font-medium transition-colors duration-200 ${
+                          isDestaque ? 'text-yellow-400' : 'text-white'
+                        }`}>
                           {p.nome}
                         </span>
                         
-                        {/* PALPITE - ANTES DA RODADA */}
                         {temPalpite && (
                           <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-yellow-500/15 to-yellow-600/10 px-2.5 py-1 rounded-full text-xs font-medium text-yellow-400 border border-yellow-500/30 shadow-sm">
                             🎯 {p.palpite_atual}
@@ -263,14 +274,21 @@ export default function Home() {
                         )}
                       </div>
                       
-                      {/* Direita: Apenas a Rodada */}
+                      {/* Direita: Rodada */}
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-green-500/15 to-green-600/10 px-3 py-1.5 rounded-full text-xs font-semibold text-green-400 border border-green-500/30 shadow-sm transition-all duration-200 group-hover:scale-105">
-                          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                          Rodada {rodadaAtual}
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all duration-200 group-hover:scale-105 ${
+                          isDestaque 
+                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                            : p.status === 'eliminado'
+                            ? 'bg-red-500/15 text-red-400 border border-red-500/30'
+                            : 'bg-green-500/15 text-green-400 border border-green-500/30'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                            isDestaque ? 'bg-yellow-400' : p.status === 'eliminado' ? 'bg-red-400' : 'bg-green-400'
+                          }`}></span>
+                          {p.status === 'eliminado' ? 'Eliminado' : `Rodada ${rodadaAtual}`}
                         </span>
                         
-                        {/* Botão histórico */}
                         <button
                           onClick={() => abrirHistorico(p)}
                           className="text-gray-500 hover:text-yellow-500 transition-all duration-200 hover:scale-110"

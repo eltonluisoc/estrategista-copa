@@ -163,15 +163,28 @@ export async function GET() {
   
   const eliminados = participantesComDados.filter((p: any) => p.status === 'eliminado');
   
+  // ========== ORDENAÇÃO COM ORDEM ALFABÉTICA ==========
+  
+  // Ordenar ativos: rodada → pontos → nome (alfabético)
   ativosFiltrados.sort((a: any, b: any) => {
+    // 1. Maior rodada primeiro
     if (a.rodada_atual !== b.rodada_atual) {
       return b.rodada_atual - a.rodada_atual;
     }
-    return (b.pontos || 0) - (a.pontos || 0);
+    // 2. Maior pontos primeiro
+    if ((a.pontos || 0) !== (b.pontos || 0)) {
+      return (b.pontos || 0) - (a.pontos || 0);
+    }
+    // 3. Ordem alfabética (A-Z)
+    return a.nome.localeCompare(b.nome);
   });
   
+  // Ordenar eliminados: rodada_eliminacao → nome (alfabético)
   eliminados.sort((a: any, b: any) => {
-    return (b.rodada_eliminacao || 0) - (a.rodada_eliminacao || 0);
+    if (a.rodada_eliminacao !== b.rodada_eliminacao) {
+      return b.rodada_eliminacao - a.rodada_eliminacao;
+    }
+    return a.nome.localeCompare(b.nome);
   });
   
   const todosParticipantes = [...ativosFiltrados, ...eliminados];

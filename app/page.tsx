@@ -244,7 +244,7 @@ export default function Home() {
                         isDestaque ? 'rodada-destaque' : ''
                       }`}
                     >
-                      {/* Esquerda: Posição + Nome + Palpite */}
+                      {/* Esquerda: Posição + Nome + Palpite (sem badge de eliminado) */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${posicaoClass} transition-all duration-200 group-hover:scale-110`}>
                           {posicao}.
@@ -266,15 +266,9 @@ export default function Home() {
                             <EyeOff className="w-3 h-3" /> Oculto
                           </span>
                         )}
-                        
-                        {p.status === 'eliminado' && (
-                          <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500/15 to-red-600/10 px-2.5 py-1 rounded-full text-xs font-medium text-red-400 border border-red-500/30 shadow-sm">
-                            <XCircle className="w-3 h-3" /> Eliminado
-                          </span>
-                        )}
                       </div>
                       
-                      {/* Direita: Rodada */}
+                      {/* Direita: Rodada ou Eliminado */}
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all duration-200 group-hover:scale-105 ${
                           isDestaque 
@@ -286,7 +280,7 @@ export default function Home() {
                           <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
                             isDestaque ? 'bg-yellow-400' : p.status === 'eliminado' ? 'bg-red-400' : 'bg-green-400'
                           }`}></span>
-                          {p.status === 'eliminado' ? 'Eliminado' : `Rodada ${rodadaAtual}`}
+                          {p.status === 'eliminado' ? `Eliminado (Rodada ${rodadaAtual})` : `Rodada ${rodadaAtual}`}
                         </span>
                         
                         <button

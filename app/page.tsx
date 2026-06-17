@@ -256,10 +256,10 @@ export default function Home() {
                         </span>
                         
                         {temPalpite && (
-                          <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-yellow-500/15 to-yellow-600/10 px-2.5 py-1 rounded-full text-xs font-medium text-yellow-400 border border-yellow-500/30 shadow-sm">
-                            🎯 {p.palpite_atual}
-                          </span>
-                        )}
+  <span className="inline-flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-full text-xs font-medium text-yellow-400">
+    🎯 {p.palpite_atual}
+  </span>
+)}
                         
                         {palpiteOculto && (
                           <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-gray-500/15 to-gray-600/10 px-2.5 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-500/30 shadow-sm">

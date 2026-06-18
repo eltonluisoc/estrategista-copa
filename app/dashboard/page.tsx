@@ -259,15 +259,32 @@ export default function DashboardPage() {
   };
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
-  const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-  // Comparação direta como string (sem conversão de fuso)
-  if (prazoJogo) {
-    const agora = new Date();
-    const agoraStr = agora.toISOString().slice(0, 19).replace('T', ' ');
-    if (prazoJogo < agoraStr) {
-      setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
-      return;
-    }
+  // Buscar o palpite para saber qual time foi escolhido
+  const palpite = palpites.find(p => p.id === palpiteId);
+  if (!palpite) {
+    setMensagem({ tipo: 'erro', texto: 'Palpite não encontrado' });
+    return;
+  }
+
+  // Buscar o jogo específico do palpite
+  const jogoDoPalpite = jogos.find(j => 
+    j.rodada === rodada && 
+    (j.time_casa === palpite.time_nome || j.time_fora === palpite.time_nome)
+  );
+
+  if (!jogoDoPalpite) {
+    setMensagem({ tipo: 'erro', texto: 'Jogo não encontrado' });
+    return;
+  }
+
+  // Verificar prazo do jogo específico
+  const prazoJogo = jogoDoPalpite.prazo;
+  const agora = new Date();
+  const agoraStr = agora.toISOString().slice(0, 19).replace('T', ' ');
+  
+  if (prazoJogo && prazoJogo < agoraStr) {
+    setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
+    return;
   }
 
   if (!confirm(`Deseja alterar seu palpite da Rodada ${rodada}?`)) return;

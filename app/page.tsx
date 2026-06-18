@@ -105,6 +105,37 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
 
+      {/* ✅ Banner de divulgação - Campeonato Brasileiro 2026 - COMENTADO PARA NÃO SUBIR AINDA
+      <div className="relative overflow-hidden bg-gradient-to-r from-green-900/60 via-yellow-900/40 to-green-900/60 border border-yellow-500/30 rounded-xl mx-4 mt-4 mb-2 p-3 shadow-lg shadow-yellow-500/5">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/30 animate-pulse">
+              <span className="text-yellow-500 text-lg font-bold">⚽</span>
+            </div>
+            <div>
+              <p className="text-white text-sm font-semibold">
+                Estrategista do <span className="text-yellow-500">Campeonato Brasileiro</span> 2026
+              </p>
+              <p className="text-gray-400 text-xs">
+                Em breve você poderá palpitar no Brasileirão também! 🏆
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-500 text-xs font-medium bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
+              🚀 Em breve
+            </span>
+            <Link
+              href="/brasileirao"
+              className="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition-colors duration-200 hover:underline"
+            >
+              Saiba mais →
+            </Link>
+          </div>
+        </div>
+      </div>
+      */}
+
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
         {/* Hero Section */}
@@ -119,7 +150,7 @@ export default function Home() {
             Escolha um time por rodada. Empatou ou perdeu? Está eliminado!
           </p>
         </div>
-
+        
         {/* Cards de Regras */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
@@ -256,10 +287,10 @@ export default function Home() {
                         </span>
                         
                         {temPalpite && (
-  <span className="inline-flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-full text-xs font-medium text-yellow-400">
-    🎯 {p.palpite_atual}
-  </span>
-)}
+                          <span className="inline-flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-full text-xs font-medium text-yellow-400">
+                            🎯 {p.palpite_atual}
+                          </span>
+                        )}
                         
                         {palpiteOculto && (
                           <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-gray-500/15 to-gray-600/10 px-2.5 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-500/30 shadow-sm">

@@ -438,6 +438,38 @@ const formatarDataPrazo = (dataStr: string) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
+
+      {/* ✅ Banner de divulgação - Campeonato Brasileiro 2026 - COMENTADO PARA NÃO SUBIR AINDA
+      <div className="relative overflow-hidden bg-gradient-to-r from-green-900/60 via-yellow-900/40 to-green-900/60 border border-yellow-500/30 rounded-xl mx-4 mt-4 mb-2 p-3 shadow-lg shadow-yellow-500/5">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/30 animate-pulse">
+              <span className="text-yellow-500 text-lg font-bold">⚽</span>
+            </div>
+            <div>
+              <p className="text-white text-sm font-semibold">
+                Estrategista do <span className="text-yellow-500">Campeonato Brasileiro</span> 2026
+              </p>
+              <p className="text-gray-400 text-xs">
+                Em breve você poderá palpitar no Brasileirão também! 🏆
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-500 text-xs font-medium bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
+              🚀 Em breve
+            </span>
+            <Link
+              href="/brasileirao"
+              className="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition-colors duration-200 hover:underline"
+            >
+              Saiba mais →
+            </Link>
+          </div>
+        </div>
+      </div>
+      */}
+
       <div className="container mx-auto px-4 py-6">
         
         {/* Header com nome do participante - COM EDIÇÃO DE NOME */}
@@ -604,18 +636,20 @@ const formatarDataPrazo = (dataStr: string) => {
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
               <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-400" /> 
-                Times que você já usou ({palpites.length})
+                Times que você já usou ({new Set(palpites.map(p => p.time_id)).size})
               </h3>
               {palpites.length === 0 ? (
                 <p className="text-gray-400 text-center py-3 text-sm">Você ainda não usou nenhum time.</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {palpites.map((palpite) => {
-                    const time = times.find((t) => t.id === palpite.time_id);
+                  {[...new Set(palpites.map(p => p.time_id))].map((timeId) => {
+                    const palpite = palpites.find(p => p.time_id === timeId);
+                    const time = times.find((t) => t.id === timeId);
+                    const nomeTime = time?.nome || palpite?.time_nome || 'Time';
                     return (
-                      <div key={palpite.id} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
-                        <div className="text-white text-sm font-medium">{time?.nome || palpite.time_nome || 'Time'}</div>
-                        <div className="text-gray-500 text-xs">Rodada {palpite.rodada}</div>
+                      <div key={timeId} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                        <div className="text-white text-sm font-medium">{nomeTime}</div>
+                        <div className="text-gray-500 text-xs">Rodada {palpite?.rodada}</div>
                         <div className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
                           <XCircle className="w-3 h-3" /> Usado
                         </div>
@@ -639,25 +673,25 @@ const formatarDataPrazo = (dataStr: string) => {
                 </div>
               ) : (
                 <div className="space-y-2">
-  {jogosRodada.map((jogo) => (
-    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div>
-          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
-          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="text-gray-500 text-xs">
-            📅 {formatarDataJogo(jogo.data_hora)}
-          </span>
-          <span className="text-yellow-600/70 text-[10px]">
-            ⏰ Prazo: {formatarDataPrazo(jogo.prazo)}
-          </span>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
+                  {jogosRodada.map((jogo) => (
+                    <div key={jogo.id} className="bg-black/30 rounded-lg p-2.5">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                          <span className="text-white text-sm font-medium">{jogo.time_casa} 🆚 {jogo.time_fora}</span>
+                          <span className="text-gray-500 text-xs ml-2">({jogo.grupo})</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-gray-500 text-xs">
+                            📅 {formatarDataJogo(jogo.data_hora)}
+                          </span>
+                          <span className="text-yellow-600/70 text-[10px]">
+                            ⏰ Prazo: {formatarDataPrazo(jogo.prazo)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             <div className="bg-yellow-500/10 rounded-xl p-3 border border-yellow-500/30">

@@ -43,6 +43,18 @@ interface Palpite {
 
 export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?: number; palpites?: number; error?: string }> {
   try {
+    // ========== VALIDAÇÃO DE HORÁRIO (UTC) ==========
+    // O cron da Vercel executa em UTC. Só executa às 03:01 UTC (00:01 Brasília)
+    const agora = new Date();
+    const horaUTC = agora.getUTCHours();
+    const minutoUTC = agora.getUTCMinutes();
+    
+    if (horaUTC !== 3 || minutoUTC !== 1) {
+      console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:01 UTC.`);
+      return { success: false, error: 'Horário não programado' };
+    }
+    // =================================================
+
     const hoje = new Date();
     const dataFormatada = hoje.toLocaleDateString('pt-BR');
 

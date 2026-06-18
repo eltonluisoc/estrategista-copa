@@ -20,12 +20,12 @@ export async function DELETE(
     return NextResponse.json({ error: 'Palpite não encontrado' }, { status: 404 })
   }
   
-  const prazo = new Date(palpite[0].prazo)
-  const agora = new Date()
-  
-  if (agora > prazo) {
+  // CORREÇÃO: Comparação como string (prazo já está em Brasília)
+  const prazoStr = palpite[0].prazo;
+  const agoraStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  if (prazoStr && prazoStr < agoraStr) {
     return NextResponse.json({ 
-      error: 'Prazo para alterar este palpite já encerrado (23h59 do dia anterior ao jogo)' 
+      error: 'Prazo para alterar este palpite já encerrado' 
     }, { status: 400 })
   }
   

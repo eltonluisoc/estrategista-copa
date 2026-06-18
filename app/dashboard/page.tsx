@@ -259,31 +259,33 @@ export default function DashboardPage() {
   };
 
   const deletarPalpite = async (palpiteId: string, rodada: number) => {
-    const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
-    // Converte prazo para string ISO e compara como string (sem fuso)
-const prazoStr = prazoJogo ? new Date(prazoJogo).toISOString().slice(0, 19).replace('T', ' ') : null;
-const agoraStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-if (prazoStr && prazoStr < agoraStr) {
+  const prazoJogo = jogos.find(j => j.rodada === rodada)?.prazo;
+  // Comparação direta como string (sem conversão de fuso)
+  if (prazoJogo) {
+    const agora = new Date();
+    const agoraStr = agora.toISOString().slice(0, 19).replace('T', ' ');
+    if (prazoJogo < agoraStr) {
       setMensagem({ tipo: 'erro', texto: '⏰ Prazo para alterar este palpite já encerrado!' });
       return;
     }
+  }
 
-    if (!confirm(`Deseja alterar seu palpite da Rodada ${rodada}?`)) return;
+  if (!confirm(`Deseja alterar seu palpite da Rodada ${rodada}?`)) return;
+  
+  try {
+    const res = await fetch(`/api/palpites/${palpiteId}`, { method: 'DELETE' });
+    const data = await res.json();
     
-    try {
-      const res = await fetch(`/api/palpites/${palpiteId}`, { method: 'DELETE' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: `Palpite da Rodada ${rodada} removido! Faça um novo.` });
-        carregarDados();
-      } else {
-        setMensagem({ tipo: 'erro', texto: data.error });
-      }
-    } catch (error) {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao remover palpite' });
+    if (res.ok) {
+      setMensagem({ tipo: 'sucesso', texto: `Palpite da Rodada ${rodada} removido! Faça um novo.` });
+      carregarDados();
+    } else {
+      setMensagem({ tipo: 'erro', texto: data.error });
     }
-  };
+  } catch (error) {
+    setMensagem({ tipo: 'erro', texto: 'Erro ao remover palpite' });
+  }
+};
 
   const forcarRecarregamento = async () => {
     setMensagem(null);

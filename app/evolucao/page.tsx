@@ -26,74 +26,73 @@ export default function EvolucaoPage() {
   }, []);
 
   const carregarDados = async () => {
-    try {
-      // Buscar participantes da API
-      const res = await fetch('/api/participantes');
-      const data = await res.json();
-      const participantes = data.ranking || [];
+  try {
+    // Buscar participantes da API
+    const [participantesRes, eliminadosRes] = await Promise.all([
+      fetch('/api/participantes'),
+      fetch('/api/eliminados-por-rodada')
+    ]);
+    
+    const data = await participantesRes.json();
+    const eliminadosPorRodada = await eliminadosRes.json();
+    const participantes = data.ranking || [];
+    
+    // Dados reais
+    const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
+    const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
+    const totalParticipantes = participantes.length;
+    
+    setTotalInicial(totalParticipantes);
+    setTotalAtivos(participantesAtivos);
+    setTotalEliminadosReais(participantesEliminados);
+    
+    // Mapear eliminados por rodada
+    const eliminadosMap: { [key: number]: number } = {};
+    eliminadosPorRodada.forEach((item: any) => {
+      eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
+    });
+    
+    // Calcular estatísticas por rodada (1 a 8)
+    const statsCalculadas: RodadaStats[] = [];
+    let acumuladoEliminados = 0;
+    
+    for (let i = 1; i <= 8; i++) {
+      // Eliminados nesta rodada (dados reais)
+      const eliminadosNestaRodada = eliminadosMap[i] || 0;
+      acumuladoEliminados += eliminadosNestaRodada;
       
-      // Dados reais
-      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
-      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
-      const totalParticipantes = participantes.length;
+      // Ativos nesta rodada = total inicial - acumulado de eliminados
+      const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
       
-      setTotalInicial(totalParticipantes);
-      setTotalAtivos(participantesAtivos);
-      setTotalEliminadosReais(participantesEliminados);
+      // Variacao: quantos foram eliminados nesta rodada (negativo = perda)
+      const variacao = -eliminadosNestaRodada;
       
-      // Calcular estatísticas APENAS para rodada 1 (já que estamos nela)
-      // As outras rodadas serão preenchidas com base em PROJEÇÃO ou mantidas como "?"
-      const statsCalculadas: RodadaStats[] = [];
-      
-      // Rodada 1 (atual)
-      const ativosRodada1 = participantesAtivos + participantesEliminados; // Todos que começaram
-      const eliminadosRodada1 = participantesEliminados;
-      const percentualRodada1 = (ativosRodada1 / totalParticipantes * 100).toFixed(1);
+      // Percentual de sobreviventes
+      const percentual = totalParticipantes > 0 
+        ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
+        : 0;
       
       statsCalculadas.push({
-        rodada: 1,
-        ativos: ativosRodada1,
-        eliminados: eliminadosRodada1,
-        totalEliminados: eliminadosRodada1,
-        variacao: 0,
-        percentual: parseFloat(percentualRodada1)
+        rodada: i,
+        ativos: ativosNestaRodada,
+        eliminados: eliminadosNestaRodada,
+        totalEliminados: acumuladoEliminados,
+        variacao: variacao,
+        percentual: percentual
       });
       
-      // Rodadas 2 a 8 - usar dados reais se existirem, senão mostrar 0 ou "?"
-      for (let i = 2; i <= 8; i++) {
-        // Verificar se há participantes com rodada_atual >= i (sobreviventes)
-        const sobreviventes = participantes.filter((p: any) => 
-          p.status === 'ativo' && (p.rodada_atual || 1) >= i
-        ).length;
-        
-        const eliminadosNestaRodada = participantes.filter((p: any) => 
-          p.status === 'eliminado' && p.rodada_eliminacao === i
-        ).length;
-        
-        const totalEliminadosAteRodada = participantes.filter((p: any) => 
-          p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
-        ).length;
-        
-        const variacao = statsCalculadas[i-2]?.ativos - sobreviventes;
-        
-        statsCalculadas.push({
-          rodada: i,
-          ativos: sobreviventes,
-          eliminados: eliminadosNestaRodada,
-          totalEliminados: totalEliminadosAteRodada,
-          variacao: variacao,
-          percentual: totalParticipantes > 0 ? parseFloat((sobreviventes / totalParticipantes * 100).toFixed(1)) : 0
-        });
-      }
-      
-      setStats(statsCalculadas);
-      
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
+      // Se não houver mais eliminados, para de projetar
+      if (acumuladoEliminados >= totalParticipantes) break;
     }
-  };
+    
+    setStats(statsCalculadas);
+    
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (

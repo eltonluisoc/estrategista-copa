@@ -20,79 +20,77 @@ export default function EvolucaoPage() {
   const [totalInicial, setTotalInicial] = useState(0);
   const [totalAtivos, setTotalAtivos] = useState(0);
   const [totalEliminadosReais, setTotalEliminadosReais] = useState(0);
+  const [maxRodada, setMaxRodada] = useState(0);
 
   useEffect(() => {
     carregarDados();
   }, []);
 
   const carregarDados = async () => {
-  try {
-    // Buscar participantes da API
-    const [participantesRes, eliminadosRes] = await Promise.all([
-      fetch('/api/participantes'),
-      fetch('/api/eliminados-por-rodada')
-    ]);
-    
-    const data = await participantesRes.json();
-    const eliminadosPorRodada = await eliminadosRes.json();
-    const participantes = data.ranking || [];
-    
-    // Dados reais
-    const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
-    const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
-    const totalParticipantes = participantes.length;
-    
-    setTotalInicial(totalParticipantes);
-    setTotalAtivos(participantesAtivos);
-    setTotalEliminadosReais(participantesEliminados);
-    
-    // Mapear eliminados por rodada
-    const eliminadosMap: { [key: number]: number } = {};
-    eliminadosPorRodada.forEach((item: any) => {
-      eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
-    });
-    
-    // Calcular estatísticas por rodada (1 a 8)
-    const statsCalculadas: RodadaStats[] = [];
-    let acumuladoEliminados = 0;
-    
-    for (let i = 1; i <= 8; i++) {
-      // Eliminados nesta rodada (dados reais)
-      const eliminadosNestaRodada = eliminadosMap[i] || 0;
-      acumuladoEliminados += eliminadosNestaRodada;
+    try {
+      const [participantesRes, eliminadosRes] = await Promise.all([
+        fetch('/api/participantes'),
+        fetch('/api/eliminados-por-rodada')
+      ]);
       
-      // Ativos nesta rodada = total inicial - acumulado de eliminados
-      const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
+      const data = await participantesRes.json();
+      const eliminadosPorRodada = await eliminadosRes.json();
+      const participantes = data.ranking || [];
       
-      // Variacao: quantos foram eliminados nesta rodada (negativo = perda)
-      const variacao = -eliminadosNestaRodada;
+      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
+      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
+      const totalParticipantes = participantes.length;
       
-      // Percentual de sobreviventes
-      const percentual = totalParticipantes > 0 
-        ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
-        : 0;
+      setTotalInicial(totalParticipantes);
+      setTotalAtivos(participantesAtivos);
+      setTotalEliminadosReais(participantesEliminados);
       
-      statsCalculadas.push({
-        rodada: i,
-        ativos: ativosNestaRodada,
-        eliminados: eliminadosNestaRodada,
-        totalEliminados: acumuladoEliminados,
-        variacao: variacao,
-        percentual: percentual
+      // Mapear eliminados por rodada
+      const eliminadosMap: { [key: number]: number } = {};
+      eliminadosPorRodada.forEach((item: any) => {
+        eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
       });
       
-      // Se não houver mais eliminados, para de projetar
-      if (acumuladoEliminados >= totalParticipantes) break;
+      // Encontrar a maior rodada com dados (ativos ou eliminados)
+      let maxRod = 1;
+      participantes.forEach((p: any) => {
+        const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
+        if (rodada > maxRod) maxRod = rodada;
+      });
+      setMaxRodada(maxRod);
+      
+      // Calcular estatísticas apenas até a rodada atual
+      const statsCalculadas: RodadaStats[] = [];
+      let acumuladoEliminados = 0;
+      
+      for (let i = 1; i <= maxRod; i++) {
+        const eliminadosNestaRodada = eliminadosMap[i] || 0;
+        acumuladoEliminados += eliminadosNestaRodada;
+        
+        const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
+        const variacao = -eliminadosNestaRodada;
+        const percentual = totalParticipantes > 0 
+          ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
+          : 0;
+        
+        statsCalculadas.push({
+          rodada: i,
+          ativos: ativosNestaRodada,
+          eliminados: eliminadosNestaRodada,
+          totalEliminados: acumuladoEliminados,
+          variacao: variacao,
+          percentual: percentual
+        });
+      }
+      
+      setStats(statsCalculadas);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setStats(statsCalculadas);
-    
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (loading) {
     return (
@@ -161,9 +159,6 @@ export default function EvolucaoPage() {
           <div className="timeline-wrapper" style={{ minWidth: '700px' }}>
             <div className="timeline-track">
               {stats.map((item, index) => {
-                // Só mostrar dados reais até a rodada atual (onde há dados)
-                const temDadosReais = item.ativos > 0 || item.eliminados > 0 || item.rodada === 1;
-                
                 return (
                   <div key={item.rodada} className="timeline-node">
                     <div className="timeline-dot-wrapper">
@@ -177,19 +172,13 @@ export default function EvolucaoPage() {
                     
                     <div className="timeline-info">
                       <div className="timeline-rodada">RODADA {item.rodada}</div>
-                      {temDadosReais ? (
-                        <>
-                          <div className="timeline-ativos">{item.ativos}</div>
-                          <div className="timeline-ativos-label">ativos</div>
-                          {item.eliminados > 0 && (
-                            <div className="timeline-eliminados">{item.eliminados} elim.</div>
-                          )}
-                          {item.variacao < 0 && (
-                            <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="timeline-placeholder">—</div>
+                      <div className="timeline-ativos">{item.ativos}</div>
+                      <div className="timeline-ativos-label">ativos</div>
+                      {item.eliminados > 0 && (
+                        <div className="timeline-eliminados">{item.eliminados} elim.</div>
+                      )}
+                      {item.variacao < 0 && (
+                        <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
                       )}
                       {item.rodada === 1 && (
                         <div className="timeline-badge-start">🎯 INÍCIO</div>
@@ -327,12 +316,6 @@ export default function EvolucaoPage() {
           color: #f87171;
           margin-top: 6px;
           font-weight: 600;
-        }
-        
-        .timeline-placeholder {
-          font-size: 1rem;
-          color: #4a5568;
-          font-weight: 500;
         }
         
         .timeline-badge-start {

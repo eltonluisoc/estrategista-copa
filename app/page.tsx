@@ -27,6 +27,7 @@ interface Estatisticas {
 export default function Home() {
   const [participantes, setParticipantes] = useState<Participante[]>([]);
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({ total: 0, ativos: 0, eliminados: 0 });
+  const [eliminadosPorRodada, setEliminadosPorRodada] = useState<{ [key: number]: number }>({});
   const [inscricoesAbertas, setInscricoesAbertas] = useState(true);
   const [loading, setLoading] = useState(true);
   const [mostrar, setMostrar] = useState<'ativos' | 'eliminados' | 'todos'>('todos');
@@ -40,17 +41,19 @@ export default function Home() {
 
   const carregarDados = async () => {
     try {
-      const [participantesRes, statsRes, configRes, modoTesteRes] = await Promise.all([
+      const [participantesRes, statsRes, configRes, modoTesteRes, eliminadosRes] = await Promise.all([
         fetch('/api/participantes'),
         fetch('/api/estatisticas-publicas'),
         fetch('/api/configuracoes/inscricoes'),
-        fetch('/api/configuracoes?chave=modo_teste')
+        fetch('/api/configuracoes?chave=modo_teste'),
+        fetch('/api/eliminados-por-rodada')
       ]);
 
       const participantesData = await participantesRes.json();
       const statsData = await statsRes.json();
       const configData = await configRes.json();
       const modoTesteData = await modoTesteRes.json();
+      const eliminadosData = await eliminadosRes.json();
 
       setParticipantes(Array.isArray(participantesData) ? participantesData : (participantesData.ranking || []));
       setEstatisticas({
@@ -58,6 +61,14 @@ export default function Home() {
         ativos: statsData.ativos || 0,
         eliminados: statsData.eliminados || 0
       });
+
+      // Mapear eliminados por rodada
+      const eliminadosMap: { [key: number]: number } = {};
+      eliminadosData.forEach((item: any) => {
+        eliminadosMap[item.rodada_eliminacao] = item.total;
+      });
+      setEliminadosPorRodada(eliminadosMap);
+
       setInscricoesAbertas(configData.inscricoes_abertas);
       setModoTeste(modoTesteData.valor === 'true');
     } catch (error) {
@@ -153,59 +164,71 @@ export default function Home() {
         
         {/* Cards de Regras */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-  {/* Card 1 - Fase de Grupos */}
-  <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
-    <div className="flex items-center justify-center gap-2 mb-1">
-      <Target className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
-      <span className="text-yellow-500 font-bold text-xs">FASE DE GRUPOS</span>
-    </div>
-    <p className="text-gray-300 text-xs">Empate ou derrota = ELIMINAÇÃO</p>
-  </div>
+          {/* Card 1 - Fase de Grupos */}
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Target className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
+              <span className="text-yellow-500 font-bold text-xs">FASE DE GRUPOS</span>
+            </div>
+            <p className="text-gray-300 text-xs">Empate ou derrota = ELIMINAÇÃO</p>
+          </div>
 
-  {/* Card 2 - 1 Palpite */}
-  <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
-    <div className="flex items-center justify-center gap-2 mb-1">
-      <Calendar className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
-      <span className="text-yellow-500 font-bold text-xs">1 PALPITE</span>
-    </div>
-    <p className="text-gray-300 text-xs">Por rodada, até 23h59 do dia anterior</p>
-  </div>
+          {/* Card 2 - 1 Palpite */}
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
+              <span className="text-yellow-500 font-bold text-xs">1 PALPITE</span>
+            </div>
+            <p className="text-gray-300 text-xs">Por rodada, até 23h59 do dia anterior</p>
+          </div>
 
-  {/* Card 3 - Fases Finais */}
-  <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
-    <div className="flex items-center justify-center gap-2 mb-1">
-      <Trophy className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
-      <span className="text-yellow-500 font-bold text-xs">FASES FINAIS</span>
-    </div>
-    <p className="text-gray-300 text-xs">Vale o resultado final (incluindo prorrogação e pênaltis)</p>
-  </div>
+          {/* Card 3 - Fases Finais */}
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
+              <span className="text-yellow-500 font-bold text-xs">FASES FINAIS</span>
+            </div>
+            <p className="text-gray-300 text-xs">Vale o resultado final (incluindo prorrogação e pênaltis)</p>
+          </div>
 
-  {/* 🆕 Card 4 - Não Repetir Times */}
-<div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
-  <div className="flex items-center justify-center gap-2 mb-1">
-    <XCircle className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
-    <span className="text-yellow-500 font-bold text-xs">NÃO REPETIR</span>
-  </div>
-  <p className="text-gray-300 text-xs">Cada time só pode ser usado uma vez</p>
-</div>
-</div>
+          {/* 🆕 Card 4 - Não Repetir Times */}
+          <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <XCircle className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition" />
+              <span className="text-yellow-500 font-bold text-xs">NÃO REPETIR</span>
+            </div>
+            <p className="text-gray-300 text-xs">Cada time só pode ser usado uma vez</p>
+          </div>
+        </div>
 
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
-          <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-2 sm:p-4 text-center border border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:scale-105">
+        {/* Cards de Estatísticas - AGORA COM ELIMINADOS POR RODADA */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+          {/* Total */}
+          <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-2 sm:p-4 text-center border border-green-500/30">
             <Users className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-green-400">{estatisticas.total}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Total de Participantes</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Total</div>
           </div>
-          <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 rounded-xl p-2 sm:p-4 text-center border border-blue-500/30 hover:border-blue-500/50 transition-all duration-300 hover:scale-105">
+
+          {/* Ativos */}
+          <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 rounded-xl p-2 sm:p-4 text-center border border-blue-500/30">
             <TrendingUp className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1" />
             <div className="text-lg sm:text-2xl font-bold text-blue-400">{estatisticas.ativos}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Ativos</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Ativos</div>
           </div>
-          <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 rounded-xl p-2 sm:p-4 text-center border border-red-500/30 hover:border-red-500/50 transition-all duration-300 hover:scale-105">
+
+          {/* Eliminados - Rodada 1 */}
+          <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 rounded-xl p-2 sm:p-4 text-center border border-red-500/30">
             <Award className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1" />
-            <div className="text-lg sm:text-2xl font-bold text-red-400">{estatisticas.eliminados}</div>
-            <div className="text-gray-400 text-[10px] sm:text-sm">Participantes Eliminados</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-400">{eliminadosPorRodada[1] || 0}</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Eliminados 1ª Rod.</div>
+          </div>
+
+          {/* Eliminados - Rodada 2 */}
+          <div className="bg-gradient-to-br from-orange-900/30 to-orange-950/30 rounded-xl p-2 sm:p-4 text-center border border-orange-500/30">
+            <Award className="w-5 h-5 sm:w-8 sm:h-8 text-orange-400 mx-auto mb-1" />
+            <div className="text-lg sm:text-2xl font-bold text-orange-400">{eliminadosPorRodada[2] || 0}</div>
+            <div className="text-gray-400 text-[10px] sm:text-sm">Eliminados 2ª Rod.</div>
           </div>
         </div>
 

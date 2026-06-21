@@ -51,7 +51,7 @@ export default function EvolucaoPage() {
       eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
     });
     
-    // Encontrar a maior rodada com dados (ativos ou eliminados)
+    // Encontrar a maior rodada com dados
     let maxRod = 1;
     participantes.forEach((p: any) => {
       const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
@@ -59,35 +59,35 @@ export default function EvolucaoPage() {
     });
     setMaxRodada(maxRod);
     
-    // Calcular estatísticas apenas até a rodada atual
+    // CORREÇÃO: Calcular ativos acumulados por rodada
     const statsCalculadas: RodadaStats[] = [];
     let acumuladoEliminados = 0;
     
     for (let i = 1; i <= maxRod; i++) {
       const eliminadosNestaRodada = eliminadosMap[i] || 0;
-      acumuladoEliminados += eliminadosNestaRodada;
       
-      // CORREÇÃO: Ativos nesta rodada = participantes que NÃO foram eliminados e têm rodada_atual >= i
-      const ativosNestaRodada = participantes.filter((p: any) => 
-        p.status === 'ativo' && (p.rodada_atual || 1) >= i
+      // CORRETO: Ativos = total de participantes que NÃO foram eliminados até esta rodada
+      const eliminadosAteRodada = participantes.filter((p: any) => 
+        p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
       ).length;
       
-      // Se não houver ativos nesta rodada, usar o cálculo anterior
-      const ativosFinal = ativosNestaRodada > 0 ? ativosNestaRodada : (totalParticipantes - acumuladoEliminados);
+      const ativosNestaRodada = totalParticipantes - eliminadosAteRodada;
       
       const variacao = -eliminadosNestaRodada;
       const percentual = totalParticipantes > 0 
-        ? parseFloat(((ativosFinal / totalParticipantes) * 100).toFixed(1))
+        ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
         : 0;
       
       statsCalculadas.push({
         rodada: i,
-        ativos: ativosFinal,
+        ativos: ativosNestaRodada,
         eliminados: eliminadosNestaRodada,
-        totalEliminados: acumuladoEliminados,
+        totalEliminados: eliminadosAteRodada,
         variacao: variacao,
         percentual: percentual
       });
+      
+      acumuladoEliminados += eliminadosNestaRodada;
     }
     
     setStats(statsCalculadas);

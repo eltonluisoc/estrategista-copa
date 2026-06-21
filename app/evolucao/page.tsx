@@ -59,19 +59,30 @@ export default function EvolucaoPage() {
     });
     setMaxRodada(maxRod);
     
-    // CORREÇÃO: Calcular ativos acumulados por rodada
+    // CORREÇÃO FINAL
     const statsCalculadas: RodadaStats[] = [];
     let acumuladoEliminados = 0;
     
     for (let i = 1; i <= maxRod; i++) {
       const eliminadosNestaRodada = eliminadosMap[i] || 0;
+      acumuladoEliminados += eliminadosNestaRodada;
       
-      // CORRETO: Ativos = total de participantes que NÃO foram eliminados até esta rodada
-      const eliminadosAteRodada = participantes.filter((p: any) => 
-        p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
-      ).length;
+      // Ativos na rodada i:
+      // - Rodada 1: todos os participantes
+      // - Rodada 2: participantes que não foram eliminados na rodada 1
+      // - Rodada 3+: participantes com status 'ativo' E rodada_atual >= i
+      let ativosNestaRodada = 0;
       
-      const ativosNestaRodada = totalParticipantes - eliminadosAteRodada;
+      if (i === 1) {
+        ativosNestaRodada = totalParticipantes;
+      } else if (i === 2) {
+        ativosNestaRodada = totalParticipantes - (eliminadosMap[1] || 0);
+      } else {
+        // Rodada 3+: apenas quem já está nesta rodada (avançou)
+        ativosNestaRodada = participantes.filter((p: any) => 
+          p.status === 'ativo' && (p.rodada_atual || 1) >= i
+        ).length;
+      }
       
       const variacao = -eliminadosNestaRodada;
       const percentual = totalParticipantes > 0 
@@ -82,12 +93,10 @@ export default function EvolucaoPage() {
         rodada: i,
         ativos: ativosNestaRodada,
         eliminados: eliminadosNestaRodada,
-        totalEliminados: eliminadosAteRodada,
+        totalEliminados: acumuladoEliminados,
         variacao: variacao,
         percentual: percentual
       });
-      
-      acumuladoEliminados += eliminadosNestaRodada;
     }
     
     setStats(statsCalculadas);

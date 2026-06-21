@@ -27,70 +27,77 @@ export default function EvolucaoPage() {
   }, []);
 
   const carregarDados = async () => {
-    try {
-      const [participantesRes, eliminadosRes] = await Promise.all([
-        fetch('/api/participantes'),
-        fetch('/api/eliminados-por-rodada')
-      ]);
+  try {
+    const [participantesRes, eliminadosRes] = await Promise.all([
+      fetch('/api/participantes'),
+      fetch('/api/eliminados-por-rodada')
+    ]);
+    
+    const data = await participantesRes.json();
+    const eliminadosPorRodada = await eliminadosRes.json();
+    const participantes = data.ranking || [];
+    
+    const totalParticipantes = participantes.length;
+    const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
+    const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
+    
+    setTotalInicial(totalParticipantes);
+    setTotalAtivos(participantesAtivos);
+    setTotalEliminadosReais(participantesEliminados);
+    
+    // Mapear eliminados por rodada
+    const eliminadosMap: { [key: number]: number } = {};
+    eliminadosPorRodada.forEach((item: any) => {
+      eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
+    });
+    
+    // Encontrar a maior rodada com dados (ativos ou eliminados)
+    let maxRod = 1;
+    participantes.forEach((p: any) => {
+      const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
+      if (rodada > maxRod) maxRod = rodada;
+    });
+    setMaxRodada(maxRod);
+    
+    // Calcular estatísticas apenas até a rodada atual
+    const statsCalculadas: RodadaStats[] = [];
+    let acumuladoEliminados = 0;
+    
+    for (let i = 1; i <= maxRod; i++) {
+      const eliminadosNestaRodada = eliminadosMap[i] || 0;
+      acumuladoEliminados += eliminadosNestaRodada;
       
-      const data = await participantesRes.json();
-      const eliminadosPorRodada = await eliminadosRes.json();
-      const participantes = data.ranking || [];
+      // CORREÇÃO: Ativos nesta rodada = participantes que NÃO foram eliminados e têm rodada_atual >= i
+      const ativosNestaRodada = participantes.filter((p: any) => 
+        p.status === 'ativo' && (p.rodada_atual || 1) >= i
+      ).length;
       
-      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
-      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
-      const totalParticipantes = participantes.length;
+      // Se não houver ativos nesta rodada, usar o cálculo anterior
+      const ativosFinal = ativosNestaRodada > 0 ? ativosNestaRodada : (totalParticipantes - acumuladoEliminados);
       
-      setTotalInicial(totalParticipantes);
-      setTotalAtivos(participantesAtivos);
-      setTotalEliminadosReais(participantesEliminados);
+      const variacao = -eliminadosNestaRodada;
+      const percentual = totalParticipantes > 0 
+        ? parseFloat(((ativosFinal / totalParticipantes) * 100).toFixed(1))
+        : 0;
       
-      // Mapear eliminados por rodada
-      const eliminadosMap: { [key: number]: number } = {};
-      eliminadosPorRodada.forEach((item: any) => {
-        eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
+      statsCalculadas.push({
+        rodada: i,
+        ativos: ativosFinal,
+        eliminados: eliminadosNestaRodada,
+        totalEliminados: acumuladoEliminados,
+        variacao: variacao,
+        percentual: percentual
       });
-      
-      // Encontrar a maior rodada com dados (ativos ou eliminados)
-      let maxRod = 1;
-      participantes.forEach((p: any) => {
-        const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
-        if (rodada > maxRod) maxRod = rodada;
-      });
-      setMaxRodada(maxRod);
-      
-      // Calcular estatísticas apenas até a rodada atual
-      const statsCalculadas: RodadaStats[] = [];
-      let acumuladoEliminados = 0;
-      
-      for (let i = 1; i <= maxRod; i++) {
-        const eliminadosNestaRodada = eliminadosMap[i] || 0;
-        acumuladoEliminados += eliminadosNestaRodada;
-        
-        const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
-        const variacao = -eliminadosNestaRodada;
-        const percentual = totalParticipantes > 0 
-          ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
-          : 0;
-        
-        statsCalculadas.push({
-          rodada: i,
-          ativos: ativosNestaRodada,
-          eliminados: eliminadosNestaRodada,
-          totalEliminados: acumuladoEliminados,
-          variacao: variacao,
-          percentual: percentual
-        });
-      }
-      
-      setStats(statsCalculadas);
-      
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    setStats(statsCalculadas);
+    
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (

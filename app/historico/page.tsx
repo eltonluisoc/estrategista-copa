@@ -42,18 +42,17 @@ export default function HistoricoPage() {
     setLoading(true);
     setError('');
     try {
-      const url = new URL('/api/historico', 'https://estrategistadacopa.com.br');
+      let url = '/api/historico';
       if (filtroParticipante) {
-        url.searchParams.set('participante', filtroParticipante);
+        url += '?participante=' + encodeURIComponent(filtroParticipante);
       }
-      const res = await fetch(url.toString());
+      const res = await fetch(url);
       const data = await res.json();
       
       if (!res.ok) {
         throw new Error(data.error || 'Erro ao carregar histórico');
       }
       
-      // Verificar se data é um array
       if (!Array.isArray(data)) {
         console.error('Dados recebidos não são um array:', data);
         setPalpites([]);
@@ -62,8 +61,6 @@ export default function HistoricoPage() {
       }
       
       setPalpites(data);
-      
-      // Extrair lista de participantes únicos para o filtro
       const nomes = [...new Set(data.map((p: PalpiteHistorico) => p.participante))].sort();
       setParticipantes(nomes);
     } catch (error) {
@@ -104,7 +101,6 @@ export default function HistoricoPage() {
 
       <div className="container mx-auto px-4 py-6">
         
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -121,7 +117,6 @@ export default function HistoricoPage() {
           </Link>
         </div>
 
-        {/* Filtros */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
@@ -149,14 +144,12 @@ export default function HistoricoPage() {
           </div>
         </div>
 
-        {/* Mensagem de erro */}
         {error && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 text-red-400 text-sm mb-4">
             {error}
           </div>
         )}
 
-        {/* Tabela de histórico */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="text-yellow-500 text-lg">Carregando histórico...</div>

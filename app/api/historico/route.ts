@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         AND (j.time_casa = t.nome OR j.time_fora = t.nome)
       WHERE u.email != 'admin@estrategista.com'
         AND u.nome ILIKE ${'%' + participante + '%'}
+        AND j.prazo < NOW()  -- 🔥 SÓ PALPITES DE JOGOS COM PRAZO EXPIRADO
       ORDER BY u.nome, p.rodada
     `
 

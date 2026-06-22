@@ -22,8 +22,7 @@ export async function GET(request: Request) {
         j.time_casa || ' x ' || j.time_fora as jogo,
         CASE 
           WHEN j.finalizado = true AND j.vencedor_id = p.time_id THEN '✅ Acertou'
-          WHEN j.finalizado = true AND j.vencedor_id != p.time_id THEN '❌ Errou'
-          WHEN j.finalizado = true AND j.vencedor_id IS NULL THEN '⚠️ Empate'
+          WHEN j.finalizado = true AND (j.vencedor_id != p.time_id OR j.vencedor_id IS NULL) THEN '❌ Errou'
           ELSE '⏳ Aguardando'
         END as resultado,
         p.data_palpite
@@ -31,7 +30,7 @@ export async function GET(request: Request) {
       JOIN usuarios u ON u.id = p.usuario_id
       JOIN times t ON t.id = p.time_id
       JOIN jogos j ON j.rodada = p.rodada 
-        AND (j.time_casa = t.nome OR j.time_fora = t.nome)  -- FILTRO CORRETO: só o jogo do palpite
+        AND (j.time_casa = t.nome OR j.time_fora = t.nome)
       WHERE u.email != 'admin@estrategista.com'
         AND u.nome ILIKE ${'%' + participante + '%'}
       ORDER BY u.nome, p.rodada

@@ -49,9 +49,9 @@ export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?
     const horaUTC = agora.getUTCHours();
     const minutoUTC = agora.getUTCMinutes();
 
-    // Permite execução entre 03:00 e 03:05 UTC
-    if (horaUTC !== 3 || minutoUTC > 5) {
-     console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:00-03:05 UTC.`);
+    // Permite execução entre 03:00 e 04:30 UTC
+    if (horaUTC !== 4 || minutoUTC > 30) {
+    console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:00-04:30 UTC.`);
       return { success: false, error: 'Horário não programado' };
     }
     // =================================================

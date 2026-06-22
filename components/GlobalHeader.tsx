@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Trophy, LogOut, LogIn, Home, Users, Shield, Award, BarChart3 } from 'lucide-react';
+import { Trophy, LogOut, LogIn, Home, Users, Shield, Award, BarChart3, History } from 'lucide-react';
 
 export function GlobalHeader() {
   const { data: session } = useSession();
@@ -36,9 +36,13 @@ export function GlobalHeader() {
                 <Award className="w-4 h-4" /> Premiação
               </Link>
 
-              {/* NOVO LINK EVOLUÇÃO */}
               <Link href="/evolucao" className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
                 <BarChart3 className="w-4 h-4" /> Evolução
+              </Link>
+
+              {/* 🆕 LINK HISTÓRICO */}
+              <Link href="/historico" className="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
+                <History className="w-4 h-4" /> Histórico
               </Link>
 
               {session ? (

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { GlobalHeader } from '@/components/GlobalHeader';
-import { Search, Filter, Calendar, Users, Trophy } from 'lucide-react';
+import { Trophy, Users } from 'lucide-react';
 import Link from 'next/link';
 
 interface PalpiteHistorico {
@@ -22,7 +22,6 @@ export default function HistoricoPage() {
   const [palpites, setPalpites] = useState<PalpiteHistorico[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroParticipante, setFiltroParticipante] = useState('');
-  const [participantes, setParticipantes] = useState<string[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -36,15 +35,15 @@ export default function HistoricoPage() {
       carregarHistorico();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, filtroParticipante]);
+  }, [status]);
 
   const carregarHistorico = async () => {
     setLoading(true);
     setError('');
     try {
       let url = '/api/historico';
-      if (filtroParticipante) {
-        url += '?participante=' + encodeURIComponent(filtroParticipante);
+      if (filtroParticipante.trim()) {
+        url += '?participante=' + encodeURIComponent(filtroParticipante.trim());
       }
       const res = await fetch(url);
       const data = await res.json();
@@ -54,22 +53,33 @@ export default function HistoricoPage() {
       }
       
       if (!Array.isArray(data)) {
-        console.error('Dados recebidos não são um array:', data);
         setPalpites([]);
-        setParticipantes([]);
         return;
       }
       
       setPalpites(data);
-      const nomes = [...new Set(data.map((p: PalpiteHistorico) => p.participante))].sort();
-      setParticipantes(nomes);
     } catch (error) {
       console.error('Erro:', error);
       setError('Erro ao carregar histórico. Tente novamente.');
       setPalpites([]);
-      setParticipantes([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBuscar = () => {
+    carregarHistorico();
+  };
+
+  const handleLimpar = () => {
+    setFiltroParticipante('');
+    // Pequeno delay para o estado atualizar antes de buscar
+    setTimeout(() => carregarHistorico(), 100);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      carregarHistorico();
     }
   };
 
@@ -91,7 +101,6 @@ export default function HistoricoPage() {
   const getResultadoStyle = (resultado: string) => {
     if (resultado.includes('Acertou')) return 'text-green-400 bg-green-500/10';
     if (resultado.includes('Errou')) return 'text-red-400 bg-red-500/10';
-    if (resultado.includes('Empate')) return 'text-yellow-400 bg-yellow-500/10';
     return 'text-gray-400 bg-gray-500/10';
   };
 
@@ -117,30 +126,39 @@ export default function HistoricoPage() {
           </Link>
         </div>
 
+        {/* Filtro com busca direta */}
         <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1 w-full">
-              <label className="block text-gray-400 text-xs font-medium mb-1">Filtrar por participante</label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-gray-400 text-xs font-medium mb-1">Buscar participante</label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <select
+                <input
+                  type="text"
                   value={filtroParticipante}
                   onChange={(e) => setFiltroParticipante(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-10 pr-3 text-white text-sm focus:outline-none focus:border-yellow-500 appearance-none"
-                >
-                  <option value="">Todos os participantes</option>
-                  {participantes.map((nome) => (
-                    <option key={nome} value={nome}>{nome}</option>
-                  ))}
-                </select>
+                  onKeyDown={handleKeyDown}
+                  placeholder="Digite o nome do participante..."
+                  className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-10 pr-3 text-white text-sm focus:outline-none focus:border-yellow-500"
+                />
               </div>
             </div>
-            <button
-              onClick={() => setFiltroParticipante('')}
-              className="px-4 py-2 text-gray-400 hover:text-white text-sm transition"
-            >
-              Limpar filtro
-            </button>
+            <div className="flex gap-2 items-end">
+              <button
+                onClick={handleBuscar}
+                className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg text-sm transition whitespace-nowrap"
+              >
+                Buscar
+              </button>
+              {filtroParticipante && (
+                <button
+                  onClick={handleLimpar}
+                  className="px-4 py-2 text-gray-400 hover:text-white text-sm transition whitespace-nowrap"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -156,7 +174,9 @@ export default function HistoricoPage() {
           </div>
         ) : palpites.length === 0 ? (
           <div className="bg-white/5 rounded-xl p-8 text-center border border-white/10">
-            <p className="text-gray-400">Nenhum palpite encontrado.</p>
+            <p className="text-gray-400">
+              {filtroParticipante ? `Nenhum palpite encontrado para "${filtroParticipante}".` : 'Nenhum palpite encontrado.'}
+            </p>
           </div>
         ) : (
           <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">

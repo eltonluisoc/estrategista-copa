@@ -30,7 +30,8 @@ export async function GET(request: Request) {
       FROM palpites p
       JOIN usuarios u ON u.id = p.usuario_id
       JOIN times t ON t.id = p.time_id
-      JOIN jogos j ON j.rodada = p.rodada
+      JOIN jogos j ON j.rodada = p.rodada 
+        AND (j.time_casa = t.nome OR j.time_fora = t.nome)  -- FILTRO CORRETO: só o jogo do palpite
       WHERE u.email != 'admin@estrategista.com'
         AND u.nome ILIKE ${'%' + participante + '%'}
       ORDER BY u.nome, p.rodada

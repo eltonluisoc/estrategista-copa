@@ -45,15 +45,15 @@ export async function enviarBackupPorEmail(): Promise<{ success: boolean; jogos?
   try {
     // ========== VALIDAÇÃO DE HORÁRIO (UTC) ==========
     // O cron da Vercel executa em UTC. Só executa entre 03:00 e 03:05 UTC (00:00 e 00:05 Brasília)
-    const agora = new Date();
-    const horaUTC = agora.getUTCHours();
-    const minutoUTC = agora.getUTCMinutes();
+    //const agora = new Date();
+   // const horaUTC = agora.getUTCHours();
+   // const minutoUTC = agora.getUTCMinutes();
 
     // Permite execução entre 03:00 e 04:30 UTC
-    if (horaUTC !== 4 || minutoUTC > 30) {
-    console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:00-04:30 UTC.`);
-      return { success: false, error: 'Horário não programado' };
-    }
+    //if (horaUTC !== 4 || minutoUTC > 30) {
+    //console.log(`⏰ Backup não executado. Horário atual UTC: ${horaUTC}:${minutoUTC}. Aguardando 03:00-04:30 UTC.`);
+    //  return { success: false, error: 'Horário não programado' };
+    //}
     // =================================================
 
     const hoje = new Date();

@@ -280,6 +280,7 @@ export default function Home() {
                         isDestaque ? 'rodada-destaque' : ''
                       }`}
                     >
+                      {/* Esquerda: Posição + Nome + Palpite (com OPÇÃO 3 - Brilho Animado) */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${posicaoClass} transition-all duration-200 group-hover:scale-110`}>
                           {posicao}.
@@ -291,9 +292,16 @@ export default function Home() {
                         </span>
                         
                         {temPalpite && (
-                          <span className="inline-flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-full text-xs font-medium text-yellow-400">
-                            🎯 {p.palpite_atual}
-                          </span>
+                          <div className="relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-yellow-300 overflow-hidden border border-yellow-500/30 shadow-lg shadow-yellow-500/10">
+                            {/* Fundo com efeito de brilho */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/20 via-yellow-400/10 to-yellow-600/20"></div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent animate-pulse"></div>
+                            {/* Conteúdo */}
+                            <span className="relative z-10 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></span>
+                              🎯 {p.palpite_atual}
+                            </span>
+                          </div>
                         )}
                         
                         {palpiteOculto && (
@@ -303,6 +311,7 @@ export default function Home() {
                         )}
                       </div>
                       
+                      {/* Direita: Rodada ou Eliminado */}
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all duration-200 group-hover:scale-105 ${
                           isDestaque 

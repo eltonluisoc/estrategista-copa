@@ -20,85 +20,81 @@ export default function EvolucaoPage() {
   const [totalInicial, setTotalInicial] = useState(0);
   const [totalAtivos, setTotalAtivos] = useState(0);
   const [totalEliminadosReais, setTotalEliminadosReais] = useState(0);
-  const [maxRodada, setMaxRodada] = useState(0);
 
   useEffect(() => {
     carregarDados();
   }, []);
 
   const carregarDados = async () => {
-  try {
-    const [participantesRes, eliminadosRes] = await Promise.all([
-      fetch('/api/participantes'),
-      fetch('/api/eliminados-por-rodada')
-    ]);
-    
-    const data = await participantesRes.json();
-    const eliminadosPorRodada = await eliminadosRes.json();
-    const participantes = data.ranking || [];
-    
-    const totalParticipantes = participantes.length;
-    const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
-    const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
-    
-    setTotalInicial(totalParticipantes);
-    setTotalAtivos(participantesAtivos);
-    setTotalEliminadosReais(participantesEliminados);
-    
-    // Mapear eliminados por rodada
-    const eliminadosMap: { [key: number]: number } = {};
-    eliminadosPorRodada.forEach((item: any) => {
-      eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
-    });
-    
-    // Encontrar a maior rodada com dados
-    let maxRod = 1;
-    participantes.forEach((p: any) => {
-      const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
-      if (rodada > maxRod) maxRod = rodada;
-    });
-    setMaxRodada(maxRod);
-    
-    // ========== CORREÇÃO: NÃO ACUMULAR ELIMINADOS ==========
-    const statsCalculadas: RodadaStats[] = [];
-    
-    for (let i = 1; i <= maxRod; i++) {
-      // CORRETO: Ativos da rodada = participantes com rodada_atual === i
-      const ativosNestaRodada = participantes.filter((p: any) => 
-        p.status === 'ativo' && (p.rodada_atual || 1) === i
-      ).length;
+    try {
+      const [participantesRes, eliminadosRes] = await Promise.all([
+        fetch('/api/participantes'),
+        fetch('/api/eliminados-por-rodada')
+      ]);
       
-      // CORRETO: Eliminados na rodada = participantes com rodada_eliminacao === i
-      const eliminadosNestaRodada = eliminadosMap[i] || 0;
+      const data = await participantesRes.json();
+      const eliminadosPorRodada = await eliminadosRes.json();
+      const participantes = data.ranking || [];
       
-      // Total de eliminados acumulados (para mostrar no card)
-      const totalEliminadosAteRodada = participantes.filter((p: any) => 
-        p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
-      ).length;
+      const totalParticipantes = participantes.length;
+      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
+      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
       
-      const variacao = -eliminadosNestaRodada;
-      const percentual = totalParticipantes > 0 
-        ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
-        : 0;
+      setTotalInicial(totalParticipantes);
+      setTotalAtivos(participantesAtivos);
+      setTotalEliminadosReais(participantesEliminados);
       
-      statsCalculadas.push({
-        rodada: i,
-        ativos: ativosNestaRodada,
-        eliminados: eliminadosNestaRodada,
-        totalEliminados: totalEliminadosAteRodada,
-        variacao: variacao,
-        percentual: percentual
+      // Mapear eliminados por rodada
+      const eliminadosMap: { [key: number]: number } = {};
+      eliminadosPorRodada.forEach((item: any) => {
+        eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
       });
+      
+      // Encontrar a maior rodada com dados
+      let maxRod = 1;
+      participantes.forEach((p: any) => {
+        const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
+        if (rodada > maxRod) maxRod = rodada;
+      });
+      
+      // ========== LÓGICA CORRETA ==========
+      // Ativos na rodada = total de participantes - eliminados acumulados até a rodada anterior
+      const statsCalculadas: RodadaStats[] = [];
+      let acumuladoEliminados = 0;
+      
+      for (let i = 1; i <= maxRod; i++) {
+        // Eliminados nesta rodada específica
+        const eliminadosNestaRodada = eliminadosMap[i] || 0;
+        
+        // Ativos nesta rodada = total - eliminados acumulados (eliminados das rodadas anteriores)
+        const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
+        
+        // Atualizar acumulado para a próxima rodada
+        acumuladoEliminados += eliminadosNestaRodada;
+        
+        const variacao = -eliminadosNestaRodada;
+        const percentual = totalParticipantes > 0 
+          ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
+          : 0;
+        
+        statsCalculadas.push({
+          rodada: i,
+          ativos: ativosNestaRodada,
+          eliminados: eliminadosNestaRodada,
+          totalEliminados: acumuladoEliminados,
+          variacao: variacao,
+          percentual: percentual
+        });
+      }
+      
+      setStats(statsCalculadas);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setStats(statsCalculadas);
-    
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (loading) {
     return (
@@ -157,7 +153,7 @@ export default function EvolucaoPage() {
           </div>
         </div>
 
-        {/* Linha do Tempo - APENAS RODADAS COM DADOS REAIS */}
+        {/* Linha do Tempo */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8 overflow-x-auto">
           <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-yellow-500" />

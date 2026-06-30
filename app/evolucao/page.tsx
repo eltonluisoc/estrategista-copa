@@ -22,6 +22,7 @@ export default function EvolucaoPage() {
   const [totalEliminadosReais, setTotalEliminadosReais] = useState(0);
   const [classificado, setClassificado] = useState(0);
   const [pendentes, setPendentes] = useState(0);
+  const [classificadosList, setClassificadosList] = useState<any[]>([]);
 
   useEffect(() => {
     carregarDados();
@@ -40,20 +41,31 @@ export default function EvolucaoPage() {
       
       console.log('=== DADOS DO CONSOLE ===');
       console.log('Total de participantes:', participantes.length);
-      console.log('Participantes:', participantes.map((p: any) => ({ 
-        nome: p.nome, 
-        status: p.status, 
-        rodada_eliminacao: p.rodada_eliminacao,
-        rodada_atual: p.rodada_atual
+      
+      // ========== CONSULTA ESPECÍFICA PARA CLASSIFICADOS ==========
+      const classificados = participantes.filter((p: any) => p.status === 'classificado');
+      const eliminados = participantes.filter((p: any) => p.status === 'eliminado');
+      const ativos = participantes.filter((p: any) => p.status === 'ativo');
+      
+      console.log('🔍 CLASSIFICADOS ENCONTRADOS:', classificados.length);
+      console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        status: p.status,
+        rodada_atual: p.rodada_atual,
+        rodada_classificacao: p.rodada_classificacao
       })));
+      
+      console.log('📋 Lista de ELIMINADOS:', eliminados.length);
+      console.log('📋 Lista de ATIVOS:', ativos.length);
+      
       console.log('Eliminados por rodada:', eliminadosPorRodada);
       
       const totalParticipantes = participantes.length;
       
-      // Status possíveis: 'ativo', 'eliminado', 'classificado'
-      const participantesAtivos = participantes.filter((p: any) => p.status === 'ativo').length;
-      const participantesEliminados = participantes.filter((p: any) => p.status === 'eliminado').length;
-      const participantesClassificados = participantes.filter((p: any) => p.status === 'classificado').length;
+      const participantesAtivos = ativos.length;
+      const participantesEliminados = eliminados.length;
+      const participantesClassificados = classificados.length;
       
       console.log('Status - Ativos:', participantesAtivos);
       console.log('Status - Eliminados:', participantesEliminados);
@@ -64,6 +76,7 @@ export default function EvolucaoPage() {
       setTotalEliminadosReais(participantesEliminados);
       setClassificado(participantesClassificados);
       setPendentes(participantesAtivos);
+      setClassificadosList(classificados);
       
       // Mapa de eliminados por rodada
       const eliminadosMap: { [key: number]: number } = {};
@@ -73,43 +86,52 @@ export default function EvolucaoPage() {
       
       console.log('Eliminados Map:', eliminadosMap);
       
-      // ========== LÓGICA CORRIGIDA ==========
-      // Encontrar a maior rodada entre todos os participantes
+      // ========== CALCULAR RODADAS ==========
       let maxRod = 1;
       participantes.forEach((p: any) => {
         let rodada = 1;
         if (p.status === 'eliminado' && p.rodada_eliminacao) {
           rodada = p.rodada_eliminacao;
-        } else if (p.status === 'classificado' && p.rodada_atual) {
-          rodada = p.rodada_atual;
+        } else if (p.status === 'classificado' && p.rodada_classificacao) {
+          rodada = p.rodada_classificacao;
         } else if (p.status === 'ativo' && p.rodada_atual) {
           rodada = p.rodada_atual;
         }
         if (rodada > maxRod) maxRod = rodada;
       });
       
+      // Se tem classificados, adicionar uma rodada extra para mostrar
+      if (participantesClassificados > 0) {
+        // Usar a rodada de classificação do primeiro classificado
+        const rodadaClassificacao = classificados[0]?.rodada_classificacao || maxRod;
+        maxRod = Math.max(maxRod, rodadaClassificacao);
+      }
+      
       console.log('Maior rodada:', maxRod);
       
       const statsCalculadas: RodadaStats[] = [];
       let acumuladoEliminados = 0;
       
-      // Para cada rodada, calcular os ativos corretamente
       for (let i = 1; i <= maxRod; i++) {
-        // Eliminados nesta rodada (do banco)
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        // Acumular eliminados
         acumuladoEliminados += eliminadosNestaRodada;
         
         // CORREÇÃO: Ativos = Total - EliminadosAcumulados - Classificados
-        const ativosNestaRodada = totalParticipantes - acumuladoEliminados - participantesClassificados;
+        let ativosNestaRodada = totalParticipantes - acumuladoEliminados - participantesClassificados;
+        
+        // Se chegou na rodada de classificação, mostrar 0 ativos (só o classificado)
+        const temClassificadoNestaRodada = classificados.some((c: any) => c.rodada_classificacao === i);
+        if (temClassificadoNestaRodada) {
+          ativosNestaRodada = 0;
+        }
         
         const variacao = -eliminadosNestaRodada;
         const percentual = totalParticipantes > 0 
           ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
           : 0;
         
-        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}`);
+        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, temClassificado=${temClassificadoNestaRodada}`);
         
         statsCalculadas.push({
           rodada: i,
@@ -121,7 +143,7 @@ export default function EvolucaoPage() {
         });
       }
       
-      console.log('Stats calculadas:', statsCalculadas);
+      console.log('Stats calculadas FINAL:', statsCalculadas);
       setStats(statsCalculadas);
       
     } catch (error) {
@@ -218,10 +240,11 @@ export default function EvolucaoPage() {
               <div className="absolute top-[45px] left-[6%] right-[6%] h-[2px] bg-gradient-to-r from-[#eab308] via-[#22c55e] to-[#eab308] opacity-20 rounded-full"></div>
 
               {stats.map((item, index) => {
-                // Verificar se é a última rodada E tem classificado
                 const isLastRound = index === stats.length - 1;
                 const hasClassificado = classificado > 0;
-                const showClassificado = isLastRound && hasClassificado;
+                // Verifica se tem classificado nesta rodada específica
+                const temClassificadoNestaRodada = classificadosList.some((c: any) => c.rodada_classificacao === item.rodada);
+                const showClassificado = temClassificadoNestaRodada || (isLastRound && hasClassificado);
                 
                 return (
                   <div key={item.rodada} className="flex-1 text-center min-w-[70px] relative">
@@ -247,7 +270,7 @@ export default function EvolucaoPage() {
                         {showClassificado ? 'CLASSIFICADO' : `RODADA ${item.rodada}`}
                       </div>
                       <div className={`text-3xl font-extrabold ${showClassificado ? 'text-[#eab308]' : 'text-[#22c55e]'}`}>
-                        {showClassificado ? '★ 1' : item.ativos}
+                        {showClassificado ? `★ ${classificado}` : item.ativos}
                       </div>
                       <div className="text-[10px] text-[#6a8a6a] mb-1">
                         {showClassificado ? 'classificado' : 'ativos'}

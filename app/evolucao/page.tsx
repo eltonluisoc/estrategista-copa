@@ -62,8 +62,10 @@ export default function EvolucaoPage() {
       for (let i = 1; i <= maxRod; i++) {
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        // CORRETO: ativos = total - eliminados acumulados (incluindo os da rodada atual)
-        const ativosNestaRodada = totalParticipantes - acumuladoEliminados - eliminadosNestaRodada;
+        // CORRETO: Ativos = participantes com status 'ativo' E rodada_atual >= i
+        const ativosNestaRodada = participantes.filter((p: any) => 
+          p.status === 'ativo' && (p.rodada_atual || 1) >= i
+        ).length;
         
         acumuladoEliminados += eliminadosNestaRodada;
         

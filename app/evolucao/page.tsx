@@ -55,17 +55,15 @@ export default function EvolucaoPage() {
         if (rodada > maxRod) maxRod = rodada;
       });
       
-      // ========== LÓGICA CORRIGIDA ==========
+      // ========== LÓGICA CORRETA ==========
       const statsCalculadas: RodadaStats[] = [];
       let acumuladoEliminados = 0;
       
       for (let i = 1; i <= maxRod; i++) {
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        // CORRETO: Ativos = participantes com status 'ativo' E rodada_atual >= i
-        const ativosNestaRodada = participantes.filter((p: any) => 
-          p.status === 'ativo' && (p.rodada_atual || 1) >= i
-        ).length;
+        // CORRETO: Ativos = total - eliminados acumulados (rodadas anteriores)
+        const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
         
         acumuladoEliminados += eliminadosNestaRodada;
         

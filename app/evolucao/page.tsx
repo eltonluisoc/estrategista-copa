@@ -153,39 +153,39 @@ export default function EvolucaoPage() {
           </div>
         </div>
 
-        {/* Linha do Tempo */}
+        {/* Linha do Tempo - CORRIGIDA: largura total e scroll horizontal */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8 overflow-x-auto">
           <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-yellow-500" />
             Linha do Tempo
           </h2>
           
-          <div className="timeline-wrapper" style={{ minWidth: '700px' }}>
-            <div className="timeline-track">
+          <div className="timeline-wrapper" style={{ minWidth: '100%', overflowX: 'auto' }}>
+            <div className="timeline-track" style={{ minWidth: '900px', display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', gap: '0', position: 'relative', padding: '20px 0 30px 0' }}>
               {stats.map((item, index) => {
                 return (
-                  <div key={item.rodada} className="timeline-node">
-                    <div className="timeline-dot-wrapper">
-                      <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''}`}>
-                        <span>{item.rodada}</span>
+                  <div key={item.rodada} className="timeline-node" style={{ flex: '1', textAlign: 'center', minWidth: '100px', position: 'relative' }}>
+                    <div className="timeline-dot-wrapper" style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                      <div className={`timeline-dot ${item.rodada === 1 ? 'timeline-dot-start' : ''}`} style={{ width: '60px', height: '60px', background: 'linear-gradient(135deg, #1a3a2a, #0a1a10)', border: '3px solid #eab308', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: '10', boxShadow: '0 0 20px rgba(234, 179, 8, 0.3)', transition: 'all 0.3s ease' }}>
+                        <span style={{ fontSize: '1.3rem', fontWeight: '800', color: '#eab308' }}>{item.rodada}</span>
                       </div>
                       {index < stats.length - 1 && (
-                        <div className="timeline-connector"></div>
+                        <div className="timeline-connector" style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '3px', background: 'linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.1))', transform: 'translateY(-50%)', zIndex: '1' }}></div>
                       )}
                     </div>
                     
-                    <div className="timeline-info">
-                      <div className="timeline-rodada">RODADA {item.rodada}</div>
-                      <div className="timeline-ativos">{item.ativos}</div>
-                      <div className="timeline-ativos-label">ativos</div>
+                    <div className="timeline-info" style={{ marginTop: '8px' }}>
+                      <div className="timeline-rodada" style={{ fontSize: '0.7rem', color: '#9ca3af', letterSpacing: '1px', marginBottom: '6px' }}>RODADA {item.rodada}</div>
+                      <div className="timeline-ativos" style={{ fontSize: '1.8rem', fontWeight: '800', color: '#4ade80', lineHeight: '1.1' }}>{item.ativos}</div>
+                      <div className="timeline-ativos-label" style={{ fontSize: '0.65rem', color: '#6b7280', marginBottom: '4px' }}>ativos</div>
                       {item.eliminados > 0 && (
-                        <div className="timeline-eliminados">{item.eliminados} elim.</div>
+                        <div className="timeline-eliminados" style={{ fontSize: '0.7rem', color: '#f87171' }}>{item.eliminados} elim.</div>
                       )}
                       {item.variacao < 0 && (
-                        <div className="timeline-variacao">▼ {Math.abs(item.variacao)}</div>
+                        <div className="timeline-variacao" style={{ fontSize: '0.65rem', color: '#f87171', marginTop: '6px', fontWeight: '600' }}>▼ {Math.abs(item.variacao)}</div>
                       )}
                       {item.rodada === 1 && (
-                        <div className="timeline-badge-start">🎯 INÍCIO</div>
+                        <div className="timeline-badge-start" style={{ fontSize: '0.6rem', background: 'rgba(234, 179, 8, 0.15)', color: '#eab308', padding: '3px 10px', borderRadius: '20px', display: 'inline-block', marginTop: '10px' }}>🎯 INÍCIO</div>
                       )}
                     </div>
                   </div>
@@ -218,140 +218,6 @@ export default function EvolucaoPage() {
           </Link>
         </div>
       </div>
-
-      <style jsx>{`
-        .timeline-wrapper {
-          position: relative;
-          width: 100%;
-          overflow-x: auto;
-        }
-        
-        .timeline-track {
-          display: flex;
-          justify-content: space-around;
-          align-items: flex-start;
-          gap: 0;
-          position: relative;
-          padding: 20px 0 30px 0;
-        }
-        
-        .timeline-node {
-          flex: 1;
-          text-align: center;
-          min-width: 100px;
-          position: relative;
-        }
-        
-        .timeline-dot-wrapper {
-          position: relative;
-          display: flex;
-          justify-content: center;
-          margin-bottom: 20px;
-        }
-        
-        .timeline-dot {
-          width: 60px;
-          height: 60px;
-          background: linear-gradient(135deg, #1a3a2a, #0a1a10);
-          border: 3px solid #eab308;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          z-index: 10;
-          box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
-          transition: all 0.3s ease;
-        }
-        
-        .timeline-node:hover .timeline-dot {
-          transform: scale(1.05);
-          box-shadow: 0 0 30px rgba(234, 179, 8, 0.4);
-        }
-        
-        .timeline-dot span {
-          font-size: 1.3rem;
-          font-weight: 800;
-          color: #eab308;
-        }
-        
-        .timeline-connector {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 100%;
-          height: 3px;
-          background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.1));
-          transform: translateY(-50%);
-          z-index: 1;
-        }
-        
-        .timeline-info {
-          margin-top: 8px;
-        }
-        
-        .timeline-rodada {
-          font-size: 0.7rem;
-          color: #9ca3af;
-          letter-spacing: 1px;
-          margin-bottom: 6px;
-        }
-        
-        .timeline-ativos {
-          font-size: 1.8rem;
-          font-weight: 800;
-          color: #4ade80;
-          line-height: 1.1;
-        }
-        
-        .timeline-ativos-label {
-          font-size: 0.65rem;
-          color: #6b7280;
-          margin-bottom: 4px;
-        }
-        
-        .timeline-eliminados {
-          font-size: 0.7rem;
-          color: #f87171;
-        }
-        
-        .timeline-variacao {
-          font-size: 0.65rem;
-          color: #f87171;
-          margin-top: 6px;
-          font-weight: 600;
-        }
-        
-        .timeline-badge-start {
-          font-size: 0.6rem;
-          background: rgba(234, 179, 8, 0.15);
-          color: #eab308;
-          padding: 3px 10px;
-          border-radius: 20px;
-          display: inline-block;
-          margin-top: 10px;
-        }
-        
-        .shadow-glow {
-          box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
-        }
-        
-        @media (max-width: 768px) {
-          .timeline-dot {
-            width: 48px;
-            height: 48px;
-          }
-          .timeline-dot span {
-            font-size: 1rem;
-          }
-          .timeline-ativos {
-            font-size: 1.3rem;
-          }
-          .timeline-node {
-            min-width: 80px;
-          }
-        }
-      `}</style>
     </div>
   );
 }

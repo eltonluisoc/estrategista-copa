@@ -44,32 +44,27 @@ export default function EvolucaoPage() {
       setTotalAtivos(participantesAtivos);
       setTotalEliminadosReais(participantesEliminados);
       
-      // Mapear eliminados por rodada
       const eliminadosMap: { [key: number]: number } = {};
       eliminadosPorRodada.forEach((item: any) => {
         eliminadosMap[item.rodada_eliminacao] = parseInt(item.total);
       });
       
-      // Encontrar a maior rodada com dados
       let maxRod = 1;
       participantes.forEach((p: any) => {
         const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
         if (rodada > maxRod) maxRod = rodada;
       });
       
-      // ========== LÓGICA CORRETA ==========
-      // Ativos na rodada = total de participantes - eliminados acumulados até a rodada anterior
+      // ========== LÓGICA CORRIGIDA ==========
       const statsCalculadas: RodadaStats[] = [];
       let acumuladoEliminados = 0;
       
       for (let i = 1; i <= maxRod; i++) {
-        // Eliminados nesta rodada específica
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        // Ativos nesta rodada = total - eliminados acumulados (eliminados das rodadas anteriores)
-        const ativosNestaRodada = totalParticipantes - acumuladoEliminados;
+        // CORRETO: ativos = total - eliminados acumulados (incluindo os da rodada atual)
+        const ativosNestaRodada = totalParticipantes - acumuladoEliminados - eliminadosNestaRodada;
         
-        // Atualizar acumulado para a próxima rodada
         acumuladoEliminados += eliminadosNestaRodada;
         
         const variacao = -eliminadosNestaRodada;
@@ -115,7 +110,6 @@ export default function EvolucaoPage() {
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-yellow-500/10 px-4 py-2 rounded-full border border-yellow-500/30 mb-4">
             <BarChart3 className="w-4 h-4 text-yellow-500" />
@@ -129,7 +123,6 @@ export default function EvolucaoPage() {
           </p>
         </div>
 
-        {/* Cards de Resumo */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-10">
           <div className="bg-gradient-to-br from-yellow-900/20 to-yellow-950/20 rounded-xl p-3 sm:p-4 text-center border border-yellow-500/20">
             <Users className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 mx-auto mb-1" />
@@ -153,7 +146,6 @@ export default function EvolucaoPage() {
           </div>
         </div>
 
-        {/* Linha do Tempo - CORRIGIDA: largura total e scroll horizontal */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 sm:p-8 mb-8 overflow-x-auto">
           <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-yellow-500" />
@@ -194,7 +186,6 @@ export default function EvolucaoPage() {
             </div>
           </div>
           
-          {/* Legenda */}
           <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-white/10">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-glow"></div>
@@ -211,7 +202,6 @@ export default function EvolucaoPage() {
           </div>
         </div>
 
-        {/* Botão Voltar */}
         <div className="text-center mt-4">
           <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-yellow-500 transition-colors text-sm">
             ← Voltar para o Ranking

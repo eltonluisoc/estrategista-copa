@@ -59,30 +59,22 @@ export default function EvolucaoPage() {
     });
     setMaxRodada(maxRod);
     
-    // CORREÇÃO FINAL
+    // ========== CORREÇÃO: NÃO ACUMULAR ELIMINADOS ==========
     const statsCalculadas: RodadaStats[] = [];
-    let acumuladoEliminados = 0;
     
     for (let i = 1; i <= maxRod; i++) {
+      // CORRETO: Ativos da rodada = participantes com rodada_atual === i
+      const ativosNestaRodada = participantes.filter((p: any) => 
+        p.status === 'ativo' && (p.rodada_atual || 1) === i
+      ).length;
+      
+      // CORRETO: Eliminados na rodada = participantes com rodada_eliminacao === i
       const eliminadosNestaRodada = eliminadosMap[i] || 0;
-      acumuladoEliminados += eliminadosNestaRodada;
       
-      // Ativos na rodada i:
-      // - Rodada 1: todos os participantes
-      // - Rodada 2: participantes que não foram eliminados na rodada 1
-      // - Rodada 3+: participantes com status 'ativo' E rodada_atual >= i
-      let ativosNestaRodada = 0;
-      
-      if (i === 1) {
-        ativosNestaRodada = totalParticipantes;
-      } else if (i === 2) {
-        ativosNestaRodada = totalParticipantes - (eliminadosMap[1] || 0);
-      } else {
-        // Rodada 3+: apenas quem já está nesta rodada (avançou)
-        ativosNestaRodada = participantes.filter((p: any) => 
-          p.status === 'ativo' && (p.rodada_atual || 1) >= i
-        ).length;
-      }
+      // Total de eliminados acumulados (para mostrar no card)
+      const totalEliminadosAteRodada = participantes.filter((p: any) => 
+        p.status === 'eliminado' && (p.rodada_eliminacao || 0) <= i
+      ).length;
       
       const variacao = -eliminadosNestaRodada;
       const percentual = totalParticipantes > 0 
@@ -93,7 +85,7 @@ export default function EvolucaoPage() {
         rodada: i,
         ativos: ativosNestaRodada,
         eliminados: eliminadosNestaRodada,
-        totalEliminados: acumuladoEliminados,
+        totalEliminados: totalEliminadosAteRodada,
         variacao: variacao,
         percentual: percentual
       });

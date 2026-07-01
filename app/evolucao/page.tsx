@@ -23,6 +23,7 @@ export default function EvolucaoPage() {
   const [classificado, setClassificado] = useState(0);
   const [pendentes, setPendentes] = useState(0);
   const [classificadosList, setClassificadosList] = useState<any[]>([]);
+  const [ultimaRodadaComEliminacao, setUltimaRodadaComEliminacao] = useState(0);
 
   useEffect(() => {
     carregarDados();
@@ -43,11 +44,57 @@ export default function EvolucaoPage() {
       console.log('Total de participantes:', participantes.length);
       
       // ========== CONSULTA ESPECÍFICA PARA CLASSIFICADOS ==========
-      const classificados = participantes.filter((p: any) => p.status === 'classificado');
+      let classificados = participantes.filter((p: any) => p.status === 'classificado');
       const eliminados = participantes.filter((p: any) => p.status === 'eliminado');
-      const ativos = participantes.filter((p: any) => p.status === 'ativo');
+      let ativos = participantes.filter((p: any) => p.status === 'ativo');
       
-      console.log('🔍 CLASSIFICADOS ENCONTRADOS:', classificados.length);
+      // Encontrar a última rodada que teve eliminação
+      let ultimaRodadaComEliminados = 0;
+      eliminadosPorRodada.forEach((item: any) => {
+        const rodada = parseInt(item.rodada_eliminacao);
+        const total = parseInt(item.total);
+        if (total > 0 && rodada > ultimaRodadaComEliminados) {
+          ultimaRodadaComEliminados = rodada;
+        }
+      });
+      
+      setUltimaRodadaComEliminacao(ultimaRodadaComEliminados);
+      
+      console.log('Última rodada com eliminação:', ultimaRodadaComEliminados);
+      
+      // ========== LÓGICA: DETECTAR CLASSIFICADOS AUTOMATICAMENTE ==========
+      // Se não tem classificados no banco, verificar quem está na rodada atual
+      // (rodada_atual > ultimaRodadaComEliminados)
+      if (classificados.length === 0) {
+        // Encontrar a maior rodada atual entre os ativos
+        let maiorRodadaAtiva = 0;
+        ativos.forEach((p: any) => {
+          if (p.rodada_atual && p.rodada_atual > maiorRodadaAtiva) {
+            maiorRodadaAtiva = p.rodada_atual;
+          }
+        });
+        
+        console.log('Maior rodada entre ativos:', maiorRodadaAtiva);
+        
+        // Se a maior rodada ativa é maior que a última com eliminação,
+        // esses participantes são considerados classificados
+        if (maiorRodadaAtiva > ultimaRodadaComEliminados) {
+          const novosClassificados = ativos.filter((p: any) => p.rodada_atual === maiorRodadaAtiva);
+          classificados = novosClassificados;
+          // Remover dos ativos
+          ativos = ativos.filter((p: any) => p.rodada_atual !== maiorRodadaAtiva);
+          
+          console.log('🔍 CLASSIFICADOS DETECTADOS AUTOMATICAMENTE:', classificados.length);
+          console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            status: p.status,
+            rodada_atual: p.rodada_atual
+          })));
+        }
+      }
+      
+      console.log('🔍 CLASSIFICADOS FINAL:', classificados.length);
       console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
         id: p.id,
         nome: p.nome,
@@ -100,10 +147,10 @@ export default function EvolucaoPage() {
         if (rodada > maxRod) maxRod = rodada;
       });
       
-      // Se tem classificados, adicionar uma rodada extra para mostrar
+      // Se tem classificados, garantir que a última rodada seja a de classificação
       if (participantesClassificados > 0) {
-        // Usar a rodada de classificação do primeiro classificado
-        const rodadaClassificacao = classificados[0]?.rodada_classificacao || maxRod;
+        // Usar a rodada atual do primeiro classificado
+        const rodadaClassificacao = classificados[0]?.rodada_atual || maxRod;
         maxRod = Math.max(maxRod, rodadaClassificacao);
       }
       
@@ -121,8 +168,13 @@ export default function EvolucaoPage() {
         let ativosNestaRodada = totalParticipantes - acumuladoEliminados - participantesClassificados;
         
         // Se chegou na rodada de classificação, mostrar 0 ativos (só o classificado)
-        const temClassificadoNestaRodada = classificados.some((c: any) => c.rodada_classificacao === i);
-        if (temClassificadoNestaRodada) {
+        const temClassificadoNestaRodada = classificados.some((c: any) => {
+          const rodadaClassificacao = c.rodada_classificacao || c.rodada_atual;
+          return rodadaClassificacao === i;
+        });
+        
+        // Se for a última rodada e tem classificado, mostrar 0 ativos
+        if (i === maxRod && participantesClassificados > 0) {
           ativosNestaRodada = 0;
         }
         
@@ -131,7 +183,7 @@ export default function EvolucaoPage() {
           ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
           : 0;
         
-        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, temClassificado=${temClassificadoNestaRodada}`);
+        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, temClassificado=${temClassificadoNestaRodada || (i === maxRod && participantesClassificados > 0)}`);
         
         statsCalculadas.push({
           rodada: i,
@@ -242,9 +294,7 @@ export default function EvolucaoPage() {
               {stats.map((item, index) => {
                 const isLastRound = index === stats.length - 1;
                 const hasClassificado = classificado > 0;
-                // Verifica se tem classificado nesta rodada específica
-                const temClassificadoNestaRodada = classificadosList.some((c: any) => c.rodada_classificacao === item.rodada);
-                const showClassificado = temClassificadoNestaRodada || (isLastRound && hasClassificado);
+                const showClassificado = isLastRound && hasClassificado;
                 
                 return (
                   <div key={item.rodada} className="flex-1 text-center min-w-[70px] relative">

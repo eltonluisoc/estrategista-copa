@@ -23,7 +23,7 @@ export default function EvolucaoPage() {
   const [classificado, setClassificado] = useState(0);
   const [pendentes, setPendentes] = useState(0);
   const [classificadosList, setClassificadosList] = useState<any[]>([]);
-  const [ultimaRodadaComEliminacao, setUltimaRodadaComEliminacao] = useState(0);
+  const [rodadaClassificacao, setRodadaClassificacao] = useState(0);
 
   useEffect(() => {
     carregarDados();
@@ -58,13 +58,11 @@ export default function EvolucaoPage() {
         }
       });
       
-      setUltimaRodadaComEliminacao(ultimaRodadaComEliminados);
-      
       console.log('Última rodada com eliminação:', ultimaRodadaComEliminados);
       
       // ========== LÓGICA: DETECTAR CLASSIFICADOS AUTOMATICAMENTE ==========
-      // Se não tem classificados no banco, verificar quem está na rodada atual
-      // (rodada_atual > ultimaRodadaComEliminados)
+      let rodadaClassif = 0;
+      
       if (classificados.length === 0) {
         // Encontrar a maior rodada atual entre os ativos
         let maiorRodadaAtiva = 0;
@@ -81,6 +79,7 @@ export default function EvolucaoPage() {
         if (maiorRodadaAtiva > ultimaRodadaComEliminados) {
           const novosClassificados = ativos.filter((p: any) => p.rodada_atual === maiorRodadaAtiva);
           classificados = novosClassificados;
+          rodadaClassif = maiorRodadaAtiva;
           // Remover dos ativos
           ativos = ativos.filter((p: any) => p.rodada_atual !== maiorRodadaAtiva);
           
@@ -92,7 +91,14 @@ export default function EvolucaoPage() {
             rodada_atual: p.rodada_atual
           })));
         }
+      } else {
+        // Pega a rodada de classificação do primeiro classificado
+        rodadaClassif = classificados[0]?.rodada_classificacao || classificados[0]?.rodada_atual || 0;
       }
+      
+      setRodadaClassificacao(rodadaClassif);
+      
+      console.log('Rodada de Classificação:', rodadaClassif);
       
       console.log('🔍 CLASSIFICADOS FINAL:', classificados.length);
       console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
@@ -105,8 +111,6 @@ export default function EvolucaoPage() {
       
       console.log('📋 Lista de ELIMINADOS:', eliminados.length);
       console.log('📋 Lista de ATIVOS:', ativos.length);
-      
-      console.log('Eliminados por rodada:', eliminadosPorRodada);
       
       const totalParticipantes = participantes.length;
       
@@ -139,8 +143,8 @@ export default function EvolucaoPage() {
         let rodada = 1;
         if (p.status === 'eliminado' && p.rodada_eliminacao) {
           rodada = p.rodada_eliminacao;
-        } else if (p.status === 'classificado' && p.rodada_classificacao) {
-          rodada = p.rodada_classificacao;
+        } else if (p.status === 'classificado' && (p.rodada_classificacao || p.rodada_atual)) {
+          rodada = p.rodada_classificacao || p.rodada_atual;
         } else if (p.status === 'ativo' && p.rodada_atual) {
           rodada = p.rodada_atual;
         }
@@ -148,10 +152,8 @@ export default function EvolucaoPage() {
       });
       
       // Se tem classificados, garantir que a última rodada seja a de classificação
-      if (participantesClassificados > 0) {
-        // Usar a rodada atual do primeiro classificado
-        const rodadaClassificacao = classificados[0]?.rodada_atual || maxRod;
-        maxRod = Math.max(maxRod, rodadaClassificacao);
+      if (participantesClassificados > 0 && rodadaClassif > maxRod) {
+        maxRod = rodadaClassif;
       }
       
       console.log('Maior rodada:', maxRod);
@@ -162,28 +164,35 @@ export default function EvolucaoPage() {
       for (let i = 1; i <= maxRod; i++) {
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        acumuladoEliminados += eliminadosNestaRodada;
+        // ========== CORREÇÃO PRINCIPAL ==========
+        // Primeiro: calcula os ativos baseado APENAS nos eliminados
+        // Só subtrai o classificado se a rodada atual for >= rodada de classificação
+        let ativosNestaRodada = totalParticipantes - acumuladoEliminados;
         
-        // CORREÇÃO: Ativos = Total - EliminadosAcumulados - Classificados
-        let ativosNestaRodada = totalParticipantes - acumuladoEliminados - participantesClassificados;
+        // Se já passou da rodada de classificação, subtrai os classificados
+        // IMPORTANTE: NA RODADA DE CLASSIFICAÇÃO, O CLASSIFICADO AINDA CONTA COMO ATIVO
+        // Só subtrai a partir da PRÓXIMA rodada
+        if (i > rodadaClassif && rodadaClassif > 0) {
+          ativosNestaRodada = ativosNestaRodada - participantesClassificados;
+        }
         
-        // Se chegou na rodada de classificação, mostrar 0 ativos (só o classificado)
-        const temClassificadoNestaRodada = classificados.some((c: any) => {
-          const rodadaClassificacao = c.rodada_classificacao || c.rodada_atual;
-          return rodadaClassificacao === i;
-        });
+        // Se for a última rodada (classificação), mostrar 0 ativos e mostrar classificado
+        const isClassificacaoRound = (i === rodadaClassif && participantesClassificados > 0);
+        const isLastRound = (i === maxRod && participantesClassificados > 0);
         
-        // Se for a última rodada e tem classificado, mostrar 0 ativos
-        if (i === maxRod && participantesClassificados > 0) {
+        // Se for rodada de classificação OU última rodada com classificado, zera os ativos
+        if (isClassificacaoRound || isLastRound) {
           ativosNestaRodada = 0;
         }
+        
+        acumuladoEliminados += eliminadosNestaRodada;
         
         const variacao = -eliminadosNestaRodada;
         const percentual = totalParticipantes > 0 
           ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
           : 0;
         
-        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, temClassificado=${temClassificadoNestaRodada || (i === maxRod && participantesClassificados > 0)}`);
+        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, rodadaClassif=${rodadaClassif}, isClassificacaoRound=${isClassificacaoRound}`);
         
         statsCalculadas.push({
           rodada: i,

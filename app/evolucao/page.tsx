@@ -20,10 +20,6 @@ export default function EvolucaoPage() {
   const [totalInicial, setTotalInicial] = useState(0);
   const [totalAtivos, setTotalAtivos] = useState(0);
   const [totalEliminadosReais, setTotalEliminadosReais] = useState(0);
-  const [classificado, setClassificado] = useState(0);
-  const [pendentes, setPendentes] = useState(0);
-  const [classificadosList, setClassificadosList] = useState<any[]>([]);
-  const [rodadaClassificacao, setRodadaClassificacao] = useState(0);
 
   useEffect(() => {
     carregarDados();
@@ -43,91 +39,20 @@ export default function EvolucaoPage() {
       console.log('=== DADOS DO CONSOLE ===');
       console.log('Total de participantes:', participantes.length);
       
-      // ========== CONSULTA ESPECÍFICA PARA CLASSIFICADOS ==========
-      let classificados = participantes.filter((p: any) => p.status === 'classificado');
+      // ========== CONTAGEM POR STATUS ==========
+      const ativos = participantes.filter((p: any) => p.status === 'ativo');
       const eliminados = participantes.filter((p: any) => p.status === 'eliminado');
-      let ativos = participantes.filter((p: any) => p.status === 'ativo');
-      
-      // Encontrar a última rodada que teve eliminação
-      let ultimaRodadaComEliminados = 0;
-      eliminadosPorRodada.forEach((item: any) => {
-        const rodada = parseInt(item.rodada_eliminacao);
-        const total = parseInt(item.total);
-        if (total > 0 && rodada > ultimaRodadaComEliminados) {
-          ultimaRodadaComEliminados = rodada;
-        }
-      });
-      
-      console.log('Última rodada com eliminação:', ultimaRodadaComEliminados);
-      
-      // ========== LÓGICA: DETECTAR CLASSIFICADOS AUTOMATICAMENTE ==========
-      let rodadaClassif = 0;
-      
-      if (classificados.length === 0) {
-        // Encontrar a maior rodada atual entre os ativos
-        let maiorRodadaAtiva = 0;
-        ativos.forEach((p: any) => {
-          if (p.rodada_atual && p.rodada_atual > maiorRodadaAtiva) {
-            maiorRodadaAtiva = p.rodada_atual;
-          }
-        });
-        
-        console.log('Maior rodada entre ativos:', maiorRodadaAtiva);
-        
-        // Se a maior rodada ativa é maior que a última com eliminação,
-        // esses participantes são considerados classificados
-        if (maiorRodadaAtiva > ultimaRodadaComEliminados) {
-          const novosClassificados = ativos.filter((p: any) => p.rodada_atual === maiorRodadaAtiva);
-          classificados = novosClassificados;
-          rodadaClassif = maiorRodadaAtiva;
-          // Remover dos ativos
-          ativos = ativos.filter((p: any) => p.rodada_atual !== maiorRodadaAtiva);
-          
-          console.log('🔍 CLASSIFICADOS DETECTADOS AUTOMATICAMENTE:', classificados.length);
-          console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
-            id: p.id,
-            nome: p.nome,
-            status: p.status,
-            rodada_atual: p.rodada_atual
-          })));
-        }
-      } else {
-        // Pega a rodada de classificação do primeiro classificado
-        rodadaClassif = classificados[0]?.rodada_classificacao || classificados[0]?.rodada_atual || 0;
-      }
-      
-      setRodadaClassificacao(rodadaClassif);
-      
-      console.log('Rodada de Classificação:', rodadaClassif);
-      
-      console.log('🔍 CLASSIFICADOS FINAL:', classificados.length);
-      console.log('📋 Lista de Classificados:', classificados.map((p: any) => ({
-        id: p.id,
-        nome: p.nome,
-        status: p.status,
-        rodada_atual: p.rodada_atual,
-        rodada_classificacao: p.rodada_classificacao
-      })));
-      
-      console.log('📋 Lista de ELIMINADOS:', eliminados.length);
-      console.log('📋 Lista de ATIVOS:', ativos.length);
       
       const totalParticipantes = participantes.length;
-      
       const participantesAtivos = ativos.length;
       const participantesEliminados = eliminados.length;
-      const participantesClassificados = classificados.length;
       
       console.log('Status - Ativos:', participantesAtivos);
       console.log('Status - Eliminados:', participantesEliminados);
-      console.log('Status - Classificados:', participantesClassificados);
       
       setTotalInicial(totalParticipantes);
       setTotalAtivos(participantesAtivos);
       setTotalEliminadosReais(participantesEliminados);
-      setClassificado(participantesClassificados);
-      setPendentes(participantesAtivos);
-      setClassificadosList(classificados);
       
       // Mapa de eliminados por rodada
       const eliminadosMap: { [key: number]: number } = {};
@@ -137,26 +62,8 @@ export default function EvolucaoPage() {
       
       console.log('Eliminados Map:', eliminadosMap);
       
-      // ========== CALCULAR RODADAS ==========
-      let maxRod = 1;
-      participantes.forEach((p: any) => {
-        let rodada = 1;
-        if (p.status === 'eliminado' && p.rodada_eliminacao) {
-          rodada = p.rodada_eliminacao;
-        } else if (p.status === 'classificado' && (p.rodada_classificacao || p.rodada_atual)) {
-          rodada = p.rodada_classificacao || p.rodada_atual;
-        } else if (p.status === 'ativo' && p.rodada_atual) {
-          rodada = p.rodada_atual;
-        }
-        if (rodada > maxRod) maxRod = rodada;
-      });
-      
-      // Se tem classificados, garantir que a última rodada seja a de classificação
-      if (participantesClassificados > 0 && rodadaClassif > maxRod) {
-        maxRod = rodadaClassif;
-      }
-      
-      console.log('Maior rodada:', maxRod);
+      // ========== PREPARAR RODADAS ATÉ A 8 ==========
+      const maxRod = 8;
       
       const statsCalculadas: RodadaStats[] = [];
       let acumuladoEliminados = 0;
@@ -164,26 +71,8 @@ export default function EvolucaoPage() {
       for (let i = 1; i <= maxRod; i++) {
         const eliminadosNestaRodada = eliminadosMap[i] || 0;
         
-        // ========== CORREÇÃO PRINCIPAL ==========
-        // Primeiro: calcula os ativos baseado APENAS nos eliminados
-        // Só subtrai o classificado se a rodada atual for >= rodada de classificação
-        let ativosNestaRodada = totalParticipantes - acumuladoEliminados;
-        
-        // Se já passou da rodada de classificação, subtrai os classificados
-        // IMPORTANTE: NA RODADA DE CLASSIFICAÇÃO, O CLASSIFICADO AINDA CONTA COMO ATIVO
-        // Só subtrai a partir da PRÓXIMA rodada
-        if (i > rodadaClassif && rodadaClassif > 0) {
-          ativosNestaRodada = ativosNestaRodada - participantesClassificados;
-        }
-        
-        // Se for a última rodada (classificação), mostrar 0 ativos e mostrar classificado
-        const isClassificacaoRound = (i === rodadaClassif && participantesClassificados > 0);
-        const isLastRound = (i === maxRod && participantesClassificados > 0);
-        
-        // Se for rodada de classificação OU última rodada com classificado, zera os ativos
-        if (isClassificacaoRound || isLastRound) {
-          ativosNestaRodada = 0;
-        }
+        // CORRETO: Ativos = total - eliminados acumulados (rodadas anteriores)
+        const ativosNestaRodada = Math.max(0, totalParticipantes - acumuladoEliminados);
         
         acumuladoEliminados += eliminadosNestaRodada;
         
@@ -192,7 +81,7 @@ export default function EvolucaoPage() {
           ? parseFloat(((ativosNestaRodada / totalParticipantes) * 100).toFixed(1))
           : 0;
         
-        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}, acumulado=${acumuladoEliminados}, rodadaClassif=${rodadaClassif}, isClassificacaoRound=${isClassificacaoRound}`);
+        console.log(`Rodada ${i}: ativos=${ativosNestaRodada}, eliminados=${eliminadosNestaRodada}`);
         
         statsCalculadas.push({
           rodada: i,
@@ -250,12 +139,8 @@ export default function EvolucaoPage() {
           {/* Badges */}
           <div className="flex flex-wrap gap-3">
             <div className="flex flex-col items-center px-5 py-2 rounded-xl bg-[#1a3a1a] border border-[#eab308]/25 backdrop-blur-sm transition-all hover:-translate-y-0.5">
-              <span className="text-2xl font-bold text-[#eab308]">{classificado}</span>
-              <span className="text-[10px] text-[#8aaa8a] uppercase tracking-wider">⭐ Classificado</span>
-            </div>
-            <div className="flex flex-col items-center px-5 py-2 rounded-xl bg-[#1a3a1a] border border-[#22c55e]/15 backdrop-blur-sm transition-all hover:-translate-y-0.5">
-              <span className="text-2xl font-bold text-[#22c55e]">{pendentes}</span>
-              <span className="text-[10px] text-[#8aaa8a] uppercase tracking-wider">⏳ Pendentes</span>
+              <span className="text-2xl font-bold text-[#eab308]">{totalAtivos}</span>
+              <span className="text-[10px] text-[#8aaa8a] uppercase tracking-wider">⭐ Ativos</span>
             </div>
             <div className="flex flex-col items-center px-5 py-2 rounded-xl bg-[#1a3a1a] border border-[#ef4444]/12 backdrop-blur-sm transition-all hover:-translate-y-0.5">
               <span className="text-2xl font-bold text-[#ef4444]">{totalEliminadosReais}</span>
@@ -295,15 +180,13 @@ export default function EvolucaoPage() {
             Linha do Tempo
           </h2>
           
-          <div className="min-w-[750px]">
+          <div className="min-w-[850px]">
             <div className="flex justify-between items-start gap-2 relative py-4">
               {/* Linha de progresso */}
-              <div className="absolute top-[45px] left-[6%] right-[6%] h-[2px] bg-gradient-to-r from-[#eab308] via-[#22c55e] to-[#eab308] opacity-20 rounded-full"></div>
+              <div className="absolute top-[45px] left-[4%] right-[4%] h-[2px] bg-gradient-to-r from-[#eab308] via-[#22c55e] to-[#eab308] opacity-20 rounded-full"></div>
 
               {stats.map((item, index) => {
-                const isLastRound = index === stats.length - 1;
-                const hasClassificado = classificado > 0;
-                const showClassificado = isLastRound && hasClassificado;
+                const isFutura = item.ativos === 0 && item.eliminados === 0 && item.rodada > 1;
                 
                 return (
                   <div key={item.rodada} className="flex-1 text-center min-w-[70px] relative">
@@ -312,13 +195,13 @@ export default function EvolucaoPage() {
                       <div className={`
                         w-14 h-14 rounded-full flex items-center justify-center 
                         border-2 transition-all duration-300 hover:scale-105
-                        ${showClassificado 
-                          ? 'bg-gradient-to-br from-[#eab308]/20 to-[#eab308]/5 border-[#eab308] shadow-[0_0_30px_rgba(234,179,8,0.15)]' 
-                          : 'bg-[#1a3a1a] border-[#eab308]/40'
+                        ${isFutura 
+                          ? 'bg-[#1a2a1a] border-[#2a4a2a]' 
+                          : 'bg-[#1a3a1a] border-[#eab308]/60'
                         }
                       `}>
-                        <span className={`text-xl font-extrabold ${showClassificado ? 'text-[#eab308]' : 'text-[#eab308]'}`}>
-                          {showClassificado ? '⭐' : item.rodada}
+                        <span className={`text-xl font-extrabold ${isFutura ? 'text-[#4a6a4a]' : 'text-[#eab308]'}`}>
+                          {item.rodada}
                         </span>
                       </div>
                     </div>
@@ -326,28 +209,23 @@ export default function EvolucaoPage() {
                     {/* Informações */}
                     <div className="mt-1">
                       <div className="text-[10px] text-[#8aaa8a] tracking-widest mb-1">
-                        {showClassificado ? 'CLASSIFICADO' : `RODADA ${item.rodada}`}
+                        {isFutura ? `RODADA ${item.rodada}` : `RODADA ${item.rodada}`}
                       </div>
-                      <div className={`text-3xl font-extrabold ${showClassificado ? 'text-[#eab308]' : 'text-[#22c55e]'}`}>
-                        {showClassificado ? `★ ${classificado}` : item.ativos}
+                      <div className={`text-3xl font-extrabold ${isFutura ? 'text-[#4a6a4a]' : 'text-[#22c55e]'}`}>
+                        {isFutura ? '—' : item.ativos}
                       </div>
                       <div className="text-[10px] text-[#6a8a6a] mb-1">
-                        {showClassificado ? 'classificado' : 'ativos'}
+                        {isFutura ? 'futura' : 'ativos'}
                       </div>
-                      {!showClassificado && item.eliminados > 0 && (
+                      {!isFutura && item.eliminados > 0 && (
                         <div className="text-[11px] text-[#ef4444]">{item.eliminados} elim.</div>
                       )}
-                      {!showClassificado && item.variacao < 0 && (
+                      {!isFutura && item.variacao < 0 && (
                         <div className="text-[10px] text-[#ef4444] font-semibold mt-1">▼ {Math.abs(item.variacao)}</div>
                       )}
-                      {item.rodada === 1 && !showClassificado && (
+                      {item.rodada === 1 && (
                         <div className="text-[9px] bg-[#eab308]/15 text-[#eab308] px-3 py-0.5 rounded-full inline-block mt-2">
                           🎯 INÍCIO
-                        </div>
-                      )}
-                      {showClassificado && (
-                        <div className="text-[9px] bg-[#eab308]/20 text-[#eab308] px-3 py-0.5 rounded-full inline-block mt-2 border border-[#eab308]/30 animate-pulse">
-                          👑 AVANÇOU!
                         </div>
                       )}
                     </div>
@@ -372,23 +250,11 @@ export default function EvolucaoPage() {
               <span className="text-[#8aaa8a] text-xs">Progressão</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#eab308] shadow-[0_0_15px_rgba(234,179,8,0.3)]"></div>
-              <span className="text-[#8aaa8a] text-xs">⭐ Classificado</span>
+              <div className="w-3 h-3 rounded-full bg-[#2a4a2a] border border-[#4a6a4a]"></div>
+              <span className="text-[#8aaa8a] text-xs">Rodada Futura</span>
             </div>
           </div>
         </div>
-
-        {/* ========== PENDENTES BAR ========== */}
-        {pendentes > 0 && (
-          <div className="flex items-center justify-center gap-4 flex-wrap p-4 rounded-xl bg-[#22c55e]/5 border border-[#22c55e]/15">
-            <span className="text-2xl">⏳</span>
-            <span className="text-[#8aaa8a] text-sm">Próxima rodada:</span>
-            <span className="text-2xl font-bold text-[#22c55e]">{pendentes}</span>
-            <span className="text-[#8aaa8a] text-sm">
-              participantes disputam as <span className="text-white font-medium">vagas restantes</span>
-            </span>
-          </div>
-        )}
 
         {/* ========== FOOTER ========== */}
         <div className="text-center mt-8">

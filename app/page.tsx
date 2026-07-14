@@ -85,25 +85,31 @@ export default function Home() {
     return 'text-gray-500';
   };
 
-  // ========== DETECTAR CAMPEÕES ==========
+  // ========== DETECTAR CAMPEÕES (VERSÃO CORRIGIDA) ==========
+  // Encontrar a maior rodada alcançada por qualquer participante
   const maiorRodadaGeral = participantes.reduce((max, p) => {
-    const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
+    // Usar rodada_eliminacao se existir, senão rodada_atual
+    const rodada = p.rodada_eliminacao || p.rodada_atual || 1;
     return Math.max(max, rodada);
   }, 1);
 
   // Verificar se a competição acabou (não há mais participantes ativos)
   const competicaoTerminou = participantes.filter(p => p.status === 'ativo').length === 0;
 
-  // Se a competição terminou, os campeões são os participantes que chegaram à maior rodada e têm mais pontos
-  const maxPontos = competicaoTerminou 
-    ? Math.max(...participantes.filter(p => (p.rodada_atual || p.rodada_eliminacao || 1) === maiorRodadaGeral).map(p => p.pontos || 0))
+  // Encontrar os participantes que chegaram à maior rodada
+  const participantesNaMaiorRodada = participantes.filter(p => {
+    const rodada = p.rodada_eliminacao || p.rodada_atual || 1;
+    return rodada === maiorRodadaGeral;
+  });
+
+  // Encontrar a maior pontuação entre eles
+  const maxPontos = competicaoTerminou && participantesNaMaiorRodada.length > 0
+    ? Math.max(...participantesNaMaiorRodada.map(p => p.pontos || 0))
     : 0;
 
-  const campeoes = competicaoTerminou 
-    ? participantes.filter(p => 
-        (p.rodada_atual || p.rodada_eliminacao || 1) === maiorRodadaGeral && 
-        (p.pontos || 0) === maxPontos
-      )
+  // Campeões = participantes que chegaram à maior rodada E têm a maior pontuação
+  const campeoes = competicaoTerminou && maxPontos > 0
+    ? participantesNaMaiorRodada.filter(p => (p.pontos || 0) === maxPontos)
     : [];
 
   // Calcular a maior rodada entre os ativos (para destaque)

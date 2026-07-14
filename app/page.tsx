@@ -85,7 +85,28 @@ export default function Home() {
     return 'text-gray-500';
   };
 
-  // Calcular a maior rodada entre os ativos
+  // ========== DETECTAR CAMPEÕES ==========
+  const maiorRodadaGeral = participantes.reduce((max, p) => {
+    const rodada = p.status === 'ativo' ? (p.rodada_atual || 1) : (p.rodada_eliminacao || 1);
+    return Math.max(max, rodada);
+  }, 1);
+
+  // Verificar se a competição acabou (não há mais participantes ativos)
+  const competicaoTerminou = participantes.filter(p => p.status === 'ativo').length === 0;
+
+  // Se a competição terminou, os campeões são os participantes que chegaram à maior rodada e têm mais pontos
+  const maxPontos = competicaoTerminou 
+    ? Math.max(...participantes.filter(p => (p.rodada_atual || p.rodada_eliminacao || 1) === maiorRodadaGeral).map(p => p.pontos || 0))
+    : 0;
+
+  const campeoes = competicaoTerminou 
+    ? participantes.filter(p => 
+        (p.rodada_atual || p.rodada_eliminacao || 1) === maiorRodadaGeral && 
+        (p.pontos || 0) === maxPontos
+      )
+    : [];
+
+  // Calcular a maior rodada entre os ativos (para destaque)
   const maiorRodada = participantes
     .filter(p => p.status === 'ativo')
     .reduce((max, p) => Math.max(max, p.rodada_atual || 1), 0);
@@ -105,39 +126,8 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-black">
       <GlobalHeader />
 
-      {/* ✅ Banner de divulgação - Campeonato Brasileiro 2026 - COMENTADO PARA NÃO SUBIR AINDA */}
-      {/* <div className="relative overflow-hidden bg-gradient-to-r from-green-900/60 via-yellow-900/40 to-green-900/60 border border-yellow-500/30 rounded-xl mx-4 mt-4 mb-2 p-3 shadow-lg shadow-yellow-500/5">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/30 animate-pulse">
-              <span className="text-yellow-500 text-lg font-bold">⚽</span>
-            </div>
-            <div>
-              <p className="text-white text-sm font-semibold">
-                Estrategista do <span className="text-yellow-500">Campeonato Brasileiro</span> 2026
-              </p>
-              <p className="text-gray-400 text-xs">
-                Em breve você poderá palpitar no Brasileirão também! 🏆
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-yellow-500 text-xs font-medium bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
-              🚀 Em breve
-            </span>
-            <Link
-              href="/brasileirao"
-              className="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition-colors duration-200 hover:underline"
-            >
-              Saiba mais →
-            </Link>
-          </div>
-        </div>
-      </div> */}
-
       <div className="container mx-auto px-4 py-6 sm:py-8">
         
-        {/* Hero Section */}
         <div className="text-center mb-6">
           <p className="text-yellow-500 font-semibold tracking-wider text-xs sm:text-sm mb-1 uppercase">
             Copa do Mundo 2026
@@ -150,7 +140,6 @@ export default function Home() {
           </p>
         </div>
         
-        {/* Cards de Regras */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           <div className="bg-white/5 rounded-lg p-3 text-center border border-yellow-500/30 hover:border-yellow-500/50 transition-all group">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -182,7 +171,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Cards de Estatísticas - 3 cards originais */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
           <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 rounded-xl p-2 sm:p-4 text-center border border-green-500/30">
             <Users className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1" />
@@ -201,7 +189,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Botão WhatsApp */}
         <div className="flex justify-center mb-8">
           <a
             href="https://chat.whatsapp.com/EIfDnDerrlG5bChfSY2wDK"
@@ -214,7 +201,6 @@ export default function Home() {
           </a>
         </div>
 
-        {/* Ranking dos Participantes */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 mb-8 overflow-hidden shadow-2xl">
           <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-500/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -269,6 +255,7 @@ export default function Home() {
                   const posicaoClass = getPosicaoClass(posicao);
                   
                   const isDestaque = p.status === 'ativo' && (p.rodada_atual || 1) === maiorRodada && maiorRodada > 1;
+                  const isCampeao = campeoes.some(c => c.id === p.id);
                   
                   const temPalpite = p.palpite_atual && (modoTeste || p.palpite_atual_visivel);
                   const palpiteOculto = p.palpite_atual && !modoTeste && !p.palpite_atual_visivel;
@@ -280,7 +267,6 @@ export default function Home() {
                         isDestaque ? 'rodada-destaque' : ''
                       }`}
                     >
-                      {/* Esquerda: Posição + Nome + Palpite (com OPÇÃO 3 - Brilho Animado) */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <span className={`text-xs sm:text-sm w-6 sm:w-8 font-bold ${posicaoClass} transition-all duration-200 group-hover:scale-110`}>
                           {posicao}.
@@ -289,14 +275,17 @@ export default function Home() {
                           isDestaque ? 'text-yellow-400' : 'text-white'
                         }`}>
                           {p.nome}
+                          {isCampeao && (
+                            <span className="ml-2 text-yellow-500 animate-pulse" title="🏆 Campeão!">
+                              🏆
+                            </span>
+                          )}
                         </span>
                         
                         {temPalpite && (
                           <div className="relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-yellow-300 overflow-hidden border border-yellow-500/30 shadow-lg shadow-yellow-500/10">
-                            {/* Fundo com efeito de brilho */}
                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/20 via-yellow-400/10 to-yellow-600/20"></div>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent animate-pulse"></div>
-                            {/* Conteúdo */}
                             <span className="relative z-10 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></span>
                               🎯 {p.palpite_atual}
@@ -311,7 +300,6 @@ export default function Home() {
                         )}
                       </div>
                       
-                      {/* Direita: Rodada ou Eliminado */}
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all duration-200 group-hover:scale-105 ${
                           isDestaque 
@@ -323,7 +311,7 @@ export default function Home() {
                           <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
                             isDestaque ? 'bg-yellow-400' : p.status === 'eliminado' ? 'bg-red-400' : 'bg-green-400'
                           }`}></span>
-                          {p.status === 'eliminado' ? `Eliminado (Rodada ${rodadaAtual})` : `Rodada ${rodadaAtual}`}
+                          {isCampeao ? '🏆 CAMPEÃO' : p.status === 'eliminado' ? `Eliminado (Rodada ${rodadaAtual})` : `Rodada ${rodadaAtual}`}
                         </span>
                         
                         <button
@@ -342,13 +330,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center text-gray-500 text-xs">
           <p>© {new Date().getFullYear()} Estrategista da Copa - Todos os direitos reservados</p>
         </div>
       </div>
 
-      {/* Modal de Histórico */}
       {modalAberto && participanteSelecionado && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 w-full max-w-md border border-yellow-600/30 shadow-2xl">

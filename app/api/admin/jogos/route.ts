@@ -135,6 +135,57 @@ export async function POST(request: Request) {
         eliminados++
         eliminadosIds.push(p.id)
       }
+
+      // ========== NOVA LÓGICA: ELIMINAR QUEM NÃO TEM TIMES DISPONÍVEIS ==========
+      const proximaRodada = rodada + 1;
+      
+      // Verificar se a próxima rodada existe (até a final)
+      if (proximaRodada <= 8) {
+        // Buscar todos os times que jogam na próxima rodada
+        const timesDaProximaRodada = await sql`
+          SELECT DISTINCT t.id, t.nome
+          FROM times t
+          WHERE t.nome IN (
+            SELECT time_casa FROM jogos WHERE rodada = ${proximaRodada}
+            UNION
+            SELECT time_fora FROM jogos WHERE rodada = ${proximaRodada}
+          )
+        `
+
+        // Para cada participante ativo, verificar se ele tem times disponíveis
+        const participantesAtivos = await sql`
+          SELECT u.id, u.nome
+          FROM usuarios u
+          WHERE u.status = 'ativo'
+            AND u.email != 'admin@estrategista.com'
+        `
+
+        for (const p of participantesAtivos) {
+          // Buscar times que o participante já usou
+          const timesUsados = await sql`
+            SELECT DISTINCT p.time_id
+            FROM palpites p
+            WHERE p.usuario_id = ${p.id}
+          `
+          const timesUsadosIds = timesUsados.map(t => t.time_id)
+
+          // Filtrar times disponíveis (times da rodada - times usados)
+          const timesDisponiveis = timesDaProximaRodada.filter(t => !timesUsadosIds.includes(t.id))
+
+          // Se não tiver times disponíveis, eliminar
+          if (timesDisponiveis.length === 0) {
+            await sql`
+              UPDATE usuarios 
+              SET status = 'eliminado', rodada_eliminacao = ${rodada} 
+              WHERE id = ${p.id}
+            `
+            eliminados++
+            eliminadosIds.push(p.id)
+            console.log(`❌ Eliminado por falta de times disponíveis: ${p.nome}`)
+          }
+        }
+      }
+      // =====================================================
     }
 
     // Registrar log de eliminação
